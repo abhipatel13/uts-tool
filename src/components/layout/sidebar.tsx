@@ -21,17 +21,16 @@ const sidebarNavItems = [
     icon: Shield,
     subItems: [
       { title: "Task Hazard", href: "/safety/task-hazard" },
-      { title: "Risk Assessment", href: "/safety/risk-assessment" },
-      { title: "Criticality", href: "/safety/criticality" }
+      { title: "Risk Assessment", href: "/safety/risk-assessment" }    
     ],
   },
   {
-    title: "Inspections / Tasks",
+    title: "Inspections",
     href: "/inspections",
     icon: ClipboardCheck,
   },
   {
-    title: "Analytics / Reporting",
+    title: "Reporting",
     href: "/analytics",
     icon: BarChart3,
   },
