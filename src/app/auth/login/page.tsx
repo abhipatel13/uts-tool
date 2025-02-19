@@ -10,7 +10,17 @@ const VALID_CREDENTIALS = [
   {
     email: "jagpreet.a@utahtechnicalservicesllc.com",
     password: "test",
-    company: "UTAH TECH SERVICES" || "Utah Technical Services" || "Utah Technical Services LLC"
+    company: "UTAH TECH SERVICES"
+  },
+  {
+    email: "jagpreet.a@utahtechnicalservicesllc.com",
+    password: "test",
+    company: "Utah Technical Services"
+  },
+  {
+    email: "jagpreet.a@utahtechnicalservicesllc.com",
+    password: "test",
+    company: "Utah Technical Services LLC"
   }
 ]
 

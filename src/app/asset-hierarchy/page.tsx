@@ -143,8 +143,8 @@ const AssetHierarchy = () => {
     })
   }
 
-  const renderAssetRows = (assets: Asset[]): JSX.Element[] => {
-    return assets.reduce((rows: JSX.Element[], asset) => {
+  const renderAssetRows = (assets: Asset[]): React.ReactElement[] => {
+    return assets.reduce((rows: React.ReactElement[], asset) => {
       const isExpanded = expandedAssets.has(asset.id)
       
       rows.push(
