@@ -115,22 +115,24 @@ export function Sidebar() {
     return (
       <>
         <div className={cn(
-          "px-4 py-2",
-          isCollapsed && "flex justify-center"
+          "px-4 py-2 flex items-center",
+          isCollapsed ? "justify-center" : "justify-center",
+          // "mt-10"
         )}>
           <Image 
             src="/uts-logo.jpg" 
             alt="UTS Logo" 
             className={cn(
               "transition-all duration-300 rounded-lg",
-              isCollapsed ? "h-8 w-8" : "h-24"
+              isCollapsed ? "h-8 w-8" : "h-24 w-auto"
             )} 
             width={210}
             height={64}
+            priority
           />
         </div>
 
-        <ScrollArea className="h-[calc(100vh-64px)] px-3">
+        <ScrollArea className="h-[calc(100vh-10rem)]">
           <div className="space-y-4 py-4">
             {sidebarNavItems.map((item) => (
               <div key={item.href} className="px-3 py-2">
@@ -246,7 +248,7 @@ export function Sidebar() {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-4 left-4 z-50 lg:hidden"
+        className="fixed top-2 left-2 z-50 lg:hidden"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
       >
         {isMobileOpen ? (
@@ -262,20 +264,20 @@ export function Sidebar() {
         isMobileOpen ? "block" : "hidden"
       )}>
         <div className="fixed inset-0 bg-black/80" onClick={() => setIsMobileOpen(false)} />
-        <div className="fixed inset-y-0 left-0 w-64 bg-[#2C3E50] pt-16">
+        <div className="fixed inset-y-0 left-0 w-64 bg-[#2C3E50] pt-4">
           <SidebarContent />
         </div>
       </div>
 
       {/* Desktop Sidebar */}
       <div className={cn(
-        "relative hidden lg:block border-r bg-[#2C3E50] pt-16 transition-all duration-300",
+        "relative hidden lg:block bg-[#2C3E50] h-screen transition-all duration-300",
         isCollapsed ? "w-16" : "w-64"
       )}>
         <Button
           variant="ghost"
           size="icon"
-          className="absolute -right-3 top-20 h-6 w-6 rounded-full border bg-background"
+          className="absolute -right-3 top-4 h-6 w-6 rounded-full border bg-background"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? (

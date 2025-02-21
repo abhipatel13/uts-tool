@@ -62,9 +62,9 @@ export default function TaskHazard() {
         <h1 className="text-2xl font-bold">Task Hazard</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#00A3FF] hover:bg-[#00A3FF]/90">
-              + ADD NEW TASK
-            </Button>
+          <Button className="bg-[rgba(44,62,80,0.9)] hover:bg-[rgba(44,62,80,0.9)] text-white">
+  + ADD NEW TASK
+</Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
