@@ -12,10 +12,10 @@ const RevenueRiskMatrix = () => {
   ]
 
   const consequences = [
-    { label: "Minor Injury", subLabel: "<2% Impact to Revenue", value: 1 },
+    { label: "Minor", subLabel: "<2% Impact to Revenue", value: 1 },
     { label: "Significant", subLabel: "2-6% Impact to Revenue", value: 2 },
-    { label: "Serious Injury", subLabel: "6-12% Impact to Revenue", value: 3 },
-    { label: "Major Injury", subLabel: "12-24% Impact to Revenue", value: 4 },
+    { label: "Serious", subLabel: "6-12% Impact to Revenue", value: 3 },
+    { label: "Major", subLabel: "12-24% Impact to Revenue", value: 4 },
     { label: "Catastrophic", subLabel: ">25% Impact to Revenue", value: 5 }
   ]
 
@@ -42,7 +42,7 @@ const RevenueRiskMatrix = () => {
                   {consequences.map((cons) => (
                     <th key={cons.label} className="border p-2 text-center w-28">
                       <div className="font-bold">{cons.label}</div>
-                      <div className="text-sm">{cons.subLabel}</div>
+                      <div className="text-red-500 text-sm font-normal">{cons.subLabel}</div>
                       <div className="font-bold">{cons.value}</div>
                     </th>
                   ))}
@@ -55,7 +55,7 @@ const RevenueRiskMatrix = () => {
                       <div className="font-bold">{like.label}</div>
                       <div className="text-red-500 text-sm">{like.value}</div>
                     </td>
-                    <td className="border p-2 text-center font-bold">
+                    <td className="border p-2 text-center font-bold h-20 w-40">
                       {like.multiplier}
                     </td>
                     {consequences.map((cons) => {
@@ -63,7 +63,7 @@ const RevenueRiskMatrix = () => {
                       return (
                         <td 
                           key={`${like.label}-${cons.label}`}
-                          className={`border p-2 text-center font-bold ${getCellColor(value)}`}
+                          className={`border p-2 text-center font-bold h-20 w-40 ${getCellColor(value)}`}
                         >
                           {value}
                         </td>

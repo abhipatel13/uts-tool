@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const config: NextConfig = {
+  server: {
+    host: '0.0.0.0',
+  },
 };
 
-export default nextConfig;
+export default config;

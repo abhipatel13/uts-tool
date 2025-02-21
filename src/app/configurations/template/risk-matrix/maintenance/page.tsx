@@ -12,10 +12,10 @@ const MaintenanceRiskMatrix = () => {
   ]
 
   const consequences = [
-    { label: "Minor Injury", subLabel: "<5% Impact to Maintenance Budget", value: 1 },
+    { label: "Minor", subLabel: "<5% Impact to Maintenance Budget", value: 1 },
     { label: "Significant", subLabel: "5-10% Impact to Maintenance Budget", value: 2 },
-    { label: "Serious Injury", subLabel: "20-30% Impact to Maintenance Budget", value: 3 },
-    { label: "Major Injury", subLabel: "30-40% Impact to Maintenance Budget", value: 4 },
+    { label: "Serious", subLabel: "20-30% Impact to Maintenance Budget", value: 3 },
+    { label: "Major", subLabel: "30-40% Impact to Maintenance Budget", value: 4 },
     { label: "Catastrophic", subLabel: ">41% Impact to Maintenance Budget", value: 5 }
   ]
 
@@ -37,13 +37,13 @@ const MaintenanceRiskMatrix = () => {
             <table className="min-w-full border-collapse">
               <thead>
                 <tr>
-                  <th className="border p-2 w-32"></th>
-                  <th className="border p-2 w-20">Multiplier</th>
+                  <th className="border p-2 w-40"></th>
+                  <th className="border p-2 w-40">Multiplier</th>
                   {consequences.map((cons) => (
-                    <th key={cons.label} className="border p-2 text-center w-28">
-                      <div className="font-bold">{cons.label}</div>
-                      <div className="text-sm">{cons.subLabel}</div>
-                      <div className="font-bold">{cons.value}</div>
+                    <th key={cons.label} className="border p-2 text-center w-40">
+                      <div>{cons.label}</div>
+                      <div className="text-red-500 text-sm font-normal">{cons.subLabel}</div>
+                      <div>{cons.value}</div>
                     </th>
                   ))}
                 </tr>
@@ -55,7 +55,7 @@ const MaintenanceRiskMatrix = () => {
                       <div className="font-bold">{like.label}</div>
                       <div className="text-red-500 text-sm">{like.value}</div>
                     </td>
-                    <td className="border p-2 text-center font-bold">
+                    <td className="border p-2 text-center font-bold h-20 w-40">
                       {like.multiplier}
                     </td>
                     {consequences.map((cons) => {
@@ -63,7 +63,7 @@ const MaintenanceRiskMatrix = () => {
                       return (
                         <td 
                           key={`${like.label}-${cons.label}`}
-                          className={`border p-2 text-center font-bold ${getCellColor(value)}`}
+                          className={`border p-2 text-center font-bold h-20 w-40 ${getCellColor(value)}`}
                         >
                           {value}
                         </td>

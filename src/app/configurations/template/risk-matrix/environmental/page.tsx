@@ -12,10 +12,10 @@ const EnvironmentalRiskMatrix = () => {
   ]
 
   const consequences = [
-    { label: "Minor Injury", subLabel: "Near Source - Non Reportable - Cleanup <1Shift", value: 1 },
+    { label: "Minor", subLabel: "Near Source - Non Reportable - Cleanup <1Shift", value: 1 },
     { label: "Significant", subLabel: "Near Source - Reportable - Cleanup <1Shift", value: 2 },
-    { label: "Serious Injury", subLabel: "Near Source - Reportable - Cleanup <4WKS", value: 3 },
-    { label: "Major Injury", subLabel: "Near Source - Reportable - Cleanup <52WKS", value: 4 },
+    { label: "Serious", subLabel: "Near Source - Reportable - Cleanup <4WKS", value: 3 },
+    { label: "Major", subLabel: "Near Source - Reportable - Cleanup <52WKS", value: 4 },
     { label: "Catastrophic", subLabel: "Near Source - Reportable - Cleanup <1WK", value: 5 }
   ]
 
@@ -42,7 +42,7 @@ const EnvironmentalRiskMatrix = () => {
                   {consequences.map((cons) => (
                     <th key={cons.label} className="border p-2 text-center w-28">
                       <div className="font-bold">{cons.label}</div>
-                      <div className="text-sm">{cons.subLabel}</div>
+                      <div className="text-red-500 text-sm font-normal">{cons.subLabel}</div>
                       <div className="font-bold">{cons.value}</div>
                     </th>
                   ))}
@@ -55,7 +55,7 @@ const EnvironmentalRiskMatrix = () => {
                       <div className="font-bold">{like.label}</div>
                       <div className="text-red-500 text-sm">{like.value}</div>
                     </td>
-                    <td className="border p-2 text-center font-bold">
+                    <td className="border p-2 text-center font-bold h-20 w-40">
                       {like.multiplier}
                     </td>
                     {consequences.map((cons) => {
@@ -63,7 +63,7 @@ const EnvironmentalRiskMatrix = () => {
                       return (
                         <td 
                           key={`${like.label}-${cons.label}`}
-                          className={`border p-2 text-center font-bold ${getCellColor(value)}`}
+                          className={`border p-2 text-center font-bold h-20 w-40 ${getCellColor(value)}`}
                         >
                           {value}
                         </td>

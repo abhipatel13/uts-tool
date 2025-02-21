@@ -12,10 +12,10 @@ const ProcessRiskMatrix = () => {
   ]
 
   const consequences = [
-    { label: "Minor Injury", subLabel: "Production Loss < 10 Days", value: 1 },
+    { label: "Minor", subLabel: "Production Loss < 10 Days", value: 1 },
     { label: "Significant", subLabel: "Production Loss 10 - 20 Days", value: 2 },
-    { label: "Serious Injury", subLabel: "Production Loss 20 - 40 Days", value: 3 },
-    { label: "Major Injury", subLabel: "Production Loss 40 - 80 Days", value: 4 },
+    { label: "Serious", subLabel: "Production Loss 20 - 40 Days", value: 3 },
+    { label: "Major", subLabel: "Production Loss 40 - 80 Days", value: 4 },
     { label: "Catastrophic", subLabel: "Production Loss >81 Days", value: 5 }
   ]
 
@@ -42,7 +42,7 @@ const ProcessRiskMatrix = () => {
                   {consequences.map((cons) => (
                     <th key={cons.label} className="border p-2 text-center w-28">
                       <div className="font-bold">{cons.label}</div>
-                      <div className="text-sm">{cons.subLabel}</div>
+                      <div className="text-red-500 text-sm font-normal">{cons.subLabel}</div>
                       <div className="font-bold">{cons.value}</div>
                     </th>
                   ))}
@@ -55,7 +55,7 @@ const ProcessRiskMatrix = () => {
                       <div className="font-bold">{like.label}</div>
                       <div className="text-red-500 text-sm">{like.value}</div>
                     </td>
-                    <td className="border p-2 text-center font-bold">
+                    <td className="border p-2 text-center font-bold h-20 w-40">
                       {like.multiplier}
                     </td>
                     {consequences.map((cons) => {
@@ -63,7 +63,7 @@ const ProcessRiskMatrix = () => {
                       return (
                         <td 
                           key={`${like.label}-${cons.label}`}
-                          className={`border p-2 text-center font-bold ${getCellColor(value)}`}
+                          className={`border p-2 text-center font-bold h-20 w-40 ${getCellColor(value)}`}
                         >
                           {value}
                         </td>
