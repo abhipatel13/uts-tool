@@ -5,6 +5,7 @@ import "./globals.css"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { usePathname } from "next/navigation"
+import { Providers } from "@/app/providers"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -19,21 +20,25 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {isAuthPage ? (
-          <div className="h-screen">
-            {children}
-          </div>
-        ) : (
-          <div className="flex h-screen">
-            <Sidebar />
-            <div className="flex-1 flex flex-col">
-              <Header />
-              <main className="flex-1 p-8">
-                {children}
-              </main>
+        <Providers>
+          {isAuthPage ? (
+            <div className="h-screen">
+              {children}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex h-screen">
+              <Sidebar>
+                {children}
+              </Sidebar>
+              <div className="flex-1 flex flex-col">
+                <Header />
+                <main className="flex-1 p-8">
+                  {children}
+                </main>
+              </div>
+            </div>
+          )}
+        </Providers>
       </body>
     </html>
   )
