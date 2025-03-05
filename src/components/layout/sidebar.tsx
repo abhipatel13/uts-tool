@@ -17,31 +17,48 @@ interface NavItem {
 
 const CustomIcons = {
   AssetHierarchy: ({ className }: { className?: string }) => (
-    <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2L2 7L12 12L22 7L12 2Z" />
-      <path d="M2 17L12 22L22 17" />
-      <path d="M2 12L12 17L22 12" />
-    </svg>
+    <div className={className}>
+    <Image
+      src="/asset-hierarchy.png"
+      alt="Asset Hierarchy"
+      width={60}
+      height={60}
+      priority
+    />
+  </div>
   ),
   Safety: ({ className }: { className?: string }) => (
-    <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 4L3 7V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V7L12 4Z" />
-      <path d="M8 12H16M12 8V16" stroke="currentColor" strokeWidth="2" fill="none"/>
-    </svg>
+    <div className={className}>
+      <Image
+        src="/safety-hat.png"
+        alt="Safety"
+        width={60}
+        height={60}
+        priority
+      />
+    </div>
   ),
   Analytics: ({ className }: { className?: string }) => (
-    <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M3 20H21V18H3V20Z" />
-      <path d="M7 16V11H5V16H7Z" />
-      <path d="M11 16V6H9V16H11Z" />
-      <path d="M15 16V13H13V16H15Z" />
-      <path d="M19 16V8H17V16H19Z" />
-    </svg>
+    <div className={className}>
+      <Image
+        src="/analytics.png"
+        alt="Analytics"
+        width={60}
+        height={60}
+        priority
+      />
+    </div>
   ),
   Configurations: ({ className }: { className?: string }) => (
-    <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-2.77 11.6 1 1 0 0 0-1 1V21a1 1 0 0 0 1 1a10 10 0 0 0 3.3-19.4l3.5-3.5a1 1 0 0 0-1.4-1.4L20 1.3a1 1 0 0 0 0 1.4l-1.6 1.6a1 1 0 0 0 0 1.4l-2.3 2.3a1 1 0 0 0-1.4 0l-2.3-2.3a1 1 0 0 0 0-1.4l1.6-1.6a1 1 0 0 0 0-1.4L12.7 .3a1 1 0 0 0-1.4 1.4l3.5 3.5a10 10 0 0 0-19.4-3.3 1 1 0 0 0 1 1h2.1a1 1 0 0 0 1-1 6 6 0 0 1 11.6 2.77L7.7 7.7a1 1 0 0 0 0 1.4l2.3 2.3a1 1 0 0 0 1.4 0l2.3-2.3a1 1 0 0 0 0-1.4l1.6-1.6z"/>
-    </svg>
+    <div className={className}>
+      <Image
+        src="/configurations.png"
+        alt="Configurations"
+        width={60}
+        height={60}
+        priority
+      />
+    </div>
   ),
 }
 
@@ -176,11 +193,9 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
                   >
                     <div className="flex items-center gap-3">
                       {item.icon && (
-                        <div className={cn(
-                          "p-1.5 rounded-lg",
-                          item.iconBg
-                        )}>
-                          <item.icon className="h-4 w-4 text-white" />
+                        <div 
+                      >
+                          <item.icon className="h-8 w-8 text-white" />
                         </div>
                       )}
                       {!isCollapsed && <span className="text-sm text-white">{item.title}</span>}
@@ -320,7 +335,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
                                 "p-1.5 rounded-lg",
                                 item.iconBg
                               )}>
-                                <item.icon className="h-4 w-4 text-white" />
+                                <item.icon className="h-8 w-8 text-white" />
                               </div>
                             )}
                             <span className="text-sm text-white">{item.title}</span>

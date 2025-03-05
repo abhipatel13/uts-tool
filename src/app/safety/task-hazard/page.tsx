@@ -39,13 +39,43 @@ export default function TaskHazard() {
   const [open, setOpen] = useState(false)
   const [newTask, setNewTask] = useState({
     id: "",
+    date: "",
+    time: "",
     scopeOfWork: "",
-    dateTime: "",
-    associatedRisk: "",
+    assetSystem: "",
+    systemLockoutRequired: false,
+    trainedWorkforce: "",
+    riskTypePersonnel: "",
+    asIsLikelihood: "",
+    asIsConsequence: "",
+    mitigationLikelihood: "",
+    mitigationConsequence: "",
+    mitigatingActionType: "",
+    individual: "",
+    supervisor: "",
+    status: "Active",
     location: "",
-    highestUnmitigated: "",
-    status: "Active"
   })
+
+  // Function to set current date and time
+  const setCurrentDateTime = () => {
+    const now = new Date()
+    const currentDate = now.toISOString().split('T')[0]
+    const currentTime = now.toTimeString().slice(0, 5)
+    setNewTask(prev => ({
+      ...prev,
+      date: currentDate,
+      time: currentTime
+    }))
+  }
+
+  // Update Dialog to set date/time when opened
+  const handleDialogChange = (newOpenState: boolean) => {
+    setOpen(newOpenState)
+    if (newOpenState) {
+      setCurrentDateTime()
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,15 +93,15 @@ export default function TaskHazard() {
             className="w-[300px]" 
             placeholder="Search field"
           />
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={handleDialogChange}>
             <DialogTrigger asChild>
               <Button className="bg-[#00A3FF] hover:bg-[#00A3FF]/90 gap-2">
                 <Plus className="h-4 w-4" /> ADD NEW
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add New Task</DialogTitle>
+                <DialogTitle>Add New Task Hazard Assessment</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -84,7 +114,133 @@ export default function TaskHazard() {
                       placeholder="Enter Task ID"
                     />
                   </div>
-                  {/* Add other form fields similarly */}
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={newTask.date}
+                      onChange={(e) => setNewTask({...newTask, date: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Time</Label>
+                    <Input
+                      id="time"
+                      type="time"
+                      value={newTask.time}
+                      onChange={(e) => setNewTask({...newTask, time: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="scopeOfWork">Scope of Work</Label>
+                    <Input
+                      id="scopeOfWork"
+                      value={newTask.scopeOfWork}
+                      onChange={(e) => setNewTask({...newTask, scopeOfWork: e.target.value})}
+                      placeholder="Enter scope of work"
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="assetSystem">Asset or System being worked on</Label>
+                    <Input
+                      id="assetSystem"
+                      value={newTask.assetSystem}
+                      onChange={(e) => setNewTask({...newTask, assetSystem: e.target.value})}
+                      placeholder="Enter asset or system"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="systemLockout">System Lockout Required</Label>
+                    <select
+                      id="systemLockout"
+                      className="w-full rounded-md border border-input px-3 py-2"
+                      value={newTask.systemLockoutRequired.toString()}
+                      onChange={(e) => setNewTask({...newTask, systemLockoutRequired: e.target.value === 'true'})}
+                    >
+                      <option value="false">No</option>
+                      <option value="true">Yes</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="trainedWorkforce">Trained/Competent Workforce</Label>
+                    <Input
+                      id="trainedWorkforce"
+                      value={newTask.trainedWorkforce}
+                      onChange={(e) => setNewTask({...newTask, trainedWorkforce: e.target.value})}
+                      placeholder="Enter workforce details"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Associated Risks</Label>
+                    <select
+                      className="w-full rounded-md border border-input px-3 py-2"
+                      value={newTask.asIsLikelihood}
+                      onChange={(e) => setNewTask({...newTask, asIsLikelihood: e.target.value})}
+                    >
+                      <option value="">Select Likelihood</option>
+                      <option value="Very Unlikely">Very Unlikely</option>
+                      <option value="Unlikely">Unlikely</option>
+                      <option value="Possible">Possible</option>
+                      <option value="Likely">Likely</option>
+                      <option value="Very Likely">Very Likely</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Consequence</Label>
+                    <select
+                      className="w-full rounded-md border border-input px-3 py-2"
+                      value={newTask.asIsConsequence}
+                      onChange={(e) => setNewTask({...newTask, asIsConsequence: e.target.value})}
+                    >
+                      <option value="">Select Consequence</option>
+                      <option value="Negligible">Negligible</option>
+                      <option value="Minor">Minor</option>
+                      <option value="Moderate">Moderate</option>
+                      <option value="Major">Major</option>
+                      <option value="Severe">Severe</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mitigating Action Type</Label>
+                    <select
+                      className="w-full rounded-md border border-input px-3 py-2"
+                      value={newTask.mitigatingActionType}
+                      onChange={(e) => setNewTask({...newTask, mitigatingActionType: e.target.value})}
+                    >
+                      <option value="">Select Type</option>
+                      <option value="Elimination">Elimination</option>
+                      <option value="Control">Control</option>
+                      <option value="Administrative">Administrative</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="individual">Individual/Team</Label>
+                    <Input
+                      id="individual"
+                      value={newTask.individual}
+                      onChange={(e) => setNewTask({...newTask, individual: e.target.value})}
+                      placeholder="Enter individual or team"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="supervisor">Supervisor</Label>
+                    <Input
+                      id="supervisor"
+                      value={newTask.supervisor}
+                      onChange={(e) => setNewTask({...newTask, supervisor: e.target.value})}
+                      placeholder="Enter supervisor name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={newTask.location}
+                      onChange={(e) => setNewTask({...newTask, location: e.target.value})}
+                      placeholder="Enter location"
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>
