@@ -559,6 +559,11 @@ export default function TaskHazard() {
                                     requiresSupervisorSignature: enableSupervisorSignature && score > 9
                                   }
                               updateRisk(activeRiskId, updates)
+                              
+                              if (!isAsIsMatrix && enableSupervisorSignature && score > 9) {
+                                setShowRiskMatrix(false)
+                                setTimeout(() => navigateToSupervisorSignOff(activeRiskId), 100)
+                              }
                             }
                           }}
                         >

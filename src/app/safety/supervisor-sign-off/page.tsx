@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,7 +10,7 @@ import { ArrowLeft } from "lucide-react"
 export default function SupervisorSignOff() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const riskId = searchParams.get('riskId')
+  const riskId = searchParams?.get('riskId') || 'unknown'
   
   const [supervisorName, setSupervisorName] = useState("")
   const [signatureData, setSignatureData] = useState("")
@@ -46,7 +46,7 @@ export default function SupervisorSignOff() {
         <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
           <h2 className="text-amber-800 font-medium">High Risk Activity</h2>
           <p className="text-amber-700 text-sm mt-1">
-            Risk ID: {riskId || 'Unknown'}
+            Risk ID: {riskId}
           </p>
           <p className="text-amber-700 text-sm mt-1">
             This activity has been identified as high risk (score &gt; 9) and requires supervisor approval.
