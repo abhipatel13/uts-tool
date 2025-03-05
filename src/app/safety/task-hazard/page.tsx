@@ -1,7 +1,8 @@
 "use client"
 
+import React from 'react'
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useRouter } from "next/navigation"
 
 const taskHazardData = [
   {
@@ -35,8 +38,67 @@ const taskHazardData = [
   // Add more sample data as needed
 ]
 
+const staticAssets = [
+  { id: "V1F-01-01", name: "Facilities - Plumbing", description: "Plumbing Systems" },
+  { id: "V1F-01-02", name: "Facilities - HVAC System", description: "HVAC Systems" },
+  { id: "V1F-01", name: "Facilities - Main Building (G)", description: "Main Building" },
+  { id: "V1F", name: "O&R Facilities", description: "Facilities Management" },
+  { id: "V1", name: "VTA Overhaul and Repair Division", description: "O&R Division" },
+  { id: "V", name: "VTA Maintenance", description: "VTA Maintenance Division" },
+]
+
+interface Risk {
+  id: string;
+  riskDescription: string;
+  riskType: string;
+  asIsLikelihood: string;
+  asIsConsequence: string;
+  mitigatingAction: string;
+  mitigatedLikelihood: string;
+  mitigatedConsequence: string;
+  mitigatingActionType: string;
+  requiresSupervisorSignature: boolean;
+}
+
+const riskCategories = [
+  { id: "Personnel", label: "Personnel", color: "bg-[#00A3FF]" },
+  { id: "Maintenance", label: "Maintenance", color: "bg-gray-200" },
+  { id: "Revenue", label: "Revenue", color: "bg-gray-200" },
+  { id: "Process", label: "Process", color: "bg-gray-200" },
+  { id: "Environmental", label: "Environmental", color: "bg-gray-200" },
+]
+
+const consequenceLabels = [
+  { value: "Minor", label: "Minor Injury", description: "No Lost time", score: 1 },
+  { value: "Significant", label: "Significant", description: "Lost time", score: 2 },
+  { value: "Serious", label: "Serious Injury", description: "Short Term Disability", score: 3 },
+  { value: "Major", label: "Major Injury", description: "Long Term Disability", score: 4 },
+  { value: "Catastrophic", label: "Catastrophic", description: "Fatality", score: 5 },
+]
+
+const likelihoodLabels = [
+  { value: "Very Unlikely", label: "Very Unlikely", description: "Once in Lifetime > 75 Years", score: 1 },
+  { value: "Slight Chance", label: "Slight Chance", description: "Once in 10 to 75 Years", score: 2 },
+  { value: "Feasible", label: "Feasible", description: "Once in 10 Years", score: 3 },
+  { value: "Likely", label: "Likely", description: "Once in 2 to 10 Years", score: 4 },
+  { value: "Very Likely", label: "Very Likely", description: "Multiple times in 2 Years", score: 5 },
+]
+
+const getRiskColor = (score: number) => {
+  if (score <= 2) return "bg-[#4CAF50] text-white"
+  if (score <= 6) return "bg-[#FFC107] text-black"
+  if (score <= 10) return "bg-[#FF9800] text-white"
+  return "bg-[#F44336] text-white"
+}
+
 export default function TaskHazard() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [searchAsset, setSearchAsset] = useState("")
+  const [showRiskMatrix, setShowRiskMatrix] = useState(false)
+  const [activeRiskId, setActiveRiskId] = useState<string | null>(null)
+  const [isAsIsMatrix, setIsAsIsMatrix] = useState(true)
+  const [enableSupervisorSignature, setEnableSupervisorSignature] = useState(true)
   const [newTask, setNewTask] = useState({
     id: "",
     date: "",
@@ -45,17 +107,17 @@ export default function TaskHazard() {
     assetSystem: "",
     systemLockoutRequired: false,
     trainedWorkforce: "",
-    riskTypePersonnel: "",
-    asIsLikelihood: "",
-    asIsConsequence: "",
-    mitigationLikelihood: "",
-    mitigationConsequence: "",
-    mitigatingActionType: "",
+    risks: [] as Risk[],
     individual: "",
     supervisor: "",
     status: "Active",
     location: "",
   })
+
+  const filteredAssets = staticAssets.filter(asset => 
+    asset.name.toLowerCase().includes(searchAsset.toLowerCase()) ||
+    asset.description.toLowerCase().includes(searchAsset.toLowerCase())
+  )
 
   // Function to set current date and time
   const setCurrentDateTime = () => {
@@ -84,6 +146,52 @@ export default function TaskHazard() {
     setOpen(false)
   }
 
+  const addNewRisk = () => {
+    const newRisk: Risk = {
+      id: Date.now().toString(),
+      riskDescription: "",
+      riskType: "",
+      asIsLikelihood: "",
+      asIsConsequence: "",
+      mitigatingAction: "",
+      mitigatedLikelihood: "",
+      mitigatedConsequence: "",
+      mitigatingActionType: "",
+      requiresSupervisorSignature: false,
+    }
+    setNewTask({
+      ...newTask,
+      risks: [...newTask.risks, newRisk]
+    })
+  }
+
+  const updateRisk = (riskId: string, updates: Partial<Risk>) => {
+    setNewTask({
+      ...newTask,
+      risks: newTask.risks.map(risk => 
+        risk.id === riskId ? { ...risk, ...updates } : risk
+      )
+    })
+  }
+
+  const removeRisk = (riskId: string) => {
+    setNewTask({
+      ...newTask,
+      risks: newTask.risks.filter(risk => risk.id !== riskId)
+    })
+  }
+
+  const openRiskMatrix = (riskId: string, isAsIs: boolean) => {
+    setActiveRiskId(riskId)
+    setIsAsIsMatrix(isAsIs)
+    setShowRiskMatrix(true)
+  }
+
+  const navigateToSupervisorSignOff = (riskId: string) => {
+    // Save current state if needed
+    router.push(`/safety/supervisor-sign-off?riskId=${riskId}`)
+  }
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -99,7 +207,7 @@ export default function TaskHazard() {
                 <Plus className="h-4 w-4" /> ADD NEW
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Task Hazard Assessment</DialogTitle>
               </DialogHeader>
@@ -143,12 +251,42 @@ export default function TaskHazard() {
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label htmlFor="assetSystem">Asset or System being worked on</Label>
-                    <Input
-                      id="assetSystem"
+                    <Select
                       value={newTask.assetSystem}
-                      onChange={(e) => setNewTask({...newTask, assetSystem: e.target.value})}
-                      placeholder="Enter asset or system"
-                    />
+                      onValueChange={(value) => setNewTask({...newTask, assetSystem: value})}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select asset or system" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="p-2 pb-0">
+                          <Input
+                            placeholder="Search assets..."
+                            value={searchAsset}
+                            onChange={(e) => setSearchAsset(e.target.value)}
+                            className="mb-2"
+                          />
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto">
+                          {filteredAssets.length === 0 ? (
+                            <div className="p-2 text-sm text-muted-foreground text-center">
+                              No assets found
+                            </div>
+                          ) : (
+                            filteredAssets.map((asset) => (
+                              <SelectItem key={asset.id} value={asset.id}>
+                                <div className="flex flex-col py-1">
+                                  <span className="font-medium">{asset.name}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {asset.description}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
+                        </div>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="systemLockout">System Lockout Required</Label>
@@ -160,58 +298,6 @@ export default function TaskHazard() {
                     >
                       <option value="false">No</option>
                       <option value="true">Yes</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="trainedWorkforce">Trained/Competent Workforce</Label>
-                    <Input
-                      id="trainedWorkforce"
-                      value={newTask.trainedWorkforce}
-                      onChange={(e) => setNewTask({...newTask, trainedWorkforce: e.target.value})}
-                      placeholder="Enter workforce details"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Associated Risks</Label>
-                    <select
-                      className="w-full rounded-md border border-input px-3 py-2"
-                      value={newTask.asIsLikelihood}
-                      onChange={(e) => setNewTask({...newTask, asIsLikelihood: e.target.value})}
-                    >
-                      <option value="">Select Likelihood</option>
-                      <option value="Very Unlikely">Very Unlikely</option>
-                      <option value="Unlikely">Unlikely</option>
-                      <option value="Possible">Possible</option>
-                      <option value="Likely">Likely</option>
-                      <option value="Very Likely">Very Likely</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Consequence</Label>
-                    <select
-                      className="w-full rounded-md border border-input px-3 py-2"
-                      value={newTask.asIsConsequence}
-                      onChange={(e) => setNewTask({...newTask, asIsConsequence: e.target.value})}
-                    >
-                      <option value="">Select Consequence</option>
-                      <option value="Negligible">Negligible</option>
-                      <option value="Minor">Minor</option>
-                      <option value="Moderate">Moderate</option>
-                      <option value="Major">Major</option>
-                      <option value="Severe">Severe</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Mitigating Action Type</Label>
-                    <select
-                      className="w-full rounded-md border border-input px-3 py-2"
-                      value={newTask.mitigatingActionType}
-                      onChange={(e) => setNewTask({...newTask, mitigatingActionType: e.target.value})}
-                    >
-                      <option value="">Select Type</option>
-                      <option value="Elimination">Elimination</option>
-                      <option value="Control">Control</option>
-                      <option value="Administrative">Administrative</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -242,6 +328,117 @@ export default function TaskHazard() {
                     />
                   </div>
                 </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label>Risks and Controls</Label>
+                    <Button 
+                      type="button"
+                      onClick={addNewRisk}
+                      className="bg-[#00A3FF] hover:bg-[#00A3FF]/90"
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add Risk
+                    </Button>
+                  </div>
+                  
+                  {newTask.risks.map((risk) => (
+                    <div key={risk.id} className="border rounded-lg p-4 space-y-4 relative">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="absolute top-2 right-2"
+                        onClick={() => removeRisk(risk.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                          <Label>Risk Description</Label>
+                          <Input
+                            value={risk.riskDescription}
+                            onChange={(e) => updateRisk(risk.id, { riskDescription: e.target.value })}
+                            placeholder="E.g., Risk of pinch point"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label>Risk Type</Label>
+                          <Select
+                            value={risk.riskType}
+                            onValueChange={(value) => updateRisk(risk.id, { riskType: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select risk type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {riskCategories.map((category) => (
+                                <SelectItem key={category.id} value={category.id}>
+                                  {category.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label>Associated Risks</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => openRiskMatrix(risk.id, true)}
+                          >
+                            {risk.asIsLikelihood && risk.asIsConsequence ? 
+                              `${risk.asIsLikelihood} / ${risk.asIsConsequence}` :
+                              'Select Risk Level'
+                            }
+                          </Button>
+                        </div>
+                        
+                        <div className="col-span-2">
+                          <Label>Mitigating Action</Label>
+                          <Input
+                            value={risk.mitigatingAction}
+                            onChange={(e) => updateRisk(risk.id, { mitigatingAction: e.target.value })}
+                            placeholder="E.g., Wear gloves"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label>Mitigating Action Type</Label>
+                          <Select
+                            value={risk.mitigatingActionType}
+                            onValueChange={(value) => updateRisk(risk.id, { mitigatingActionType: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Elimination">Elimination</SelectItem>
+                              <SelectItem value="Control">Control</SelectItem>
+                              <SelectItem value="Administrative">Administrative</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label>Post-Mitigation Risk Assessment</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => openRiskMatrix(risk.id, false)}
+                          >
+                            {risk.mitigatedLikelihood && risk.mitigatedConsequence ? 
+                              `${risk.mitigatedLikelihood} / ${risk.mitigatedConsequence}` :
+                              'Select Risk Level'
+                            }
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                     Cancel
@@ -255,6 +452,151 @@ export default function TaskHazard() {
           </Dialog>
         </div>
       </div>
+
+      {/* Risk Matrix Dialog */}
+      <Dialog open={showRiskMatrix} onOpenChange={setShowRiskMatrix}>
+        <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto before:bg-transparent after:bg-transparent">
+          <DialogHeader>
+            <DialogTitle>
+              {isAsIsMatrix ? 'Associated Risks' : 'Post-Mitigation Risks'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Configuration Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {isAsIsMatrix ? (
+                  <Label htmlFor="supervisorSignature">Risk Assessment</Label>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="supervisorSignature">Supervisor Signature Required for High Risk ({'>'}9)</Label>
+                    <select
+                      id="supervisorSignature"
+                      className="rounded-md border border-input px-3 py-1 text-sm"
+                      value={enableSupervisorSignature.toString()}
+                      onChange={(e) => setEnableSupervisorSignature(e.target.value === 'true')}
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+              {!isAsIsMatrix && activeRiskId && newTask.risks.find(r => r.id === activeRiskId)?.requiresSupervisorSignature && (
+                <div className="text-amber-600 flex items-center gap-2">
+                  <span className="text-sm font-medium">⚠️ Supervisor Signature Required</span>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => navigateToSupervisorSignOff(activeRiskId)}
+                  >
+                    Sign Off
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Selected Risk Type */}
+            {activeRiskId && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Risk Type:</span>
+                <div className={`px-4 py-2 rounded-md ${
+                  riskCategories.find(c => c.id === newTask.risks.find(r => r.id === activeRiskId)?.riskType)?.color || 'bg-gray-200'
+                }`}>
+                  {newTask.risks.find(r => r.id === activeRiskId)?.riskType || 'Not Selected'}
+                </div>
+              </div>
+            )}
+
+            {/* Risk Matrix Grid */}
+            <div className="border rounded-lg overflow-hidden">
+              <div className="grid grid-cols-6 divide-x divide-y">
+                {/* Header */}
+                <div className="bg-white p-4 font-medium">
+                  Probability / Severity
+                </div>
+                {consequenceLabels.map((consequence) => (
+                  <div key={consequence.value} className="bg-white p-2 text-center">
+                    <div className="font-medium">{consequence.label}</div>
+                    <div className="text-xs text-gray-500">{consequence.description}</div>
+                    <div className="text-xs font-medium mt-1">{consequence.score}</div>
+                  </div>
+                ))}
+
+                {/* Matrix Rows */}
+                {likelihoodLabels.map((likelihood) => (
+                  <React.Fragment key={likelihood.value}>
+                    <div className="bg-white p-2">
+                      <div className="font-medium">{likelihood.label}</div>
+                      <div className="text-xs text-gray-500">{likelihood.description}</div>
+                      <div className="text-xs font-medium mt-1">{likelihood.score}</div>
+                    </div>
+                    {consequenceLabels.map((consequence) => {
+                      const score = likelihood.score * consequence.score
+                      const isSelected = 
+                        isAsIsMatrix 
+                          ? newTask.risks.find(r => r.id === activeRiskId)?.asIsLikelihood === likelihood.value &&
+                            newTask.risks.find(r => r.id === activeRiskId)?.asIsConsequence === consequence.value
+                          : newTask.risks.find(r => r.id === activeRiskId)?.mitigatedLikelihood === likelihood.value &&
+                            newTask.risks.find(r => r.id === activeRiskId)?.mitigatedConsequence === consequence.value
+                      return (
+                        <button
+                          key={`${likelihood.value}-${consequence.value}`}
+                          className={`${getRiskColor(score)} aspect-square flex items-center justify-center font-medium text-2xl
+                            ${isSelected ? 'ring-4 ring-blue-500 ring-inset' : ''}
+                            hover:opacity-90 transition-opacity`}
+                          onClick={() => {
+                            if (activeRiskId) {
+                              const updates: Partial<Risk> = isAsIsMatrix
+                                ? { 
+                                    asIsLikelihood: likelihood.value,
+                                    asIsConsequence: consequence.value,
+                                  }
+                                : {
+                                    mitigatedLikelihood: likelihood.value,
+                                    mitigatedConsequence: consequence.value,
+                                    requiresSupervisorSignature: enableSupervisorSignature && score > 9
+                                  }
+                              updateRisk(activeRiskId, updates)
+                            }
+                          }}
+                        >
+                          {score}
+                        </button>
+                      )
+                    })}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <div className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-[#4CAF50] rounded"></div>
+                  <span className="text-sm">Low Risk (1-2)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-[#FFC107] rounded"></div>
+                  <span className="text-sm">Medium Risk (3-6)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-[#FF9800] rounded"></div>
+                  <span className="text-sm">High Risk (8-10)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-[#F44336] rounded"></div>
+                  <span className="text-sm">Critical Risk (12-25)</span>
+                </div>
+              </div>
+              <Button onClick={() => setShowRiskMatrix(false)}>
+                Done
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="bg-white rounded-lg shadow-sm border">
         <table className="w-full">
