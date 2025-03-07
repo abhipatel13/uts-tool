@@ -39,12 +39,47 @@ const taskHazardData = [
 ]
 
 const staticAssets = [
-  { id: "V1F-01-01", name: "Facilities - Plumbing", description: "Plumbing Systems" },
-  { id: "V1F-01-02", name: "Facilities - HVAC System", description: "HVAC Systems" },
-  { id: "V1F-01", name: "Facilities - Main Building (G)", description: "Main Building" },
-  { id: "V1F", name: "O&R Facilities", description: "Facilities Management" },
-  { id: "V1", name: "VTA Overhaul and Repair Division", description: "O&R Division" },
-  { id: "V", name: "VTA Maintenance", description: "VTA Maintenance Division" },
+  // Main categories
+  { id: "V", name: "V", description: "VTA Maintenance", level: 0, parent: null },
+  { id: "V1", name: "V1", description: "VTA Overhaul and Repair Division", level: 1, parent: "V" },
+  { id: "V1F", name: "V1F", description: "O&R Facilities", level: 2, parent: "V1" },
+  { id: "V1F-01", name: "V1F-01", description: "Facilities - Main Building (G)", level: 3, parent: "V1F" },
+  { id: "V1F-01-01", name: "V1F-01-01", description: "Facilities - Plumbing", level: 4, parent: "V1F-01" },
+  { id: "V1F-01-02", name: "V1F-01-02", description: "Facilities - HVAC System", level: 4, parent: "V1F-01" },
+  { id: "V1F-01-03", name: "V1F-01-03", description: "Facilities - Electrical", level: 4, parent: "V1F-01" },
+  { id: "V1F-01-04", name: "V1F-01-04", description: "Facilities - Fire Safety Systems", level: 4, parent: "V1F-01" },
+  
+  // Air Compressors
+  { id: "100331", name: "100331", description: "Air Compressor (Compressor Room)", level: 5, parent: "V1F-01-04" },
+  { id: "100332", name: "100332", description: "Air Compressor (Compressor Room)", level: 5, parent: "V1F-01-04" },
+  { id: "100333", name: "100333", description: "Air Compressor (Fare Box Shop)", level: 5, parent: "V1F-01-04" },
+  { id: "100334", name: "100334", description: "Air Compressor (Waste Water Treatment)", level: 5, parent: "V1F-01-04" },
+  
+  // More facilities
+  { id: "V1F-01-07", name: "V1F-01-07", description: "Facilities - Compressed Air Systems", level: 4, parent: "V1F-01" },
+  { id: "V1F-01-08", name: "V1F-01-08", description: "Facilities - Vehicle Lifts", level: 4, parent: "V1F-01" },
+  
+  // Bus Wheel Lifts
+  { id: "100129", name: "100129", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
+  { id: "100130", name: "100130", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
+  { id: "100131", name: "100131", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
+  { id: "100132", name: "100132", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
+  { id: "100133", name: "100133", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
+  { id: "100134", name: "100134", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
+  { id: "100135", name: "100135", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
+  { id: "100136", name: "100136", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
+  
+  // More facilities
+  { id: "V1F-01-09", name: "V1F-01-09", description: "Facilities - Roll-Up Doors", level: 4, parent: "V1F-01" },
+  { id: "V1F-01-10", name: "V1F-01-10", description: "Facilities - Parts Washers/Hot Tanks", level: 4, parent: "V1F-01" },
+  { id: "V1F-01-12", name: "V1F-01-12", description: "Facilities - Vacuum System", level: 4, parent: "V1F-01" },
+  { id: "V1F-01-13", name: "V1F-01-13", description: "Facilities - Dynomometers", level: 4, parent: "V1F-01" },
+  { id: "V1F-01-14", name: "V1F-01-14", description: "Facilities - Non-Fuel Dispensing Equip", level: 4, parent: "V1F-01" },
+  { id: "V1F-01-15", name: "V1F-01-15", description: "Facilities - Pressure Washers", level: 4, parent: "V1F-01" },
+  { id: "V1F-02", name: "V1F-02", description: "Facilities - Waste Water Treatment", level: 3, parent: "V1F" },
+  { id: "V1H", name: "V1H", description: "O&R Heavy Repair", level: 2, parent: "V1" },
+  { id: "V1R", name: "V1R", description: "O&R Inactive Revenue Vehicles", level: 2, parent: "V1" },
+  { id: "V2", name: "V2", description: "VTA Cerone Division", level: 1, parent: "V" },
 ]
 
 interface Risk {
@@ -68,42 +103,224 @@ const riskCategories = [
   { id: "Environmental", label: "Environmental", color: "bg-gray-200" },
 ]
 
-const consequenceLabels = [
-  { value: "Minor", label: "Minor Injury", description: "No Lost time", score: 1 },
-  { value: "Significant", label: "Significant", description: "Lost time", score: 2 },
+// Personnel risk consequence labels
+const personnelConsequenceLabels = [
+  { value: "Minor", label: "Minor Injury", description: "No Lost Time", score: 1 },
+  { value: "Significant", label: "Significant", description: "Lost Time", score: 2 },
   { value: "Serious", label: "Serious Injury", description: "Short Term Disability", score: 3 },
   { value: "Major", label: "Major Injury", description: "Long Term Disability", score: 4 },
   { value: "Catastrophic", label: "Catastrophic", description: "Fatality", score: 5 },
 ]
 
+// Maintenance risk consequence labels
+const maintenanceConsequenceLabels = [
+  { value: "Minor", label: "Minor Injury", description: "<5% Impact to Maintenance Budget", score: 1 },
+  { value: "Significant", label: "Significant", description: "5-10% Impact to Maintenance Budget", score: 2 },
+  { value: "Serious", label: "Serious Injury", description: "20-30% Impact to Maintenance Budget", score: 3 },
+  { value: "Major", label: "Major Injury", description: "30-40% Impact to Maintenance Budget", score: 4 },
+  { value: "Catastrophic", label: "Catastrophic", description: ">41% Impact to Maintenance Budget", score: 5 },
+]
+
+// Revenue risk consequence labels
+const revenueConsequenceLabels = [
+  { value: "Minor", label: "Minor Injury", description: "<2% Impact to Revenue", score: 1 },
+  { value: "Significant", label: "Significant", description: "2-6% Impact to Revenue", score: 2 },
+  { value: "Serious", label: "Serious Injury", description: "6-12% Impact to Revenue", score: 3 },
+  { value: "Major", label: "Major Injury", description: "12-24% Impact to Revenue", score: 4 },
+  { value: "Catastrophic", label: "Catastrophic", description: ">25% Impact to Revenue", score: 5 },
+]
+
+// Process risk consequence labels
+const processConsequenceLabels = [
+  { value: "Minor", label: "Minor Injury", description: "Production Loss < 10 Days", score: 1 },
+  { value: "Significant", label: "Significant", description: "Production Loss 10 - 20 Days", score: 2 },
+  { value: "Serious", label: "Serious Injury", description: "Production Loss 20 - 40 Days", score: 3 },
+  { value: "Major", label: "Major Injury", description: "Production Loss 40 - 80 Days", score: 4 },
+  { value: "Catastrophic", label: "Catastrophic", description: "Production Loss >81 Days", score: 5 },
+]
+
+// Environmental risk consequence labels
+const environmentalConsequenceLabels = [
+  { value: "Minor", label: "Minor Injury", description: "Near Source - Non Reportable - Cleanup <1Shift", score: 1 },
+  { value: "Significant", label: "Significant", description: "Near Source - Reportable - Cleanup <1Shift", score: 2 },
+  { value: "Serious", label: "Serious Injury", description: "Near Source - Reportable - Cleanup <4WKS", score: 3 },
+  { value: "Major", label: "Major Injury", description: "Near Source - Reportable - Cleanup <52WKS", score: 4 },
+  { value: "Catastrophic", label: "Catastrophic", description: "Near Source - Reportable - Cleanup <1WK", score: 5 },
+]
+
+
+
 const likelihoodLabels = [
-  { value: "Very Unlikely", label: "Very Unlikely", description: "Once in Lifetime > 75 Years", score: 1 },
+  { value: "Very Unlikely", label: "Very Unlikely", description: "Once in Lifetime >75 Years", score: 1 },
   { value: "Slight Chance", label: "Slight Chance", description: "Once in 10 to 75 Years", score: 2 },
   { value: "Feasible", label: "Feasible", description: "Once in 10 Years", score: 3 },
   { value: "Likely", label: "Likely", description: "Once in 2 to 10 Years", score: 4 },
   { value: "Very Likely", label: "Very Likely", description: "Multiple times in 2 Years", score: 5 },
 ]
 
-const getRiskColor = (score: number) => {
-  if (score <= 2) return "bg-[#4CAF50] text-white"
-  if (score <= 6) return "bg-[#FFC107] text-black"
-  if (score <= 10) return "bg-[#FF9800] text-white"
-  return "bg-[#F44336] text-white"
+// Risk matrix scores based on the image
+const riskMatrix = [
+  // Minor (1), Significant (2), Serious (3), Major (4), Catastrophic (5)
+  [1, 2, 3, 4, 5],    // Very Unlikely (1)
+  [2, 4, 6, 8, 10],   // Slight Chance (2)
+  [3, 6, 9, 12, 15],  // Feasible (3)
+  [4, 8, 12, 16, 20], // Likely (4)
+  [5, 10, 15, 20, 25] // Very Likely (5)
+];
+
+const getRiskScore = (likelihood: string, consequence: string, consequenceLabels: Array<{value: string, score: number}>) => {
+  const likelihoodScore = likelihoodLabels.find(l => l.value === likelihood)?.score || 0;
+  const consequenceScore = consequenceLabels.find(c => c.value === consequence)?.score || 0;
+  
+  if (likelihoodScore === 0 || consequenceScore === 0) return 0;
+  
+  return riskMatrix[likelihoodScore - 1][consequenceScore - 1];
+};
+
+const getRiskColor = (score: number, riskType: string) => {
+  // For Maintenance Risk
+  if (riskType === "Maintenance") {
+    // Looking at the exact matrix:
+    // Scores: 1, 2 are green
+    if (score <= 2) return "bg-[#8DC63F] text-black";
+    
+    // Scores: 3, 4, 5, 6, 8, 9 are yellow
+    if (score <= 9) return "bg-[#FFFF00] text-black";
+    
+    // Scores: 10, 12 are orange
+    if (score <= 12) return "bg-[#F7941D] text-white";
+    
+    // Scores: 15 is orange
+    if (score === 15) return "bg-[#F7941D] text-white";
+    
+    // Scores: 16, 20, 25 are red
+    return "bg-[#ED1C24] text-white";
+  }
+
+  if (riskType === "Personnel") {
+    // Scores: 1-2 are green
+    if (score <= 2) return "bg-[#8DC63F] text-black";
+    
+    // Scores: 3-4 are yellow
+    if (score <= 9) return "bg-[#FFFF00] text-black";
+
+    // Scores: 5-10 are orange
+    if (score <= 15) return "bg-[#F7941D] text-white";
+
+    // Scores: 12-25 are red
+    return "bg-[#ED1C24] text-white";
+  }
+
+  if (riskType === "Revenue") {
+    // Scores: 1-2 are green
+    if (score <= 2) return "bg-[#8DC63F] text-black";
+
+    // Scores: 3-6 are yellow
+    if (score <= 9) return "bg-[#FFFF00] text-black";
+
+    // Scores: 7-8 are orange
+    if (score <= 15) return "bg-[#F7941D] text-white";
+
+    // Scores: 12-25 are red
+    return "bg-[#ED1C24] text-white";
+  }
+
+  if (riskType === "Process") {
+     // Scores: 1-2 are green
+     if (score <= 2) return "bg-[#8DC63F] text-black";
+
+     // Scores: 3-6 are yellow
+     if (score <= 9) return "bg-[#FFFF00] text-black";
+ 
+     // Scores: 7-8 are orange
+     if (score <= 15) return "bg-[#F7941D] text-white";
+ 
+     // Scores: 12-25 are red
+     return "bg-[#ED1C24] text-white";
+  }
+
+  if (riskType === "Environmental") {
+   // Scores: 1-2 are green
+   if (score <= 2) return "bg-[#8DC63F] text-black";
+
+   // Scores: 3-6 are yellow
+   if (score <= 9) return "bg-[#FFFF00] text-black";
+
+   // Scores: 7-8 are orange
+   if (score <= 15) return "bg-[#F7941D] text-white";
+
+   // Scores: 12-25 are red
+   return "bg-[#ED1C24] text-white";
+  }
+  
+  // For Personnel Risk and other types
+  // Green (1-2)
+  if (score <= 2) return "bg-[#8DC63F] text-black";
+  
+  // Yellow (3-4)
+  if (score <= 4) return "bg-[#FFFF00] text-black";
+  
+  // Orange (5-10)
+  if (score <= 10) return "bg-[#F7941D] text-white";
+  
+  // Red (12-25)
+  return "bg-[#ED1C24] text-white";
 }
+
+// Define risk level indicators for each risk type
+const riskLevelIndicators = {
+  Personnel: [
+    { color: "bg-[#8DC63F]", label: "Low Risk (1-2)", textColor: "text-black" },
+    { color: "bg-[#FFFF00]", label: "Medium Risk (3-9)", textColor: "text-black" },
+    { color: "bg-[#F7941D]", label: "High Risk (10-15)", textColor: "text-white" },
+    { color: "bg-[#ED1C24]", label: "Critical Risk (16-25)", textColor: "text-white" },
+  ],
+  Maintenance: [
+    { color: "bg-[#8DC63F]", label: "Low Risk (1-2)", textColor: "text-black" },
+    { color: "bg-[#FFFF00]", label: "Medium Risk (3-9)", textColor: "text-black" },
+    { color: "bg-[#F7941D]", label: "High Risk (10-15)", textColor: "text-white" },
+    { color: "bg-[#ED1C24]", label: "Critical Risk (16-25)", textColor: "text-white" },
+  ],
+  Revenue: [
+    { color: "bg-[#8DC63F]", label: "Low Risk (1-2)", textColor: "text-black" },
+    { color: "bg-[#FFFF00]", label: "Medium Risk (3-9)", textColor: "text-black" },
+    { color: "bg-[#F7941D]", label: "High Risk (10-15)", textColor: "text-white" },
+    { color: "bg-[#ED1C24]", label: "Critical Risk (16-25)", textColor: "text-white" },
+  ],
+  Process: [
+    { color: "bg-[#8DC63F]", label: "Low Risk (1-2)", textColor: "text-black" },
+    { color: "bg-[#FFFF00]", label: "Medium Risk (3-9)", textColor: "text-black" },
+    { color: "bg-[#F7941D]", label: "High Risk (10-15)", textColor: "text-white" },
+    { color: "bg-[#ED1C24]", label: "Critical Risk (16-25)", textColor: "text-white" },
+  ],
+  Environmental: [
+    { color: "bg-[#8DC63F]", label: "Low Risk (1-2)", textColor: "text-black" },
+    { color: "bg-[#FFFF00]", label: "Medium Risk (3-9)", textColor: "text-black" },
+    { color: "bg-[#F7941D]", label: "High Risk (10-15)", textColor: "text-white" },
+    { color: "bg-[#ED1C24]", label: "Critical Risk (16-25)", textColor: "text-white" },
+  ],
+};
 
 export default function TaskHazard() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [assetDropdownOpen, setAssetDropdownOpen] = useState(false)
+  const assetDropdownRef = React.useRef<HTMLDivElement>(null)
   const [searchAsset, setSearchAsset] = useState("")
   const [showRiskMatrix, setShowRiskMatrix] = useState(false)
   const [activeRiskId, setActiveRiskId] = useState<string | null>(null)
   const [isAsIsMatrix, setIsAsIsMatrix] = useState(true)
   const [enableSupervisorSignature, setEnableSupervisorSignature] = useState(true)
+  const [expandedAssets, setExpandedAssets] = useState<string[]>(["V"]) // Start with the root expanded
+  
+  // State to track which consequence labels to use based on risk type
+  const [activeConsequenceLabels, setActiveConsequenceLabels] = useState(personnelConsequenceLabels)
+  
   const [newTask, setNewTask] = useState({
     id: "",
     date: "",
     time: "",
-    scopeOfWork: "",
+    scopeOfWork: "",  
     assetSystem: "",
     systemLockoutRequired: false,
     trainedWorkforce: "",
@@ -113,11 +330,212 @@ export default function TaskHazard() {
     status: "Active",
     location: "",
   })
+  
+  // Update consequence labels when risk type changes
+  React.useEffect(() => {
+    if (activeRiskId) {
+      const activeRisk = newTask.risks.find(r => r.id === activeRiskId);
+      if (activeRisk) {
+        switch (activeRisk.riskType) {
+          case "Maintenance":
+            setActiveConsequenceLabels(maintenanceConsequenceLabels);
+            break;
+          case "Personnel":
+            setActiveConsequenceLabels(personnelConsequenceLabels);
+            break;
+          case "Revenue":
+            setActiveConsequenceLabels(revenueConsequenceLabels);
+            break;
+          case "Process":
+            setActiveConsequenceLabels(processConsequenceLabels);
+            break;
+          case "Environmental":
+            setActiveConsequenceLabels(environmentalConsequenceLabels);
+            break;
+          default:
+            setActiveConsequenceLabels(personnelConsequenceLabels);
+            break;
+        }
+      }
+    }
+  }, [activeRiskId, newTask.risks]);
 
-  const filteredAssets = staticAssets.filter(asset => 
-    asset.name.toLowerCase().includes(searchAsset.toLowerCase()) ||
-    asset.description.toLowerCase().includes(searchAsset.toLowerCase())
-  )
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (assetDropdownRef.current && !assetDropdownRef.current.contains(event.target as Node)) {
+        setAssetDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Filter assets based on search term
+  const filteredAssets = searchAsset.trim() === "" 
+    ? staticAssets 
+    : staticAssets.filter(asset => 
+        asset.name.toLowerCase().includes(searchAsset.toLowerCase()) ||
+        asset.description.toLowerCase().includes(searchAsset.toLowerCase())
+      )
+
+  // Expand parents of matching assets when searching
+  React.useEffect(() => {
+    if (searchAsset.trim() !== "") {
+      // Find all matching assets
+      const matchingAssets = filteredAssets;
+      
+      // Collect all parent IDs that need to be expanded
+      const parentsToExpand = new Set<string>();
+      
+      matchingAssets.forEach(asset => {
+        let currentParent = asset.parent;
+        while (currentParent) {
+          parentsToExpand.add(currentParent);
+          const parentAsset = staticAssets.find(a => a.id === currentParent);
+          currentParent = parentAsset?.parent || null;
+        }
+      });
+      
+      // Update expanded assets
+      setExpandedAssets(prev => {
+        const newExpanded = [...prev];
+        parentsToExpand.forEach(id => {
+          if (!newExpanded.includes(id)) {
+            newExpanded.push(id);
+          }
+        });
+        return newExpanded;
+      });
+    }
+  }, [searchAsset, filteredAssets]);
+
+  // Highlight matching text in search results
+  const highlightMatch = (text: string, searchTerm: string) => {
+    if (!searchTerm.trim()) return text;
+    
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    
+    return parts.map((part, i) => 
+      regex.test(part) ? <span key={i} className="bg-yellow-200">{part}</span> : part
+    );
+  };
+
+  // Get top-level assets (those with no parent or parent is null)
+  const getTopLevelAssets = () => {
+    return filteredAssets.filter(asset => asset.parent === null);
+  }
+
+  // Get child assets for a given parent ID
+  const getChildAssets = (parentId: string) => {
+    return filteredAssets.filter(asset => asset.parent === parentId);
+  }
+
+  // Toggle expanded state for an asset
+  const toggleAssetExpanded = (assetId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setExpandedAssets(prev => 
+      prev.includes(assetId)
+        ? prev.filter(id => id !== assetId)
+        : [...prev, assetId]
+    );
+  };
+
+  // Check if an asset is expanded
+  const isAssetExpanded = (assetId: string) => {
+    return expandedAssets.includes(assetId);
+  }
+
+  // Expand all parent assets when an asset is selected
+  const expandParentAssets = (assetId: string) => {
+    const currentAsset = staticAssets.find(a => a.id === assetId);
+    if (!currentAsset) return;
+    
+    const parentIds: string[] = [];
+    let currentParent = currentAsset.parent;
+    
+    while (currentParent) {
+      parentIds.push(currentParent);
+      const parentAsset = staticAssets.find(a => a.id === currentParent);
+      currentParent = parentAsset?.parent || null;
+    }
+    
+    if (parentIds.length > 0) {
+      setExpandedAssets(prev => {
+        const newExpanded = [...prev];
+        parentIds.forEach(id => {
+          if (!newExpanded.includes(id)) {
+            newExpanded.push(id);
+          }
+        });
+        return newExpanded;
+      });
+    }
+  };
+
+  // Update the asset system selection handler
+  const handleAssetSelection = (assetId: string) => {
+    setNewTask({...newTask, assetSystem: assetId});
+    expandParentAssets(assetId);
+    setAssetDropdownOpen(false); // Close the dropdown after selection
+  };
+
+  // Render asset hierarchy recursively
+  const renderAssetHierarchy = (assets: typeof staticAssets) => {
+    return assets.map(asset => {
+      const children = getChildAssets(asset.id);
+      const hasChildren = children.length > 0;
+      const isExpanded = isAssetExpanded(asset.id);
+      
+      return (
+        <div key={asset.id} className="w-full">
+          <div 
+            className={`flex items-center py-2 px-2 hover:bg-gray-100 cursor-pointer ${newTask.assetSystem === asset.id ? 'bg-blue-50' : ''}`}
+            style={{ paddingLeft: `${asset.level * 16 + 8}px` }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAssetSelection(asset.id);
+            }}
+          >
+            {hasChildren && (
+              <button
+                type="button"
+                className="mr-2 text-gray-500 focus:outline-none"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleAssetExpanded(asset.id, e);
+                }}
+              >
+                {isExpanded ? '▼' : '►'}
+              </button>
+            )}
+            {!hasChildren && <span className="w-4 mr-2"></span>}
+            <div className="flex items-center">
+              <span className="font-medium min-w-[100px]">
+                {typeof highlightMatch(asset.name, searchAsset) === 'string' 
+                  ? asset.name 
+                  : highlightMatch(asset.name, searchAsset)}
+              </span>
+              <span className="ml-2 text-gray-600 text-sm">
+                {typeof highlightMatch(asset.description, searchAsset) === 'string' 
+                  ? asset.description 
+                  : highlightMatch(asset.description, searchAsset)}
+              </span>
+            </div>
+          </div>
+          {hasChildren && isExpanded && (
+            <div className="border-l border-gray-200 ml-4">
+              {renderAssetHierarchy(children)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
 
   // Function to set current date and time
   const setCurrentDateTime = () => {
@@ -192,6 +610,13 @@ export default function TaskHazard() {
     router.push(`/safety/supervisor-sign-off?riskId=${riskId}`)
   }
 
+  // Expand parent assets of the selected asset when the component is first loaded
+  React.useEffect(() => {
+    if (newTask.assetSystem) {
+      expandParentAssets(newTask.assetSystem);
+    }
+  }, []);
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -251,42 +676,50 @@ export default function TaskHazard() {
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label htmlFor="assetSystem">Asset or System being worked on</Label>
-                    <Select
-                      value={newTask.assetSystem}
-                      onValueChange={(value) => setNewTask({...newTask, assetSystem: value})}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select asset or system" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2 pb-0">
-                          <Input
-                            placeholder="Search assets..."
-                            value={searchAsset}
-                            onChange={(e) => setSearchAsset(e.target.value)}
-                            className="mb-2"
-                          />
+                    <div className="relative" ref={assetDropdownRef}>
+                      <div 
+                        className="flex items-center justify-between border rounded-md px-3 py-2 cursor-pointer hover:border-gray-400 h-10 text-sm"
+                        onClick={() => setAssetDropdownOpen(!assetDropdownOpen)}
+                      >
+                        {newTask.assetSystem ? (
+                          <div className="flex items-center">
+                            <span className="font-medium">
+                              {staticAssets.find(a => a.id === newTask.assetSystem)?.name}
+                            </span>
+                            <span className="ml-2 text-muted-foreground">
+                              {staticAssets.find(a => a.id === newTask.assetSystem)?.description}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Select asset or system</span>
+                        )}
+                        <span className="text-gray-500">{assetDropdownOpen ? '▲' : '▼'}</span>
+                      </div>
+                      
+                      {assetDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg">
+                          <div className="p-2 pb-0">
+                            <Input
+                              placeholder="Search assets..."
+                              value={searchAsset}
+                              onChange={(e) => setSearchAsset(e.target.value)}
+                              className="mb-2"
+                            />
+                          </div>
+                          <div className="max-h-[350px] overflow-y-auto">
+                            {filteredAssets.length === 0 ? (
+                              <div className="p-2 text-sm text-muted-foreground text-center">
+                                No assets found
+                              </div>
+                            ) : (
+                              <div className="asset-hierarchy">
+                                {renderAssetHierarchy(getTopLevelAssets())}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="max-h-[300px] overflow-y-auto">
-                          {filteredAssets.length === 0 ? (
-                            <div className="p-2 text-sm text-muted-foreground text-center">
-                              No assets found
-                            </div>
-                          ) : (
-                            filteredAssets.map((asset) => (
-                              <SelectItem key={asset.id} value={asset.id}>
-                                <div className="flex flex-col py-1">
-                                  <span className="font-medium">{asset.name}</span>
-                                  <span className="text-sm text-muted-foreground">
-                                    {asset.description}
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))
-                          )}
-                        </div>
-                      </SelectContent>
-                    </Select>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="systemLockout">System Lockout Required</Label>
@@ -458,7 +891,9 @@ export default function TaskHazard() {
         <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto before:bg-transparent after:bg-transparent">
           <DialogHeader>
             <DialogTitle>
-              {isAsIsMatrix ? 'Associated Risks' : 'Post-Mitigation Risks'}
+              {isAsIsMatrix ? 'Associated Risks' : 'Post-Mitigation Risks'} - {
+                newTask.risks.find(r => r.id === activeRiskId)?.riskType || 'Risk'
+              } Assessment
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
@@ -516,7 +951,7 @@ export default function TaskHazard() {
                 <div className="bg-white p-4 font-medium">
                   Probability / Severity
                 </div>
-                {consequenceLabels.map((consequence) => (
+                {activeConsequenceLabels.map((consequence) => (
                   <div key={consequence.value} className="bg-white p-2 text-center">
                     <div className="font-medium">{consequence.label}</div>
                     <div className="text-xs text-gray-500">{consequence.description}</div>
@@ -532,8 +967,8 @@ export default function TaskHazard() {
                       <div className="text-xs text-gray-500">{likelihood.description}</div>
                       <div className="text-xs font-medium mt-1">{likelihood.score}</div>
                     </div>
-                    {consequenceLabels.map((consequence) => {
-                      const score = likelihood.score * consequence.score
+                    {activeConsequenceLabels.map((consequence) => {
+                      const score = getRiskScore(likelihood.value, consequence.value, activeConsequenceLabels);
                       const isSelected = 
                         isAsIsMatrix 
                           ? newTask.risks.find(r => r.id === activeRiskId)?.asIsLikelihood === likelihood.value &&
@@ -543,7 +978,7 @@ export default function TaskHazard() {
                       return (
                         <button
                           key={`${likelihood.value}-${consequence.value}`}
-                          className={`${getRiskColor(score)} aspect-square flex items-center justify-center font-medium text-2xl
+                          className={`${getRiskColor(score, newTask.risks.find(r => r.id === activeRiskId)?.riskType || '')} aspect-square flex items-center justify-center font-medium text-2xl
                             ${isSelected ? 'ring-4 ring-blue-500 ring-inset' : ''}
                             hover:opacity-90 transition-opacity`}
                           onClick={() => {
@@ -556,7 +991,9 @@ export default function TaskHazard() {
                                 : {
                                     mitigatedLikelihood: likelihood.value,
                                     mitigatedConsequence: consequence.value,
-                                    requiresSupervisorSignature: enableSupervisorSignature && score > 9
+                                    requiresSupervisorSignature: newTask.risks.find(r => r.id === activeRiskId)?.riskType === "Maintenance" 
+                                      ? enableSupervisorSignature && score >= 16 // Critical risk threshold for Maintenance (16-25)
+                                      : enableSupervisorSignature && score > 9  // Original threshold for Personnel
                                   }
                               updateRisk(activeRiskId, updates)
                               
@@ -578,22 +1015,21 @@ export default function TaskHazard() {
 
             <div className="flex justify-between items-center">
               <div className="flex gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-[#4CAF50] rounded"></div>
-                  <span className="text-sm">Low Risk (1-2)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-[#FFC107] rounded"></div>
-                  <span className="text-sm">Medium Risk (3-6)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-[#FF9800] rounded"></div>
-                  <span className="text-sm">High Risk (8-10)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-[#F44336] rounded"></div>
-                  <span className="text-sm">Critical Risk (12-25)</span>
-                </div>
+                {(() => {
+                  const riskType = newTask.risks.find(r => r.id === activeRiskId)?.riskType || "Personnel";
+                  const indicators = riskLevelIndicators[riskType as keyof typeof riskLevelIndicators] || riskLevelIndicators.Personnel;
+                  
+                  return (
+                    <>
+                      {indicators.map((indicator, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <div className={`w-4 h-4 ${indicator.color} rounded`}></div>
+                          <span className="text-sm">{indicator.label}</span>
+                        </div>
+                      ))}
+                    </>
+                  );
+                })()}
               </div>
               <Button onClick={() => setShowRiskMatrix(false)}>
                 Done
