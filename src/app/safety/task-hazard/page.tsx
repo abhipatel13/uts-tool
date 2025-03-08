@@ -103,52 +103,45 @@ const riskCategories = [
   { id: "Environmental", label: "Environmental", color: "bg-gray-200" },
 ]
 
-// Personnel risk consequence labels
 const personnelConsequenceLabels = [
-  { value: "Minor", label: "Minor Injury", description: "No Lost Time", score: 1 },
+  { value: "Minor", label: "Minor", description: "No Lost Time", score: 1 },
   { value: "Significant", label: "Significant", description: "Lost Time", score: 2 },
-  { value: "Serious", label: "Serious Injury", description: "Short Term Disability", score: 3 },
-  { value: "Major", label: "Major Injury", description: "Long Term Disability", score: 4 },
+  { value: "Serious", label: "Serious", description: "Short Term Disability", score: 3 },
+  { value: "Major", label: "Major", description: "Long Term Disability", score: 4 },
   { value: "Catastrophic", label: "Catastrophic", description: "Fatality", score: 5 },
 ]
 
-// Maintenance risk consequence labels
 const maintenanceConsequenceLabels = [
-  { value: "Minor", label: "Minor Injury", description: "<5% Impact to Maintenance Budget", score: 1 },
+  { value: "Minor", label: "Minor", description: "<5% Impact to Maintenance Budget", score: 1 },
   { value: "Significant", label: "Significant", description: "5-10% Impact to Maintenance Budget", score: 2 },
-  { value: "Serious", label: "Serious Injury", description: "20-30% Impact to Maintenance Budget", score: 3 },
-  { value: "Major", label: "Major Injury", description: "30-40% Impact to Maintenance Budget", score: 4 },
+  { value: "Serious", label: "Serious", description: "20-30% Impact to Maintenance Budget", score: 3 },
+  { value: "Major", label: "Major", description: "30-40% Impact to Maintenance Budget", score: 4 },
   { value: "Catastrophic", label: "Catastrophic", description: ">41% Impact to Maintenance Budget", score: 5 },
 ]
 
-// Revenue risk consequence labels
 const revenueConsequenceLabels = [
-  { value: "Minor", label: "Minor Injury", description: "<2% Impact to Revenue", score: 1 },
+  { value: "Minor", label: "Minor", description: "<2% Impact to Revenue", score: 1 },
   { value: "Significant", label: "Significant", description: "2-6% Impact to Revenue", score: 2 },
-  { value: "Serious", label: "Serious Injury", description: "6-12% Impact to Revenue", score: 3 },
-  { value: "Major", label: "Major Injury", description: "12-24% Impact to Revenue", score: 4 },
+  { value: "Serious", label: "Serious", description: "6-12% Impact to Revenue", score: 3 },
+  { value: "Major", label: "Major", description: "12-24% Impact to Revenue", score: 4 },
   { value: "Catastrophic", label: "Catastrophic", description: ">25% Impact to Revenue", score: 5 },
 ]
 
-// Process risk consequence labels
 const processConsequenceLabels = [
-  { value: "Minor", label: "Minor Injury", description: "Production Loss < 10 Days", score: 1 },
+  { value: "Minor", label: "Minor", description: "Production Loss < 10 Days", score: 1 },
   { value: "Significant", label: "Significant", description: "Production Loss 10 - 20 Days", score: 2 },
-  { value: "Serious", label: "Serious Injury", description: "Production Loss 20 - 40 Days", score: 3 },
-  { value: "Major", label: "Major Injury", description: "Production Loss 40 - 80 Days", score: 4 },
+  { value: "Serious", label: "Serious", description: "Production Loss 20 - 40 Days", score: 3 },
+  { value: "Major", label: "Major", description: "Production Loss 40 - 80 Days", score: 4 },
   { value: "Catastrophic", label: "Catastrophic", description: "Production Loss >81 Days", score: 5 },
 ]
 
-// Environmental risk consequence labels
 const environmentalConsequenceLabels = [
-  { value: "Minor", label: "Minor Injury", description: "Near Source - Non Reportable - Cleanup <1Shift", score: 1 },
+  { value: "Minor", label: "Minor", description: "Near Source - Non Reportable - Cleanup <1Shift", score: 1 },
   { value: "Significant", label: "Significant", description: "Near Source - Reportable - Cleanup <1Shift", score: 2 },
-  { value: "Serious", label: "Serious Injury", description: "Near Source - Reportable - Cleanup <4WKS", score: 3 },
-  { value: "Major", label: "Major Injury", description: "Near Source - Reportable - Cleanup <52WKS", score: 4 },
+  { value: "Serious", label: "Serious", description: "Near Source - Reportable - Cleanup <4WKS", score: 3 },
+  { value: "Major", label: "Major", description: "Near Source - Reportable - Cleanup <52WKS", score: 4 },
   { value: "Catastrophic", label: "Catastrophic", description: "Near Source - Reportable - Cleanup <1WK", score: 5 },
 ]
-
-
 
 const likelihoodLabels = [
   { value: "Very Unlikely", label: "Very Unlikely", description: "Once in Lifetime >75 Years", score: 1 },
