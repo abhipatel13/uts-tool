@@ -124,7 +124,7 @@ const sidebarNavItems: NavItem[] = [
   },
 ]
 
-export function Sidebar({ children }: { children: React.ReactNode }) {
+export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>([])
@@ -276,9 +276,9 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
         "min-h-[100dvh] transition-all duration-300 bg-gray-50",
         isCollapsed ? "lg:pl-16" : "lg:pl-64"
       )}>
-        <main className="h-full">
+        {/* <main className="h-full">
           {children}
-        </main>
+        </main> */}
       </div>
 
       {/* Mobile Menu Button */}

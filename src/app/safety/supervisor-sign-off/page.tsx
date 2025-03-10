@@ -1,13 +1,13 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 
-export default function SupervisorSignOff() {
+function SupervisorSignOffContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const riskId = searchParams?.get('riskId') || 'unknown'
@@ -20,12 +20,6 @@ export default function SupervisorSignOff() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    // In a real app, you would save the signature data
-    console.log("Saving signature for risk:", riskId)
-    console.log("Supervisor:", supervisorName)
-    console.log("Signature data:", signatureData)
-    
-    // Navigate back to the task hazard page
     router.back()
   }
   
@@ -88,5 +82,13 @@ export default function SupervisorSignOff() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function SupervisorSignOff() {
+  return (
+    <Suspense fallback={<div className="container mx-auto py-8">Loading...</div>}>
+      <SupervisorSignOffContent />
+    </Suspense>
   )
 } 
