@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, X } from "lucide-react"
 import {
@@ -11,32 +11,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
-
-const taskHazardData = [
-  {
-    id: "ABC123",
-    scopeOfWork: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magnaga...",
-    dateTime: "18/09/2020 , 10:00AM",
-    associatedRisk: "Very Unlikely",
-    location: "Long Location Name",
-    highestUnmitigated: 10,
-    status: "Active",
-  },
-  {
-    id: "ABC123",
-    scopeOfWork: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
-    dateTime: "18/09/2020 , 10:00AM",
-    associatedRisk: "Very Unlikely",
-    location: "Very Location Name",
-    highestUnmitigated: 2,
-    status: "Active",
-  },
-  // Add more sample data as needed
-]
+import { taskHazardApi } from "@/services/api"
+import type { TaskHazard } from "@/services/api"
 
 const staticAssets = [
   // Main categories
@@ -82,6 +61,7 @@ const staticAssets = [
   { id: "V2", name: "V2", description: "VTA Cerone Division", level: 1, parent: "V" },
 ]
 
+// Define interface for risk (local version)
 interface Risk {
   id: string;
   riskDescription: string;
@@ -294,6 +274,9 @@ const riskLevelIndicators = {
   ],
 };
 
+// Define interface for task data
+type TaskHazardData = TaskHazard;
+
 export default function TaskHazard() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -323,7 +306,45 @@ export default function TaskHazard() {
     status: "Active",
     location: "",
   })
+
+  // Add state for API data
+  const [tasks, setTasks] = useState<TaskHazardData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
   
+  // Define fetchTasks function outside of useEffect so it can be reused
+  const fetchTasks = async () => {
+    try {
+      setIsLoading(true)
+      const response = await taskHazardApi.getTaskHazards()
+      console.log('API Response:', response)
+      
+      // Check if response has the expected structure with data property
+      if (response && response.status && Array.isArray(response.data)) {
+        setTasks(response.data)
+      } else {
+        // Fallback if the response structure is unexpected
+        console.warn('Unexpected API response structure:', response)
+        setTasks([])
+      }
+      
+      setError(null)
+    } catch (error) {
+      console.error("Error fetching tasks:", error)
+      setError("Failed to load tasks. Please try again later.")
+      // Set tasks to empty array on error
+      setTasks([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  // Fetch all tasks when component mounts
+  useEffect(() => {
+    fetchTasks()
+  }, [])
+
   // Update consequence labels when risk type changes
   React.useEffect(() => {
     if (activeRiskId) {
@@ -550,11 +571,65 @@ export default function TaskHazard() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Add your submit logic here
-    console.log(newTask)
-    setOpen(false)
+    try {
+      // Format the data according to API requirements
+      const formattedTask: TaskHazardData = {
+        id: newTask.id,
+        date: newTask.date,
+        time: newTask.time,
+        scopeOfWork: newTask.scopeOfWork,
+        assetSystem: newTask.assetSystem,
+        systemLockoutRequired: newTask.systemLockoutRequired,
+        trainedWorkforce: newTask.trainedWorkforce,
+        individual: newTask.individual,
+        supervisor: newTask.supervisor,
+        location: newTask.location,
+        status: newTask.status,
+        risks: newTask.risks.map(risk => ({
+          id: risk.id,
+          riskDescription: risk.riskDescription,
+          riskType: risk.riskType,
+          asIsLikelihood: risk.asIsLikelihood,
+          asIsConsequence: risk.asIsConsequence,
+          mitigatingAction: risk.mitigatingAction,
+          mitigatingActionType: risk.mitigatingActionType,
+          mitigatedLikelihood: risk.mitigatedLikelihood,
+          mitigatedConsequence: risk.mitigatedConsequence,
+          requiresSupervisorSignature: risk.requiresSupervisorSignature
+        }))
+      };
+
+      // Use the API service instead of direct fetch
+      await taskHazardApi.createTaskHazard(formattedTask);
+
+      // Show success message
+      alert('Task added successfully!');
+      
+      // Reset form and close dialog
+      setNewTask({
+        id: "",
+        date: "",
+        time: "",
+        scopeOfWork: "",  
+        assetSystem: "",
+        systemLockoutRequired: false,
+        trainedWorkforce: "",
+        risks: [],
+        individual: "",
+        supervisor: "",
+        status: "Active",
+        location: "",
+      });
+      setOpen(false);
+
+      // Refresh tasks instead of reloading the page
+      fetchTasks();
+    } catch (error) {
+      console.error('Error adding task:', error);
+      alert(error instanceof Error ? error.message : 'Failed to add task');
+    }
   }
 
   const addNewRisk = () => {
@@ -622,7 +697,9 @@ export default function TaskHazard() {
         <div className="flex gap-4">
           <Input 
             className="w-[300px]" 
-            placeholder="Search field"
+            placeholder="Search tasks..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
           <Dialog open={open} onOpenChange={handleDialogChange}>
             <DialogTrigger asChild>
@@ -1060,7 +1137,7 @@ export default function TaskHazard() {
         </DialogContent>
       </Dialog>
 
-      <div className="bg-white rounded-lg shadow-sm border">
+      <div className="bg-white rounded-lg shadow-sm border mb-6">
         <table className="w-full">
           <thead>
             <tr className="border-b">
@@ -1073,31 +1150,98 @@ export default function TaskHazard() {
             </tr>
           </thead>
           <tbody>
-            {taskHazardData.map((task, index) => (
-              <tr key={index} className="border-b hover:bg-gray-50">
-                <td className="p-4 text-gray-600">{task.id}</td>
-                <td className="p-4 text-gray-600 max-w-xs truncate">
-                  {task.scopeOfWork}
-                </td>
-                <td className="p-4 text-gray-600">{task.dateTime}</td>
-                <td className="p-4 text-gray-600">{task.location}</td>
-                <td className="p-4">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      task.highestUnmitigated >= 7 ? 'bg-red-500' : 
-                      task.highestUnmitigated >= 4 ? 'bg-yellow-500' : 
-                      'bg-green-500'
-                    }`} />
-                    <span>{task.highestUnmitigated}</span>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <span className="px-3 py-1 rounded-full text-green-600 bg-green-100">
-                    {task.status}
-                  </span>
-                </td>
+            {!isLoading && !error && tasks.length > 0 && tasks
+              .filter(task => {
+                const searchLower = searchTerm.toLowerCase();
+                return (
+                  task.scopeOfWork?.toLowerCase().includes(searchLower) ||
+                  task.assetSystem?.toLowerCase().includes(searchLower) ||
+                  task.location?.toLowerCase().includes(searchLower) ||
+                  task.individual?.toLowerCase().includes(searchLower) ||
+                  task.supervisor?.toLowerCase().includes(searchLower) ||
+                  task.id?.toLowerCase().includes(searchLower)
+                );
+              })
+              .map(task => {
+                // Calculate highest unmitigated risk score
+                let highestUnmitigatedScore = 0;
+                let highestUnmitigatedType = "";
+                
+                if (task.risks && task.risks.length > 0) {
+                  task.risks.forEach(risk => {
+                    const consequenceLabels = (() => {
+                      switch (risk.riskType) {
+                        case "Maintenance": return maintenanceConsequenceLabels;
+                        case "Personnel": return personnelConsequenceLabels;
+                        case "Revenue": return revenueConsequenceLabels;
+                        case "Process": return processConsequenceLabels;
+                        case "Environmental": return environmentalConsequenceLabels;
+                        default: return personnelConsequenceLabels;
+                      }
+                    })();
+                    
+                    const score = getRiskScore(risk.asIsLikelihood, risk.asIsConsequence, consequenceLabels);
+                    if (score > highestUnmitigatedScore) {
+                      highestUnmitigatedScore = score;
+                      highestUnmitigatedType = risk.riskType;
+                    }
+                  });
+                }
+                
+                return (
+                  <tr key={task.id} className="border-b hover:bg-gray-50 cursor-pointer" 
+                      onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
+                    <td className="p-4">{highlightMatch(task.id, searchTerm)}</td>
+                    <td className="p-4">{highlightMatch(task.scopeOfWork, searchTerm)}</td>
+                    <td className="p-4">{task.date} {task.time}</td>
+                    <td className="p-4">{highlightMatch(task.location, searchTerm)}</td>
+                    <td className="p-4">
+                      {highestUnmitigatedScore > 0 ? (
+                        <span className={`px-2 py-1 rounded ${getRiskColor(highestUnmitigatedScore, highestUnmitigatedType)}`}>
+                          {highestUnmitigatedScore}
+                        </span>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded-full text-xs ${task.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {task.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            {(!isLoading && !error && tasks.length === 0) && (
+              <tr>
+                <td colSpan={6} className="p-4 text-center">No tasks found. Create a new task to get started.</td>
               </tr>
-            ))}
+            )}
+            {(!isLoading && !error && tasks.length > 0 && tasks.filter(task => {
+              const searchLower = searchTerm.toLowerCase();
+              return (
+                task.scopeOfWork?.toLowerCase().includes(searchLower) ||
+                task.assetSystem?.toLowerCase().includes(searchLower) ||
+                task.location?.toLowerCase().includes(searchLower) ||
+                task.individual?.toLowerCase().includes(searchLower) ||
+                task.supervisor?.toLowerCase().includes(searchLower) ||
+                task.id?.toLowerCase().includes(searchLower)
+              );
+            }).length === 0) && (
+              <tr>
+                <td colSpan={6} className="p-4 text-center">No tasks match your search criteria.</td>
+              </tr>
+            )}
+            {isLoading && (
+              <tr>
+                <td colSpan={6} className="p-4 text-center">Loading tasks...</td>
+              </tr>
+            )}
+            {error && (
+              <tr>
+                <td colSpan={6} className="p-4 text-center text-red-500">{error}</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
