@@ -36,6 +36,20 @@ export interface GeoFenceSettings {
   limit: number;
 }
 
+export interface Asset {
+  id: string;
+  name: string;
+  description: string;
+  level: number;
+  parent: string | null;
+  fmea: string;
+  actions: string;
+  criticalityAssessment: string;
+  inspectionPoints: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
 // API response structure
 export interface ApiResponse<T> {
   data: T;
@@ -72,12 +86,21 @@ async function fetchApi<T>(
  * Task Hazard API functions
  */
 export const taskHazardApi = {
-  // Create a new task hazard assessment
-  createTaskHazard: async (taskData: TaskHazard): Promise<ApiResponse<TaskHazard>> => {
-    return fetchApi<ApiResponse<TaskHazard>>('/api/task-hazards', {
+  // Create a new task hazard
+  createTaskHazard: async (task: Omit<TaskHazard, 'id'>): Promise<TaskHazard> => {
+    const response = await fetch(`${API_BASE_URL}/api/task-hazards`, {
       method: 'POST',
-      body: JSON.stringify(taskData),
-    });
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(task),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to create task hazard')
+    }
+
+    return response.json()
   },
 
   // Get all task hazard assessments
@@ -130,7 +153,27 @@ export const geoFenceApi = {
   },
 };
 
+/**
+ * Asset Hierarchy API functions
+ */
+export const assetHierarchyApi = {
+  // Get all assets
+  getAll: async (): Promise<ApiResponse<Asset[]>> => {
+    return fetchApi<ApiResponse<Asset[]>>('/api/asset-hierarchy', {
+      method: 'GET',
+    });
+  },
+
+  // Get a specific asset
+  getOne: async (id: string): Promise<ApiResponse<Asset>> => {
+    return fetchApi<ApiResponse<Asset>>(`/api/asset-hierarchy/${id}`, {
+      method: 'GET',
+    });
+  },
+};
+
 export default {
   taskHazardApi,
   geoFenceApi,
+  assetHierarchyApi,
 }; 

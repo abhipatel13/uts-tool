@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, X } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 import {
   Dialog,
   DialogContent,
@@ -14,52 +15,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
-import { taskHazardApi } from "@/services/api"
+import { taskHazardApi, assetHierarchyApi, type Asset } from "@/services/api"
 import type { TaskHazard } from "@/services/api"
-
-const staticAssets = [
-  // Main categories
-  { id: "V", name: "V", description: "VTA Maintenance", level: 0, parent: null },
-  { id: "V1", name: "V1", description: "VTA Overhaul and Repair Division", level: 1, parent: "V" },
-  { id: "V1F", name: "V1F", description: "O&R Facilities", level: 2, parent: "V1" },
-  { id: "V1F-01", name: "V1F-01", description: "Facilities - Main Building (G)", level: 3, parent: "V1F" },
-  { id: "V1F-01-01", name: "V1F-01-01", description: "Facilities - Plumbing", level: 4, parent: "V1F-01" },
-  { id: "V1F-01-02", name: "V1F-01-02", description: "Facilities - HVAC System", level: 4, parent: "V1F-01" },
-  { id: "V1F-01-03", name: "V1F-01-03", description: "Facilities - Electrical", level: 4, parent: "V1F-01" },
-  { id: "V1F-01-04", name: "V1F-01-04", description: "Facilities - Fire Safety Systems", level: 4, parent: "V1F-01" },
-  
-  // Air Compressors
-  { id: "100331", name: "100331", description: "Air Compressor (Compressor Room)", level: 5, parent: "V1F-01-04" },
-  { id: "100332", name: "100332", description: "Air Compressor (Compressor Room)", level: 5, parent: "V1F-01-04" },
-  { id: "100333", name: "100333", description: "Air Compressor (Fare Box Shop)", level: 5, parent: "V1F-01-04" },
-  { id: "100334", name: "100334", description: "Air Compressor (Waste Water Treatment)", level: 5, parent: "V1F-01-04" },
-  
-  // More facilities
-  { id: "V1F-01-07", name: "V1F-01-07", description: "Facilities - Compressed Air Systems", level: 4, parent: "V1F-01" },
-  { id: "V1F-01-08", name: "V1F-01-08", description: "Facilities - Vehicle Lifts", level: 4, parent: "V1F-01" },
-  
-  // Bus Wheel Lifts
-  { id: "100129", name: "100129", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
-  { id: "100130", name: "100130", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
-  { id: "100131", name: "100131", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
-  { id: "100132", name: "100132", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
-  { id: "100133", name: "100133", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
-  { id: "100134", name: "100134", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
-  { id: "100135", name: "100135", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
-  { id: "100136", name: "100136", description: "Bus Wheel Lift", level: 5, parent: "V1F-01-08" },
-  
-  // More facilities
-  { id: "V1F-01-09", name: "V1F-01-09", description: "Facilities - Roll-Up Doors", level: 4, parent: "V1F-01" },
-  { id: "V1F-01-10", name: "V1F-01-10", description: "Facilities - Parts Washers/Hot Tanks", level: 4, parent: "V1F-01" },
-  { id: "V1F-01-12", name: "V1F-01-12", description: "Facilities - Vacuum System", level: 4, parent: "V1F-01" },
-  { id: "V1F-01-13", name: "V1F-01-13", description: "Facilities - Dynomometers", level: 4, parent: "V1F-01" },
-  { id: "V1F-01-14", name: "V1F-01-14", description: "Facilities - Non-Fuel Dispensing Equip", level: 4, parent: "V1F-01" },
-  { id: "V1F-01-15", name: "V1F-01-15", description: "Facilities - Pressure Washers", level: 4, parent: "V1F-01" },
-  { id: "V1F-02", name: "V1F-02", description: "Facilities - Waste Water Treatment", level: 3, parent: "V1F" },
-  { id: "V1H", name: "V1H", description: "O&R Heavy Repair", level: 2, parent: "V1" },
-  { id: "V1R", name: "V1R", description: "O&R Inactive Revenue Vehicles", level: 2, parent: "V1" },
-  { id: "V2", name: "V2", description: "VTA Cerone Division", level: 1, parent: "V" },
-]
 
 // Define interface for risk (local version)
 interface Risk {
@@ -279,6 +236,7 @@ type TaskHazardData = TaskHazard;
 
 export default function TaskHazard() {
   const router = useRouter()
+  const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [assetDropdownOpen, setAssetDropdownOpen] = useState(false)
   const assetDropdownRef = React.useRef<HTMLDivElement>(null)
@@ -287,13 +245,13 @@ export default function TaskHazard() {
   const [activeRiskId, setActiveRiskId] = useState<string | null>(null)
   const [isAsIsMatrix, setIsAsIsMatrix] = useState(true)
   const [enableSupervisorSignature, setEnableSupervisorSignature] = useState(true)
-  const [expandedAssets, setExpandedAssets] = useState<string[]>(["V"]) // Start with the root expanded
-  
-  // State to track which consequence labels to use based on risk type
+  const [expandedAssets, setExpandedAssets] = useState<string[]>([])
+  const [assets, setAssets] = useState<Asset[]>([])
+  const [isLoadingAssets, setIsLoadingAssets] = useState(true)
+  const [assetError, setAssetError] = useState<string | null>(null)
   const [activeConsequenceLabels, setActiveConsequenceLabels] = useState(personnelConsequenceLabels)
   
   const [newTask, setNewTask] = useState({
-    id: "",
     date: "",
     time: "",
     scopeOfWork: "",  
@@ -318,14 +276,12 @@ export default function TaskHazard() {
     try {
       setIsLoading(true)
       const response = await taskHazardApi.getTaskHazards()
-      console.log('API Response:', response)
       
       // Check if response has the expected structure with data property
       if (response && response.status && Array.isArray(response.data)) {
         setTasks(response.data)
       } else {
         // Fallback if the response structure is unexpected
-        console.warn('Unexpected API response structure:', response)
         setTasks([])
       }
       
@@ -344,6 +300,36 @@ export default function TaskHazard() {
   useEffect(() => {
     fetchTasks()
   }, [])
+
+  // Fetch assets when component mounts
+  useEffect(() => {
+    fetchAssets()
+  }, [])
+
+  const fetchAssets = async () => {
+    try {
+      setIsLoadingAssets(true)
+      setAssetError(null)
+      const response = await assetHierarchyApi.getAll()
+      
+      if (!Array.isArray(response.data)) {
+        throw new Error('Invalid response format from server')
+      }
+
+      setAssets(response.data)
+      
+      // Expand root level assets by default
+      const rootAssets = response.data
+        .filter(asset => asset.level === 0)
+        .map(asset => asset.id)
+      setExpandedAssets(rootAssets)
+    } catch (err) {
+      console.error('Error fetching assets:', err)
+      setAssetError('Failed to load assets. Please try again later.')
+    } finally {
+      setIsLoadingAssets(false)
+    }
+  }
 
   // Update consequence labels when risk type changes
   React.useEffect(() => {
@@ -390,8 +376,8 @@ export default function TaskHazard() {
 
   // Filter assets based on search term
   const filteredAssets = searchAsset.trim() === "" 
-    ? staticAssets 
-    : staticAssets.filter(asset => 
+    ? assets 
+    : assets.filter(asset => 
         asset.name.toLowerCase().includes(searchAsset.toLowerCase()) ||
         asset.description.toLowerCase().includes(searchAsset.toLowerCase())
       )
@@ -409,7 +395,7 @@ export default function TaskHazard() {
         let currentParent = asset.parent;
         while (currentParent) {
           parentsToExpand.add(currentParent);
-          const parentAsset = staticAssets.find(a => a.id === currentParent);
+          const parentAsset = assets.find(a => a.id === currentParent);
           currentParent = parentAsset?.parent || null;
         }
       });
@@ -466,7 +452,7 @@ export default function TaskHazard() {
 
   // Expand all parent assets when an asset is selected
   const expandParentAssets = (assetId: string) => {
-    const currentAsset = staticAssets.find(a => a.id === assetId);
+    const currentAsset = assets.find(a => a.id === assetId);
     if (!currentAsset) return;
     
     const parentIds: string[] = [];
@@ -474,7 +460,7 @@ export default function TaskHazard() {
     
     while (currentParent) {
       parentIds.push(currentParent);
-      const parentAsset = staticAssets.find(a => a.id === currentParent);
+      const parentAsset = assets.find(a => a.id === currentParent);
       currentParent = parentAsset?.parent || null;
     }
     
@@ -493,17 +479,17 @@ export default function TaskHazard() {
 
   // Update the asset system selection handler
   const handleAssetSelection = (assetId: string) => {
-    setNewTask({...newTask, assetSystem: assetId});
-    expandParentAssets(assetId);
-    setAssetDropdownOpen(false); // Close the dropdown after selection
-  };
+    setNewTask({...newTask, assetSystem: assetId})
+    expandParentAssets(assetId)
+    setAssetDropdownOpen(false)
+  }
 
   // Render asset hierarchy recursively
-  const renderAssetHierarchy = (assets: typeof staticAssets) => {
+  const renderAssetHierarchy = (assets: Asset[]) => {
     return assets.map(asset => {
-      const children = getChildAssets(asset.id);
-      const hasChildren = children.length > 0;
-      const isExpanded = isAssetExpanded(asset.id);
+      const children = getChildAssets(asset.id)
+      const hasChildren = children.length > 0
+      const isExpanded = isAssetExpanded(asset.id)
       
       return (
         <div key={asset.id} className="w-full">
@@ -511,8 +497,8 @@ export default function TaskHazard() {
             className={`flex items-center py-2 px-2 hover:bg-gray-100 cursor-pointer ${newTask.assetSystem === asset.id ? 'bg-blue-50' : ''}`}
             style={{ paddingLeft: `${asset.level * 16 + 8}px` }}
             onClick={(e) => {
-              e.stopPropagation();
-              handleAssetSelection(asset.id);
+              e.stopPropagation()
+              handleAssetSelection(asset.id)
             }}
           >
             {hasChildren && (
@@ -520,8 +506,8 @@ export default function TaskHazard() {
                 type="button"
                 className="mr-2 text-gray-500 focus:outline-none"
                 onClick={(e) => {
-                  e.stopPropagation();
-                  toggleAssetExpanded(asset.id, e);
+                  e.stopPropagation()
+                  toggleAssetExpanded(asset.id, e)
                 }}
               >
                 {isExpanded ? '▼' : '►'}
@@ -547,9 +533,9 @@ export default function TaskHazard() {
             </div>
           )}
         </div>
-      );
-    });
-  };
+      )
+    })
+  }
 
   // Function to set current date and time
   const setCurrentDateTime = () => {
@@ -575,8 +561,7 @@ export default function TaskHazard() {
     e.preventDefault()
     try {
       // Format the data according to API requirements
-      const formattedTask: TaskHazardData = {
-        id: newTask.id,
+      const formattedTask: Omit<TaskHazardData, 'id'> = {
         date: newTask.date,
         time: newTask.time,
         scopeOfWork: newTask.scopeOfWork,
@@ -604,12 +589,15 @@ export default function TaskHazard() {
       // Use the API service instead of direct fetch
       await taskHazardApi.createTaskHazard(formattedTask);
 
-      // Show success message
-      alert('Task added successfully!');
+      // Show success toast
+      toast({
+        title: "Success",
+        description: "Task hazard assessment has been created successfully.",
+        variant: "default",
+      })
       
       // Reset form and close dialog
       setNewTask({
-        id: "",
         date: "",
         time: "",
         scopeOfWork: "",  
@@ -624,11 +612,16 @@ export default function TaskHazard() {
       });
       setOpen(false);
 
-      // Refresh tasks instead of reloading the page
+      // Refresh tasks
       fetchTasks();
     } catch (error) {
       console.error('Error adding task:', error);
-      alert(error instanceof Error ? error.message : 'Failed to add task');
+      // Show error toast
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create task hazard assessment. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -714,15 +707,6 @@ export default function TaskHazard() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="taskId">Task Risk ID</Label>
-                    <Input
-                      id="taskId"
-                      value={newTask.id}
-                      onChange={(e) => setNewTask({...newTask, id: e.target.value})}
-                      placeholder="Enter Task ID"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="date">Date</Label>
                     <Input
                       id="date"
@@ -759,10 +743,10 @@ export default function TaskHazard() {
                         {newTask.assetSystem ? (
                           <div className="flex items-center">
                             <span className="font-medium">
-                              {staticAssets.find(a => a.id === newTask.assetSystem)?.name}
+                              {assets.find(a => a.id === newTask.assetSystem)?.name}
                             </span>
                             <span className="ml-2 text-muted-foreground">
-                              {staticAssets.find(a => a.id === newTask.assetSystem)?.description}
+                              {assets.find(a => a.id === newTask.assetSystem)?.description}
                             </span>
                           </div>
                         ) : (
@@ -782,7 +766,15 @@ export default function TaskHazard() {
                             />
                           </div>
                           <div className="max-h-[350px] overflow-y-auto">
-                            {filteredAssets.length === 0 ? (
+                            {isLoadingAssets ? (
+                              <div className="p-2 text-sm text-muted-foreground text-center">
+                                Loading assets...
+                              </div>
+                            ) : assetError ? (
+                              <div className="p-2 text-sm text-red-500 text-center">
+                                {assetError}
+                              </div>
+                            ) : filteredAssets.length === 0 ? (
                               <div className="p-2 text-sm text-muted-foreground text-center">
                                 No assets found
                               </div>

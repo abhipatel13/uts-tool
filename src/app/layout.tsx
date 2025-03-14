@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { usePathname } from "next/navigation"
 import { Providers } from "@/app/providers"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -37,6 +38,7 @@ export default function RootLayout({
             </div>
           )}
         </Providers>
+        <Toaster />
       </body>
     </html>
   )

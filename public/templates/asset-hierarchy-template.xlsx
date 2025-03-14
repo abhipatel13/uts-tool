@@ -1,0 +1,7 @@
+Asset ID,Asset Name,Description,Level,Parent ID,FMEA,Actions,Criticality Assessment,Inspection Points
+V,VTA Maintenance,VTA Maintenance Division,0,,0,0,0,0
+V1,VTA Overhaul and Repair Division,O&R Division,1,V,0,0,0,0
+V1F,O&R Facilities,Facilities Management,2,V1,0,0,0,0
+V1F-01,Facilities - Main Building (G),Main Building,3,V1F,0,0,0,0
+V1F-01-01,Facilities - Plumbing,Plumbing Systems,4,V1F-01,0,0,0,0
+V1F-01-02,Facilities - HVAC System,HVAC Systems,4,V1F-01,0,0,0,0 
