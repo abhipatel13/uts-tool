@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
     
     // Parse CSV
     const lines = text.split('\n')
-    const headers = lines[0].split(',')
     
     // Process the data to create asset hierarchy
     const assets = lines.slice(1).map(line => {

@@ -415,7 +415,7 @@ export default function TaskHazard() {
         return newExpanded;
       });
     }
-  }, [searchAsset, filteredAssets]);
+  }, [searchAsset, filteredAssets, assets]);
 
   // Highlight matching text in search results
   const highlightMatch = (text: string, searchTerm: string) => {
@@ -454,8 +454,8 @@ export default function TaskHazard() {
     return expandedAssets.includes(assetId);
   }
 
-  // Expand all parent assets when an asset is selected
-  const expandParentAssets = (assetId: string) => {
+  // Expand parent assets of the selected asset when the component is first loaded
+  const expandParentAssets = React.useCallback((assetId: string) => {
     const currentAsset = assets.find(a => a.id === assetId);
     if (!currentAsset) return;
     
@@ -479,7 +479,13 @@ export default function TaskHazard() {
         return newExpanded;
       });
     }
-  };
+  }, [assets]);
+
+  React.useEffect(() => {
+    if (newTask.assetSystem) {
+      expandParentAssets(newTask.assetSystem);
+    }
+  }, [expandParentAssets, newTask.assetSystem]);
 
   // Update the asset system selection handler
   const handleAssetSelection = (assetId: string) => {
@@ -679,13 +685,6 @@ export default function TaskHazard() {
     // Navigate to the Geo Fence settings page
     router.push('/safety/geo-fence-settings')
   }
-
-  // Expand parent assets of the selected asset when the component is first loaded
-  React.useEffect(() => {
-    if (newTask.assetSystem) {
-      expandParentAssets(newTask.assetSystem);
-    }
-  }, []);
 
   const handleDeleteTask = async () => {
     if (!deleteTaskId) return

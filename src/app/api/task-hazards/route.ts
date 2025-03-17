@@ -4,14 +4,14 @@ import { z } from 'zod';
 
 // Validation schema for the request
 const riskSchema = z.object({
-  riskDescription: z.string().min(1, 'Risk description is required'),
-  riskType: z.string().min(1, 'Risk type is required'),
-  asIsLikelihood: z.string(),
-  asIsConsequence: z.enum(['Minor', 'Moderate', 'Serious', 'Critical']),
-  mitigatingAction: z.string().min(1, 'Mitigating action is required'),
-  mitigatingActionType: z.string().min(1, 'Mitigating action type is required'),
-  mitigatedLikelihood: z.string(),
-  mitigatedConsequence: z.enum(['Minor', 'Moderate', 'Serious', 'Critical']),
+  riskDescription: z.string(),
+  riskType: z.string(),
+  asIsLikelihood: z.enum(['Very Unlikely', 'Unlikely', 'Likely', 'Very Likely']),
+  asIsConsequence: z.enum(["Minor", "Moderate", "Serious", "Critical"]),
+  mitigatingAction: z.string(),
+  mitigatingActionType: z.string(),
+  mitigatedLikelihood: z.enum(['Very Unlikely', 'Unlikely', 'Likely', 'Very Likely']),
+  mitigatedConsequence: z.enum(["Minor", "Moderate", "Serious", "Critical"]),
   requiresSupervisorSignature: z.boolean(),
 });
 

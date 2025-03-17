@@ -172,8 +172,10 @@ export const assetHierarchyApi = {
   },
 };
 
-export default {
+const api = {
   taskHazardApi,
   geoFenceApi,
   assetHierarchyApi,
-}; 
+};
+
+export default api; 
