@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
-import { Plus, X } from "lucide-react"
+import { Plus, X, Trash2, Edit2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import {
   Dialog,
@@ -270,6 +270,10 @@ export default function TaskHazard() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [editTask, setEditTask] = useState<TaskHazardData | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   
   // Define fetchTasks function outside of useEffect so it can be reused
   const fetchTasks = async () => {
@@ -683,6 +687,144 @@ export default function TaskHazard() {
     }
   }, []);
 
+  const handleDeleteTask = async () => {
+    if (!deleteTaskId) return
+
+    try {
+      await taskHazardApi.deleteTaskHazard(deleteTaskId)
+      
+      toast({
+        title: "Success",
+        description: "Task hazard assessment has been deleted successfully.",
+        variant: "default",
+      })
+      
+      // Refresh tasks list
+      fetchTasks()
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete task hazard assessment. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleteTaskId(null)
+      setIsDeleteDialogOpen(false)
+    }
+  }
+
+  const handleEditTask = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editTask) return
+
+    try {
+      await taskHazardApi.updateTaskHazard(editTask.id, editTask)
+      
+      toast({
+        title: "Success",
+        description: "Task hazard assessment has been updated successfully.",
+        variant: "default",
+      })
+      
+      // Refresh tasks list
+      fetchTasks()
+      setIsEditDialogOpen(false)
+      setEditTask(null)
+    } catch (error) {
+      console.error('Error updating task:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update task hazard assessment. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Add functions for managing risks in edit mode
+  const addEditRisk = () => {
+    if (!editTask) return
+    const newRisk: Risk = {
+      id: Date.now().toString(),
+      riskDescription: "",
+      riskType: "",
+      asIsLikelihood: "",
+      asIsConsequence: "",
+      mitigatingAction: "",
+      mitigatedLikelihood: "",
+      mitigatedConsequence: "",
+      mitigatingActionType: "",
+      requiresSupervisorSignature: false,
+    }
+    setEditTask({
+      ...editTask,
+      risks: [...(editTask.risks || []).map(risk => ({
+        id: risk.id || "",
+        riskDescription: risk.riskDescription || "",
+        riskType: risk.riskType || "",
+        asIsLikelihood: risk.asIsLikelihood || "",
+        asIsConsequence: risk.asIsConsequence || "",
+        mitigatingAction: risk.mitigatingAction || "",
+        mitigatedLikelihood: risk.mitigatedLikelihood || "",
+        mitigatedConsequence: risk.mitigatedConsequence || "",
+        mitigatingActionType: risk.mitigatingActionType || "",
+        requiresSupervisorSignature: risk.requiresSupervisorSignature || false,
+      })), newRisk]
+    })
+  }
+
+  const updateEditRisk = (riskId: string, updates: Partial<Risk>) => {
+    if (!editTask) return
+    setEditTask({
+      ...editTask,
+      risks: (editTask.risks || []).map(risk => 
+        risk.id === riskId ? { 
+          id: risk.id || "",
+          riskDescription: risk.riskDescription || "",
+          riskType: risk.riskType || "",
+          asIsLikelihood: risk.asIsLikelihood || "",
+          asIsConsequence: risk.asIsConsequence || "",
+          mitigatingAction: risk.mitigatingAction || "",
+          mitigatedLikelihood: risk.mitigatedLikelihood || "",
+          mitigatedConsequence: risk.mitigatedConsequence || "",
+          mitigatingActionType: risk.mitigatingActionType || "",
+          requiresSupervisorSignature: risk.requiresSupervisorSignature || false,
+          ...updates 
+        } : {
+          id: risk.id || "",
+          riskDescription: risk.riskDescription || "",
+          riskType: risk.riskType || "",
+          asIsLikelihood: risk.asIsLikelihood || "",
+          asIsConsequence: risk.asIsConsequence || "",
+          mitigatingAction: risk.mitigatingAction || "",
+          mitigatedLikelihood: risk.mitigatedLikelihood || "",
+          mitigatedConsequence: risk.mitigatedConsequence || "",
+          mitigatingActionType: risk.mitigatingActionType || "",
+          requiresSupervisorSignature: risk.requiresSupervisorSignature || false,
+        }
+      )
+    })
+  }
+
+  const removeEditRisk = (riskId: string) => {
+    if (!editTask) return
+    setEditTask({
+      ...editTask,
+      risks: (editTask.risks || []).filter(risk => risk.id === riskId).map(risk => ({
+        id: risk.id || "",
+        riskDescription: risk.riskDescription || "",
+        riskType: risk.riskType || "",
+        asIsLikelihood: risk.asIsLikelihood || "",
+        asIsConsequence: risk.asIsConsequence || "",
+        mitigatingAction: risk.mitigatingAction || "",
+        mitigatedLikelihood: risk.mitigatedLikelihood || "",
+        mitigatedConsequence: risk.mitigatedConsequence || "",
+        mitigatingActionType: risk.mitigatingActionType || "",
+        requiresSupervisorSignature: risk.requiresSupervisorSignature || false,
+      }))
+    })
+  }
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -869,7 +1011,7 @@ export default function TaskHazard() {
                         type="button"
                         variant="ghost"
                         className="absolute top-2 right-2"
-                        onClick={() => removeRisk(risk.id)}
+                        onClick={() => risk.id && removeRisk(risk.id)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -879,7 +1021,7 @@ export default function TaskHazard() {
                           <Label>Risk Description</Label>
                           <Input
                             value={risk.riskDescription}
-                            onChange={(e) => updateRisk(risk.id, { riskDescription: e.target.value })}
+                            onChange={(e) => risk.id && updateRisk(risk.id, { riskDescription: e.target.value })}
                             placeholder="E.g., Risk of pinch point"
                           />
                         </div>
@@ -888,7 +1030,7 @@ export default function TaskHazard() {
                           <Label>Risk Type</Label>
                           <Select
                             value={risk.riskType}
-                            onValueChange={(value) => updateRisk(risk.id, { riskType: value })}
+                            onValueChange={(value) => risk.id && updateRisk(risk.id, { riskType: value })}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select risk type" />
@@ -909,7 +1051,7 @@ export default function TaskHazard() {
                             type="button"
                             variant="outline"
                             className="w-full"
-                            onClick={() => openRiskMatrix(risk.id, true)}
+                            onClick={() => risk.id && openRiskMatrix(risk.id, true)}
                           >
                             {risk.asIsLikelihood && risk.asIsConsequence ? 
                               `${risk.asIsLikelihood} / ${risk.asIsConsequence}` :
@@ -922,7 +1064,7 @@ export default function TaskHazard() {
                           <Label>Mitigating Action</Label>
                           <Input
                             value={risk.mitigatingAction}
-                            onChange={(e) => updateRisk(risk.id, { mitigatingAction: e.target.value })}
+                            onChange={(e) => risk.id && updateRisk(risk.id, { mitigatingAction: e.target.value })}
                             placeholder="E.g., Wear gloves"
                           />
                         </div>
@@ -931,7 +1073,7 @@ export default function TaskHazard() {
                           <Label>Mitigating Action Type</Label>
                           <Select
                             value={risk.mitigatingActionType}
-                            onValueChange={(value) => updateRisk(risk.id, { mitigatingActionType: value })}
+                            onValueChange={(value) => risk.id && updateRisk(risk.id, { mitigatingActionType: value })}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select type" />
@@ -950,7 +1092,7 @@ export default function TaskHazard() {
                             type="button"
                             variant="outline"
                             className="w-full"
-                            onClick={() => openRiskMatrix(risk.id, false)}
+                            onClick={() => risk.id && openRiskMatrix(risk.id, false)}
                           >
                             {risk.mitigatedLikelihood && risk.mitigatedConsequence ? 
                               `${risk.mitigatedLikelihood} / ${risk.mitigatedConsequence}` :
@@ -1129,6 +1271,254 @@ export default function TaskHazard() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Task Hazard Assessment</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Are you sure you want to delete this task hazard assessment? This action cannot be undone.</p>
+          </div>
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteTask}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Task Hazard Assessment</DialogTitle>
+          </DialogHeader>
+          {editTask && (
+            <form onSubmit={handleEditTask} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={editTask.date}
+                    onChange={(e) => setEditTask({...editTask, date: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="time">Time</Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={editTask.time}
+                    onChange={(e) => setEditTask({...editTask, time: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="scopeOfWork">Scope of Work</Label>
+                  <Input
+                    id="scopeOfWork"
+                    value={editTask.scopeOfWork}
+                    onChange={(e) => setEditTask({...editTask, scopeOfWork: e.target.value})}
+                    placeholder="Enter scope of work"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="systemLockout">System Lockout Required</Label>
+                  <select
+                    id="systemLockout"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={editTask.systemLockoutRequired.toString()}
+                    onChange={(e) => setEditTask({...editTask, systemLockoutRequired: e.target.value === 'true'})}
+                  >
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="trainedWorkforce">Trained Workforce</Label>
+                  <Input
+                    id="trainedWorkforce"
+                    value={editTask.trainedWorkforce}
+                    onChange={(e) => setEditTask({...editTask, trainedWorkforce: e.target.value})}
+                    placeholder="Enter trained workforce"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="individual">Individual/Team</Label>
+                  <Input
+                    id="individual"
+                    value={editTask.individual}
+                    onChange={(e) => setEditTask({...editTask, individual: e.target.value})}
+                    placeholder="Enter individual or team"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="supervisor">Supervisor</Label>
+                  <Input
+                    id="supervisor"
+                    value={editTask.supervisor}
+                    onChange={(e) => setEditTask({...editTask, supervisor: e.target.value})}
+                    placeholder="Enter supervisor name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={editTask.location}
+                    onChange={(e) => setEditTask({...editTask, location: e.target.value})}
+                    placeholder="Enter location"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <select
+                    id="status"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={editTask.status}
+                    onChange={(e) => setEditTask({...editTask, status: e.target.value})}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label>Risks and Controls</Label>
+                  <Button 
+                    type="button"
+                    onClick={addEditRisk}
+                    className="bg-[#00A3FF] hover:bg-[#00A3FF]/90"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Add Risk
+                  </Button>
+                </div>
+                
+                {editTask.risks && editTask.risks.map((risk) => (
+                  <div key={risk.id} className="border rounded-lg p-4 space-y-4 relative">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="absolute top-2 right-2"
+                      onClick={() => risk.id && removeEditRisk(risk.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                        <Label>Risk Description</Label>
+                        <Input
+                          value={risk.riskDescription || ""}
+                          onChange={(e) => risk.id && updateEditRisk(risk.id, { riskDescription: e.target.value })}
+                          placeholder="E.g., Risk of pinch point"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label>Risk Type</Label>
+                        <Select
+                          value={risk.riskType || ""}
+                          onValueChange={(value) => risk.id && updateEditRisk(risk.id, { riskType: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select risk type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {riskCategories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label>Associated Risks</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => risk.id && openRiskMatrix(risk.id, true)}
+                        >
+                          {risk.asIsLikelihood && risk.asIsConsequence ? 
+                            `${risk.asIsLikelihood} / ${risk.asIsConsequence}` :
+                            'Select Risk Level'
+                          }
+                        </Button>
+                      </div>
+                      
+                      <div className="col-span-2">
+                        <Label>Mitigating Action</Label>
+                        <Input
+                          value={risk.mitigatingAction || ""}
+                          onChange={(e) => risk.id && updateEditRisk(risk.id, { mitigatingAction: e.target.value })}
+                          placeholder="E.g., Wear gloves"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label>Mitigating Action Type</Label>
+                        <Select
+                          value={risk.mitigatingActionType || ""}
+                          onValueChange={(value) => risk.id && updateEditRisk(risk.id, { mitigatingActionType: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Elimination">Elimination</SelectItem>
+                            <SelectItem value="Control">Control</SelectItem>
+                            <SelectItem value="Administrative">Administrative</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label>Post-Mitigation Risk Assessment</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => risk.id && openRiskMatrix(risk.id, false)}
+                        >
+                          {risk.mitigatedLikelihood && risk.mitigatedConsequence ? 
+                            `${risk.mitigatedLikelihood} / ${risk.mitigatedConsequence}` :
+                            'Select Risk Level'
+                          }
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => {
+                  setIsEditDialogOpen(false)
+                  setEditTask(null)
+                }}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-[#00A3FF] hover:bg-[#00A3FF]/90">
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <div className="bg-white rounded-lg shadow-sm border mb-6">
         <table className="w-full">
           <thead>
@@ -1184,10 +1574,16 @@ export default function TaskHazard() {
                   <tr key={task.id} className="border-b hover:bg-gray-50 cursor-pointer" 
                       onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
                     <td className="p-4">{highlightMatch(task.id, searchTerm)}</td>
-                    <td className="p-4">{highlightMatch(task.scopeOfWork, searchTerm)}</td>
-                    <td className="p-4">{task.date} {task.time}</td>
-                    <td className="p-4">{highlightMatch(task.location, searchTerm)}</td>
-                    <td className="p-4">
+                    <td className="p-4 cursor-pointer" onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
+                      {highlightMatch(task.scopeOfWork, searchTerm)}
+                    </td>
+                    <td className="p-4 cursor-pointer" onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
+                      {task.date} {task.time}
+                    </td>
+                    <td className="p-4 cursor-pointer" onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
+                      {highlightMatch(task.location, searchTerm)}
+                    </td>
+                    <td className="p-4 cursor-pointer" onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
                       {highestUnmitigatedScore > 0 ? (
                         <span className={`px-2 py-1 rounded ${getRiskColor(highestUnmitigatedScore, highestUnmitigatedType)}`}>
                           {highestUnmitigatedScore}
@@ -1197,9 +1593,37 @@ export default function TaskHazard() {
                       )}
                     </td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${task.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {task.status}
-                      </span>
+                      <div className="flex items-center gap-4">
+                        <span className={`px-2 py-1 rounded-full text-xs ${task.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {task.status}
+                        </span>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditTask(task)
+                              setIsEditDialogOpen(true)
+                            }}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteTaskId(task.id)
+                              setIsDeleteDialogOpen(true)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 );
