@@ -9,31 +9,85 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Upload, ChevronRight, ChevronDown } from "lucide-react"
-import { assetHierarchyApi, Asset } from "@/services/assetHierarchyApi"
+import { Plus, ChevronRight, ChevronDown, Info } from "lucide-react"
+import { assetHierarchyApi } from "@/services/assetHierarchyApi"
 import { useToast } from "@/components/ui/use-toast"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
-const sampleCsvContent = `Asset ID,Asset Name,Description,Level,Parent ID,FMEA,Actions,Criticality Assessment,Inspection Points
-V,VTA Maintenance,VTA Maintenance Division,0,,0,0,0,0
-V1,VTA Overhaul and Repair Division,O&R Division,1,V,0,0,0,0
-V1F,O&R Facilities,Facilities Management,2,V1,0,0,0,0
-V1F-01,Facilities - Main Building (G),Main Building,3,V1F,0,0,0,0
-V1F-01-01,Facilities - Plumbing,Plumbing Systems,4,V1F-01,0,0,0,0
-V1F-01-02,Facilities - HVAC System,HVAC Systems,4,V1F-01,0,0,0,0`
+interface Asset {
+  id: string;
+  name: string;
+  description: string;
+  level: number;
+  fmea: string;
+  actions: string;
+  criticalityAssessment: string;
+  inspectionPoints: string;
+  maintenancePlant: string;
+  cmmsInternalId: string;
+  functionalLocation: string;
+  parent: string | null;
+  cmmsSystem: string;
+  siteReferenceName: string;
+  functionalLocationDesc: string;
+  functionalLocationLongDesc: string;
+  objectType?: string;
+  systemStatus: string;
+  make?: string;
+  manufacturer?: string;
+  serialNumber?: string;
+}
 
-export default function AssetHierarchy() {
+type ApiAsset = Asset & {
+  id?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export default function DataLoader() {
   const { toast } = useToast()
   const [assets, setAssets] = useState<Asset[]>([])
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const [showUploadDialog, setShowUploadDialog] = useState(false)
+  const [showAddDialog, setShowAddDialog] = useState(false)
   const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [formData, setFormData] = useState<Asset>({
+    id: '',
+    name: '',
+    description: '',
+    level: 0,
+    fmea: '',
+    actions: '',
+    criticalityAssessment: '',
+    inspectionPoints: '',
+    maintenancePlant: '',
+    cmmsInternalId: '',
+    functionalLocation: '',
+    parent: null,
+    cmmsSystem: '',
+    siteReferenceName: '',
+    functionalLocationDesc: '',
+    functionalLocationLongDesc: '',
+    objectType: '',
+    systemStatus: 'Active',
+    make: '',
+    manufacturer: '',
+    serialNumber: ''
+  })
 
-  // Fetch assets when component mounts
+  // Handle client-side mounting
   useEffect(() => {
+    setMounted(true)
     fetchAssets()
   }, [])
 
@@ -42,20 +96,47 @@ export default function AssetHierarchy() {
       setIsLoading(true)
       setError(null)
       const response = await assetHierarchyApi.getAll()
+      const apiAssets = (response.data as unknown) as ApiAsset[]
       
-      if (!Array.isArray(response.data)) {
+      if (!Array.isArray(apiAssets)) {
         throw new Error('Invalid response format from server')
       }
 
-      setAssets(response.data)
+      const transformedAssets: Asset[] = apiAssets.map(asset => ({
+        id: asset.id || '',
+        name: asset.name || '',
+        description: asset.description || '',
+        level: asset.level || 0,
+        fmea: asset.fmea || '',
+        actions: asset.actions || '',
+        criticalityAssessment: asset.criticalityAssessment || '',
+        inspectionPoints: asset.inspectionPoints || '',
+        maintenancePlant: asset.maintenancePlant || '',
+        cmmsInternalId: asset.cmmsInternalId || '',
+        functionalLocation: asset.functionalLocation || '',
+        parent: asset.parent || null,
+        cmmsSystem: asset.cmmsSystem || '',
+        siteReferenceName: asset.siteReferenceName || '',
+        functionalLocationDesc: asset.functionalLocationDesc || '',
+        functionalLocationLongDesc: asset.functionalLocationLongDesc || '',
+        objectType: asset.objectType || '',
+        systemStatus: asset.systemStatus || 'Active',
+        make: asset.make || '',
+        manufacturer: asset.manufacturer || '',
+        serialNumber: asset.serialNumber || ''
+      }))
+
+      setAssets(transformedAssets)
       
-      // Expand root level assets by default
-      const rootAssets = new Set(
-        response.data
-          .filter((asset: Asset) => asset.level === 0)
-          .map((asset: Asset) => asset.id)
-      ) as Set<string>
-      setExpandedAssets(rootAssets)
+      // Set expanded assets only after mounting
+      if (mounted) {
+        const rootAssets = new Set(
+          transformedAssets
+            .filter(asset => !asset.parent)
+            .map(asset => asset.id)
+        )
+        setExpandedAssets(rootAssets)
+      }
     } catch (err) {
       console.error('Error fetching assets:', err)
       setError('Failed to load assets. Please try again later.')
@@ -64,58 +145,78 @@ export default function AssetHierarchy() {
     }
   }
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    console.log("File:", file);
-    if (!file) return
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
 
-    setUploadError(null)
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     try {
-      const response = await assetHierarchyApi.uploadCSV(file)
-      
-      if (!Array.isArray(response.data)) {
-        throw new Error('Invalid response format from server')
+      const assetToCreate = {
+        assets: [{
+          ...formData,
+          parent: formData.parent === 'root' ? null : formData.parent,
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          cmmsInternalId: formData.cmmsInternalId.trim(),
+          functionalLocation: formData.functionalLocation.trim(),
+          functionalLocationDesc: formData.functionalLocationDesc.trim(),
+          functionalLocationLongDesc: formData.functionalLocationLongDesc.trim(),
+          maintenancePlant: formData.maintenancePlant?.trim() || '',
+          cmmsSystem: formData.cmmsSystem?.trim() || '',
+          siteReferenceName: formData.siteReferenceName?.trim() || '',
+          objectType: formData.objectType?.trim() || '',
+          systemStatus: formData.systemStatus || 'Active',
+          make: formData.make?.trim() || '',
+          manufacturer: formData.manufacturer?.trim() || '',
+          serialNumber: formData.serialNumber?.trim() || ''
+        }]
       }
-
-      setAssets(response.data)
-      
-      // Expand root level assets by default
-      const rootAssets = new Set(
-        response.data
-          .filter((a) => a.level === 0)
-          .map((a) => a.id)
-      ) as Set<string>
-      setExpandedAssets(rootAssets)
-      setShowUploadDialog(false)
-
-      // Show success toast
+      console.log("assetToCreate", assetToCreate);
+      await assetHierarchyApi.create(assetToCreate)
+      setShowAddDialog(false)
+      fetchAssets() // Refresh the asset list
       toast({
         title: "Success!",
-        description: `Successfully uploaded ${response.data.length} assets.`,
+        description: "Asset added successfully.",
         variant: "default",
       })
+      // Reset form
+      setFormData({
+        id: '',
+        name: '',
+        description: '',
+        level: 0,
+        fmea: '',
+        actions: '',
+        criticalityAssessment: '',
+        inspectionPoints: '',
+        maintenancePlant: '',
+        cmmsInternalId: '',
+        functionalLocation: '',
+        parent: null,
+        cmmsSystem: '',
+        siteReferenceName: '',
+        functionalLocationDesc: '',
+        functionalLocationLongDesc: '',
+        objectType: '',
+        systemStatus: 'Active',
+        make: '',
+        manufacturer: '',
+        serialNumber: ''
+      })
     } catch (error) {
-      console.error('Error uploading file:', error)
-      setUploadError('Failed to upload file. Please try again.')
+      console.error('Error adding asset:', error)
       toast({
         title: "Error",
-        description: "Failed to upload file. Please try again.",
+        description: "Failed to add asset. Please try again.",
         variant: "destructive",
       })
     }
-  }
-
-  const downloadTemplate = () => {
-    const blob = new Blob([sampleCsvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'asset-hierarchy-template.csv'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
   }
 
   const toggleAsset = (assetId: string) => {
@@ -130,16 +231,59 @@ export default function AssetHierarchy() {
     })
   }
 
-  const hasChildren = (assetId: string) => {
-    return assets.some(a => a.parent === assetId)
+  const handleAssetClick = (asset: Asset) => {
+    setSelectedAsset(asset);
+    setShowDetailsDialog(true);
+  };
+
+  // Handle dialog state changes
+  const handleDialogChange = (open: boolean) => {
+    if (!open) {
+      // Reset form when dialog closes
+      setFormData({
+        id: '',
+        name: '',
+        description: '',
+        level: 0,
+        fmea: '',
+        actions: '',
+        criticalityAssessment: '',
+        inspectionPoints: '',
+        maintenancePlant: '',
+        cmmsInternalId: '',
+        functionalLocation: '',
+        parent: null,
+        cmmsSystem: '',
+        siteReferenceName: '',
+        functionalLocationDesc: '',
+        functionalLocationLongDesc: '',
+        objectType: '',
+        systemStatus: 'Active',
+        make: '',
+        manufacturer: '',
+        serialNumber: ''
+      })
+    }
+    setShowAddDialog(open)
   }
 
   const renderAssets = () => {
+    // Show loading state during server-side rendering
+    if (!mounted) {
+      return (
+        <tr>
+          <td colSpan={2} className="text-center py-8">
+            <div className="animate-pulse">Loading...</div>
+          </td>
+        </tr>
+      )
+    }
+
     if (isLoading) {
       return (
         <tr>
-          <td colSpan={6} className="text-center py-8">
-            Loading assets...
+          <td colSpan={2} className="text-center py-8">
+            <div className="animate-pulse">Loading assets...</div>
           </td>
         </tr>
       )
@@ -148,7 +292,7 @@ export default function AssetHierarchy() {
     if (error) {
       return (
         <tr>
-          <td colSpan={6} className="text-center py-8 text-red-500">
+          <td colSpan={2} className="text-center py-8 text-red-500">
             {error}
           </td>
         </tr>
@@ -158,54 +302,73 @@ export default function AssetHierarchy() {
     if (assets.length === 0) {
       return (
         <tr>
-          <td colSpan={6} className="text-center py-8 text-gray-500">
-            No assets found. Import a CSV file or add assets manually.
+          <td colSpan={2} className="text-center py-8 text-gray-500">
+            No assets found.
           </td>
         </tr>
       )
     }
 
-    const visibleAssets = assets.filter(asset => {
-      if (asset.level === 0) return true
+    const renderAssetRow = (asset: Asset) => {
+      // Use id for parent-child relationships
+      const children = assets.filter(a => a.parent === asset.id);
+      const isExpanded = expandedAssets.has(asset.id);
       
-      // Check if all parent assets are expanded
-      let currentParent = asset.parent
-      while (currentParent) {
-        if (!expandedAssets.has(currentParent)) return false
-        const parentAsset = assets.find(a => a.id === currentParent)
-        currentParent = parentAsset?.parent || null
-      }
-      return true
-    })
+      // Calculate the indentation level
+      const getIndentationLevel = (assetId: string): number => {
+        let level = 0;
+        let currentAsset = assets.find(a => a.id === assetId);
+        while (currentAsset?.parent) {
+          level++;
+          currentAsset = assets.find(a => a.id === currentAsset?.parent);
+        }
+        return level;
+      };
 
-    return visibleAssets.map((asset) => (
-      <tr key={asset.id} className="border-b hover:bg-gray-50">
-        <td className="p-4">
-          <div className="flex items-center" style={{ paddingLeft: `${asset.level * 20}px` }}>
-            {hasChildren(asset.id) ? (
-              <button
-                onClick={() => toggleAsset(asset.id)}
-                className="mr-2 p-1 hover:bg-gray-200 rounded-md focus:outline-none"
-              >
-                {expandedAssets.has(asset.id) ? (
-                  <ChevronDown className="h-4 w-4" />
+      const indentationLevel = getIndentationLevel(asset.id);
+      
+      return (
+        <React.Fragment key={asset.id}>
+          <tr className="border-b hover:bg-gray-50">
+            <td className="p-4">
+              <div className="flex items-center">
+                <div style={{ width: `${indentationLevel * 24}px` }} /> {/* Add indentation */}
+                {children.length > 0 ? (
+                  <button
+                    onClick={() => toggleAsset(asset.id)}
+                    className="mr-2 p-1 hover:bg-gray-200 rounded-md focus:outline-none"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
                 ) : (
-                  <ChevronRight className="h-4 w-4" />
+                  <span className="w-6" />
                 )}
-              </button>
-            ) : (
-              <span className="w-6" /> // Spacer for alignment
-            )}
-            <span>{asset.name}</span>
-          </div>
-        </td>
-        <td className="p-4">{asset.description}</td>
-        <td className="text-center p-4">{asset.fmea}</td>
-        <td className="text-center p-4">{asset.actions}</td>
-        <td className="text-center p-4">{asset.criticalityAssessment}</td>
-        <td className="text-center p-4">{asset.inspectionPoints}</td>
-      </tr>
-    ))
+                <span className="font-medium">{asset.id}</span>
+              </div>
+            </td>
+            <td className="p-4 cursor-pointer hover:text-blue-600 flex items-center gap-2" onClick={() => handleAssetClick(asset)}>
+              <div className="flex flex-col">
+                <span>{asset.name}</span>
+                <span className="text-sm text-gray-500">
+                  {asset.parent ? `Parent: ${asset.parent}` : 'Root Asset'}
+                </span>
+              </div>
+              <Info className="h-4 w-4" />
+            </td>
+          </tr>
+          {isExpanded && children.map(child => renderAssetRow(child))}
+        </React.Fragment>
+      );
+    };
+
+    // Get root level assets
+    const rootAssets = assets.filter(asset => !asset.parent);
+    
+    return rootAssets.map(asset => renderAssetRow(asset));
   }
 
   return (
@@ -215,72 +378,20 @@ export default function AssetHierarchy() {
           <h1 className="text-2xl font-bold text-[#2C3E50]">Asset Hierarchy</h1>
           <p className="text-gray-600">Manage your asset hierarchy structure here.</p>
         </div>
-        <div className="flex gap-4">
-          <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-[#00A3FF] hover:bg-[#00A3FF]/90 gap-2">
-                <Upload className="h-4 w-4" /> Import CSV
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Import Asset Hierarchy</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Upload CSV File</Label>
-                  <div className="border-2 border-dashed rounded-lg p-8 text-center space-y-4">
-                    <Input
-                      type="file"
-                      accept=".csv"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      id="file-upload"
-                    />
-                    <label
-                      htmlFor="file-upload"
-                      className="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border rounded-md hover:bg-gray-50"
-                    >
-                      <Upload className="h-4 w-4" />
-                      Choose File
-                    </label>
-                    <p className="text-sm text-gray-500">
-                      Upload your CSV file containing the asset hierarchy data
-                    </p>
-                  </div>
-                </div>
-                {uploadError && (
-                  <p className="text-red-500 text-sm">{uploadError}</p>
-                )}
-                <div className="border-t pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={downloadTemplate}
-                    className="w-full"
-                  >
-                    Download Template
-                  </Button>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Download our CSV template to ensure your data is formatted correctly
-                  </p>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Button 
+          className="bg-[#00A3FF] hover:bg-[#00A3FF]/90 gap-2"
+          onClick={() => handleDialogChange(true)}
+        >
+          <Plus className="h-4 w-4" /> Add Asset
+        </Button>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border">
         <table className="w-full">
           <thead>
             <tr className="border-b">
-              <th className="text-left p-4 text-[#2C3E50] font-medium">Asset</th>
-              <th className="text-left p-4 text-[#2C3E50] font-medium">Asset Description</th>
-              <th className="text-center p-4 text-[#2C3E50] font-medium">FMEA</th>
-              <th className="text-center p-4 text-[#2C3E50] font-medium">ACTIONS</th>
-              <th className="text-center p-4 text-[#2C3E50] font-medium">Criticality Assessment</th>
-              <th className="text-center p-4 text-[#2C3E50] font-medium">Inspection Points</th>
+              <th className="text-left p-4 text-[#2C3E50] font-medium">Asset ID</th>
+              <th className="text-left p-4 text-[#2C3E50] font-medium">Asset Details</th>
             </tr>
           </thead>
           <tbody>
@@ -288,6 +399,263 @@ export default function AssetHierarchy() {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Asset Details</DialogTitle>
+          </DialogHeader>
+          {selectedAsset && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Asset ID</Label>
+                <p className="text-sm">{selectedAsset.id}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <p className="text-sm">{selectedAsset.name}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <p className="text-sm">{selectedAsset.description}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Maintenance Plant</Label>
+                <p className="text-sm">{selectedAsset.maintenancePlant || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>CMMS Internal ID</Label>
+                <p className="text-sm">{selectedAsset.cmmsInternalId || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Parent</Label>
+                <p className="text-sm">{selectedAsset.parent || 'No Parent'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>CMMS System</Label>
+                <p className="text-sm">{selectedAsset.cmmsSystem || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Site Reference Name</Label>
+                <p className="text-sm">{selectedAsset.siteReferenceName || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location </Label>
+                <p className="text-sm">{selectedAsset.functionalLocation || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location Description</Label>
+                <p className="text-sm">{selectedAsset.functionalLocationDesc || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location Long Description</Label>
+                <p className="text-sm">{selectedAsset.functionalLocationLongDesc || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Object Type</Label>
+                <p className="text-sm">{selectedAsset.objectType || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>System Status</Label>
+                <p className="text-sm">{selectedAsset.systemStatus}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Make</Label>
+                <p className="text-sm">{selectedAsset.make || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Manufacturer</Label>
+                <p className="text-sm">{selectedAsset.manufacturer || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Serial Number</Label>
+                <p className="text-sm">{selectedAsset.serialNumber || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Level</Label>
+                <p className="text-sm">{selectedAsset.level}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAddDialog} onOpenChange={handleDialogChange}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Add New Asset</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Main Pump"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Input
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Primary water pump"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Maintenance Plant</Label>
+                <Input
+                  name="maintenancePlant"
+                  value={formData.maintenancePlant}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Off-Site Support"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location</Label>
+                <Input
+                  name="functionalLocation"
+                  value={formData.functionalLocation}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Off-Site Support"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location Description</Label>
+                <Input
+                  name="functionalLocationDesc"
+                  value={formData.functionalLocationDesc}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Off-Site Support"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location Long Description</Label>
+                <Input
+                  name="functionalLocationLongDesc"
+                  value={formData.functionalLocationLongDesc}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Off-Site Support"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>CMMS Internal ID</Label>
+                <Input
+                  name="cmmsInternalId"
+                  value={formData.cmmsInternalId}
+                  onChange={handleInputChange}
+                  placeholder="e.g., IID001"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Parent</Label>
+                <Select
+                  value={formData.parent || 'root'}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, parent: value === 'root' ? null : value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select parent asset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="root">No Parent</SelectItem>
+                    {assets
+                      .filter(asset => asset.id && asset.id.trim() !== '')
+                      .map(asset => (
+                        <SelectItem 
+                          key={asset.id} 
+                          value={asset.id}
+                        >
+                          {asset.name} ({asset.id})
+                        </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>CMMS System</Label>
+                <Input
+                  name="cmmsSystem"
+                  value={formData.cmmsSystem}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Salt Lake City"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Site Reference Name</Label>
+                <Input
+                  name="siteReferenceName"
+                  value={formData.siteReferenceName}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Salt Lake City, UT"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Object Type</Label>
+                <Input
+                  name="objectType"
+                  value={formData.objectType}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Equipment"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>System Status</Label>
+                <Select
+                  value={formData.systemStatus}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, systemStatus: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Make</Label>
+                <Input
+                  name="make"
+                  value={formData.make}
+                  onChange={handleInputChange}
+                  placeholder="Make"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Manufacturer</Label>
+                <Input
+                  name="manufacturer"
+                  value={formData.manufacturer}
+                  onChange={handleInputChange}
+                  placeholder="Manufacturer"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Serial Number</Label>
+                <Input
+                  name="serialNumber"
+                  value={formData.serialNumber}
+                  onChange={handleInputChange}
+                  placeholder="Serial Number"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-4">
+              <Button type="button" variant="outline" onClick={() => handleDialogChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Add Asset</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

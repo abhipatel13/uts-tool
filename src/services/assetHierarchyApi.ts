@@ -3,26 +3,47 @@ export interface Asset {
   name: string;
   description: string;
   level: number;
-  parent: string | null;
   fmea: string;
   actions: string;
   criticalityAssessment: string;
   inspectionPoints: string;
-  updatedAt: string;
-  createdAt: string;
+  maintenancePlant: string;
+  cmmsInternalId: string;
+  functionalLocation: string;
+  parent: string | null;
+  cmmsSystem: string;
+  siteReferenceName: string;
+  functionalLocationDesc: string;
+  functionalLocationLongDesc: string;
+  objectType?: string;
+  systemStatus: string;
+  make?: string;
+  manufacturer?: string;
+  serialNumber?: string;
+  primaryKey?: string;
+}
+
+interface ApiResponse<T> {
+  status: boolean;
+  data: T;
+  message?: string;
+}
+
+interface CreateAssetRequest {
+  assets: Asset[];
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
 export const assetHierarchyApi = {
   // Create new asset
-  create: async (assetData: Omit<Asset, 'id' | 'createdAt' | 'updatedAt'>): Promise<Asset> => {
+  create: async (data: CreateAssetRequest): Promise<ApiResponse<Asset[]>> => {
     const response = await fetch(`${API_BASE_URL}/api/asset-hierarchy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(assetData),
+      body: JSON.stringify(data),
     })
 
     if (!response.ok) {
@@ -33,10 +54,9 @@ export const assetHierarchyApi = {
   },
 
   // Upload CSV file
-  uploadCSV: async (file: File): Promise<{ data: Asset[] }> => {
+  uploadCSV: async (file: File): Promise<ApiResponse<Asset[]>> => {
     const formData = new FormData()
     formData.append('file', file)
-    console.log("Form Data:", formData);
 
     const response = await fetch(`${API_BASE_URL}/api/asset-hierarchy/upload-csv`, {
       method: 'POST',
@@ -51,7 +71,7 @@ export const assetHierarchyApi = {
   },
 
   // Get all assets
-  getAll: async (): Promise<{ data: Asset[] }> => {
+  getAll: async (): Promise<ApiResponse<Asset[]>> => {
     const response = await fetch(`${API_BASE_URL}/api/asset-hierarchy`, {
       method: 'GET',
     })
@@ -64,7 +84,7 @@ export const assetHierarchyApi = {
   },
 
   // Get single asset
-  getOne: async (id: string): Promise<Asset> => {
+  getOne: async (id: string): Promise<ApiResponse<Asset>> => {
     const response = await fetch(`${API_BASE_URL}/api/asset-hierarchy/${id}`, {
       method: 'GET',
     })
