@@ -359,19 +359,43 @@ export default function DataLoader() {
           >
             Download Template
           </Button>
-          <label>
-            <Input
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-            <Button className="bg-[#00A3FF] hover:bg-[#00A3FF]/90">
-              + Upload CSV
-            </Button>
-          </label>
+          <Button 
+            onClick={() => setShowUploadDialog(true)}
+            className="bg-[#00A3FF] hover:bg-[#00A3FF]/90"
+          >
+            + Upload CSV
+          </Button>
         </div>
       </div>
+
+      {/* Add Upload Dialog */}
+      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload CSV File</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Select CSV File</Label>
+              <div className="mt-2">
+                <Input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileUpload}
+                  className="cursor-pointer"
+                />
+              </div>
+            </div>
+            {uploadError && (
+              <div className="text-red-500 text-sm">{uploadError}</div>
+            )}
+            <div className="text-sm text-gray-500">
+              <p>Please ensure your CSV file follows the required format.</p>
+              <p>You can download the template for reference.</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="bg-white rounded-lg shadow-sm border">
         <table className="w-full">
