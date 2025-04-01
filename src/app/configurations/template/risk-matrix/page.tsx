@@ -114,9 +114,6 @@ const RiskMatrix = () => {
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[#2C3E50]">Risk Matrix Configuration</h1>
-        <Button className="bg-[#00A3FF] hover:bg-[#00A3FF]/90">
-          Save Changes
-        </Button>
       </div>
 
       <Card className="bg-white">
