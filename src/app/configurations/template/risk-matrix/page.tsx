@@ -1,182 +1,190 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from 'react'
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-interface SeverityLevel {
-  title: string
-  subtitle: string
-  value: number
-}
+const RiskMatrix = () => {
+  const [selectedType, setSelectedType] = useState('personnel')
 
-interface ProbabilityLevel {
-  title: string
-  description: string
-  value: number
-}
-
-export default function RiskMatrix() {
-  const [activeCategory, setActiveCategory] = useState<string>("Personel")
-  const [showColorPicker, setShowColorPicker] = useState(false)
-  const [selectedCell, setSelectedCell] = useState<{ prob: number; sev: number } | null>(null)
-  const [cellColors, setCellColors] = useState<Record<string, string>>({})
-
-  const categories: string[] = [
-    "Personel",
-    "Maintenance",
-    "Revenue",
-    "Process",
-    "Environmental"
+  const riskTypes = [
+    { id: 'personnel', label: 'Personnel' },
+    { id: 'maintenance', label: 'Maintenance' },
+    { id: 'revenue', label: 'Revenue' },
+    { id: 'process', label: 'Process' },
+    { id: 'environmental', label: 'Environmental' }
   ]
 
-  const severityLevels: SeverityLevel[] = [
-    { title: "Minor Injury", subtitle: "No Lost time", value: 1 },
-    { title: "Significant", subtitle: "Lost time", value: 2 },
-    { title: "Serious Injury", subtitle: "Short Term Disability", value: 3 },
-    { title: "Major Injury", subtitle: "Long Term Disability", value: 4 },
-    { title: "Catastrophic", subtitle: "Fatality", value: 5 }
-  ]
-
-  const probabilityLevels: ProbabilityLevel[] = [
-    { title: "Very Unlikely", description: "Once in Lifetime > 75 Years", value: 1 },
-    { title: "Slight Chance", description: "Once in 10 to 75 Years", value: 2 },
-    { title: "Feasible", description: "Once in 10 Years", value: 3 },
-    { title: "Likely", description: "Once in 2 to 10 Years", value: 4 },
-    { title: "Very Likely", description: "Multiple times in 2 Years", value: 5 }
-  ]
-
-  const getRiskLevel = (score: number): string => {
-    if (score <= 2) return "bg-green-500"
-    if (score <= 6) return "bg-yellow-400"
-    if (score <= 12) return "bg-orange-500"
-    return "bg-red-500"
-  }
-
-  const handleCellClick = (prob: number, sev: number) => {
-    setSelectedCell({ prob, sev })
-    setShowColorPicker(true)
-  }
-
-  const handleColorSelect = (color: string) => {
-    if (selectedCell) {
-      const cellKey = `${selectedCell.prob}-${selectedCell.sev}`
-      setCellColors(prev => ({
-        ...prev,
-        [cellKey]: color
-      }))
-      setShowColorPicker(false)
-      setSelectedCell(null)
+  const matrixData = {
+    personnel: {
+      consequences: [
+        { label: "Minor Injury", subLabel: "No Lost Time", value: 1 },
+        { label: "Significant", subLabel: "Lost Time", value: 2 },
+        { label: "Serious Injury", subLabel: "Short Term Disability", value: 3 },
+        { label: "Major Injury", subLabel: "Long Term Disability", value: 4 },
+        { label: "Catastrophic", subLabel: "Fatality", value: 5 }
+      ],
+      likelihood: [
+        { label: "Very Unlikely", value: "Once in Lifetime >75 Years", multiplier: 1 },
+        { label: "Slight Chance", value: "Once in 10 to 75 Years", multiplier: 2 },
+        { label: "Feasible", value: "Once in 10 Years", multiplier: 3 },
+        { label: "Likely", value: "Once in 2 to 10 Years", multiplier: 4 },
+        { label: "Very Likely", value: "Multiple times in 2 Years", multiplier: 5 }
+      ]
+    },
+    maintenance: {
+      consequences: [
+        { label: "Minor", subLabel: "<5% Impact to Maintenance Budget", value: 1 },
+        { label: "Significant", subLabel: "5-10% Impact to Maintenance Budget", value: 2 },
+        { label: "Serious", subLabel: "20-30% Impact to Maintenance Budget", value: 3 },
+        { label: "Major", subLabel: "30-40% Impact to Maintenance Budget", value: 4 },
+        { label: "Catastrophic", subLabel: ">41% Impact to Maintenance Budget", value: 5 }
+      ],
+      likelihood: [
+        { label: "Very Unlikely", value: "Once in Lifetime >75 Years", multiplier: 1 },
+        { label: "Slight Chance", value: "Once in 10 to 75 Years", multiplier: 2 },
+        { label: "Feasible", value: "Once in 10 Years", multiplier: 3 },
+        { label: "Likely", value: "Once in 2 to 10 Years", multiplier: 4 },
+        { label: "Very Likely", value: "Multiple times in 2 Years", multiplier: 5 }
+      ]
+    },
+    revenue: {
+      consequences: [
+        { label: "Minor", subLabel: "<2% Impact to Revenue", value: 1 },
+        { label: "Significant", subLabel: "2-6% Impact to Revenue", value: 2 },
+        { label: "Serious", subLabel: "6-12% Impact to Revenue", value: 3 },
+        { label: "Major", subLabel: "12-24% Impact to Revenue", value: 4 },
+        { label: "Catastrophic", subLabel: ">25% Impact to Revenue", value: 5 }
+      ],
+      likelihood: [
+        { label: "Very Unlikely", value: "Once in Lifetime >75 Years", multiplier: 1 },
+        { label: "Slight Chance", value: "Once in 10 to 75 Years", multiplier: 2 },
+        { label: "Feasible", value: "Once in 10 Years", multiplier: 3 },
+        { label: "Likely", value: "Once in 2 to 10 Years", multiplier: 4 },
+        { label: "Very Likely", value: "Multiple times in 2 Years", multiplier: 5 }
+      ]
+    },
+    process: {
+      consequences: [
+        { label: "Minor", subLabel: "Production Loss <10 Days", value: 1 },
+        { label: "Significant", subLabel: "Production Loss 10-20 Days", value: 2 },
+        { label: "Serious", subLabel: "Production Loss 20-40 Days", value: 3 },
+        { label: "Major", subLabel: "Production Loss 40-80 Days", value: 4 },
+        { label: "Catastrophic", subLabel: "Production Loss >81 Days", value: 5 }
+      ],
+      likelihood: [
+        { label: "Very Unlikely", value: "Once in Lifetime >75 Years", multiplier: 1 },
+        { label: "Slight Chance", value: "Once in 10 to 75 Years", multiplier: 2 },
+        { label: "Feasible", value: "Once in 10 Years", multiplier: 3 },
+        { label: "Likely", value: "Once in 2 to 10 Years", multiplier: 4 },
+        { label: "Very Likely", value: "Multiple times in 2 Years", multiplier: 5 }
+      ]
+    },
+    environmental: {
+      consequences: [
+        { label: "Minor", subLabel: "Near Source - Non Reportable - Cleanup <1 Shift", value: 1 },
+        { label: "Significant", subLabel: "Near Source - Reportable - Cleanup <1 Shift", value: 2 },
+        { label: "Serious", subLabel: "Near Source - Reportable - Cleanup <4 WKS", value: 3 },
+        { label: "Major", subLabel: "Near Source - Reportable - Cleanup <52 WKS", value: 4 },
+        { label: "Catastrophic", subLabel: "Near Source - Reportable - Cleanup <1WK", value: 5 }
+      ],
+      likelihood: [
+        { label: "Very Unlikely", value: "Once in Lifetime >75 Years", multiplier: 1 },
+        { label: "Slight Chance", value: "Once in 10 to 75 Years", multiplier: 2 },
+        { label: "Feasible", value: "Once in 10 Years", multiplier: 3 },
+        { label: "Likely", value: "Once in 2 to 10 Years", multiplier: 4 },
+        { label: "Very Likely", value: "Multiple times in 2 Years", multiplier: 5 }
+      ]
     }
   }
 
+  const getCellColor = (value: number): string => {
+    // Green cells
+    if ((value === 1) || (value === 2)) return "bg-[#90EE90]";
+    // Yellow cells
+    if ([3, 4, 5, 6, 8, 9].includes(value)) return "bg-[#FFFF00]";
+    // Orange cells
+    if ([10, 12, 15].includes(value)) return "bg-[#FFA500]";
+    // Red cells
+    if ([16, 20, 25].includes(value)) return "bg-[#FF0000]";
+    return "bg-white"; // Default color
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Risk Matrix Configuration</h1>
-          <Button 
-            className="bg-[#00A6ED] hover:bg-[#0094d4] px-8"
-          >
-            Save Changes
-          </Button>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border p-8">
-          {/* Categories */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">Risk Categories</h2>
-            <div className="flex gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  className={`py-2 px-6 rounded-full transition-all ${
-                    activeCategory === category 
-                      ? "bg-[#00A6ED] text-white shadow-sm" 
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                  onClick={() => setActiveCategory(category)}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            {/* Matrix Header */}
-            <div className="grid grid-cols-[200px_repeat(5,1fr)] gap-4">
-              <div className="flex items-end justify-center p-2">
-                <span className="text-sm font-medium text-gray-500">Probability / Severity</span>
-              </div>
-              {severityLevels.map((severity) => (
-                <div
-                  key={severity.value}
-                  className="space-y-2"
-                >
-                  <div className="bg-gray-50 rounded-lg p-3 text-center">
-                    <div className="font-medium text-gray-900">{severity.title}</div>
-                    <div className="text-sm text-gray-500 mt-1">{severity.subtitle}</div>
-                    <div className="text-sm font-medium text-gray-900 mt-2">{severity.value}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Probability Rows */}
-            {probabilityLevels.map((probability) => (
-              <div
-                key={probability.value}
-                className="grid grid-cols-[200px_repeat(5,1fr)] gap-4"
-              >
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="font-medium text-gray-900">{probability.title}</div>
-                  <div className="text-sm text-gray-500 mt-1">{probability.description}</div>
-                  <div className="text-sm font-medium text-gray-900 mt-2 text-center">{probability.value}</div>
-                </div>
-
-                {severityLevels.map((severity) => {
-                  const score = probability.value * severity.value;
-                  const cellKey = `${probability.value}-${severity.value}`;
-                  const customColor = cellColors[cellKey];
-                  return (
-                    <div
-                      key={`${probability.value}-${severity.value}`}
-                      className="bg-white rounded-lg border-2 border-gray-100 p-4 flex items-center justify-center cursor-pointer hover:border-[#00A6ED] transition-colors"
-                      onClick={() => handleCellClick(probability.value, severity.value)}
-                    >
-                      <div
-                        className={`${customColor || getRiskLevel(score)} w-10 h-10 rounded-full flex items-center justify-center text-white font-medium shadow-sm`}
-                      >
-                        {score}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className="p-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-[#2C3E50]">Risk Matrix Configuration</h1>
+        <Button className="bg-[#00A3FF] hover:bg-[#00A3FF]/90">
+          Save Changes
+        </Button>
       </div>
 
-      {/* Color Picker Dialog */}
-      <Dialog open={showColorPicker} onOpenChange={setShowColorPicker}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Select Risk Level Color</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 p-6">
-            <button className="h-24 bg-green-500 rounded-xl hover:opacity-90 shadow-sm transition-all" 
-              onClick={() => handleColorSelect('bg-green-500')} />
-            <button className="h-24 bg-yellow-400 rounded-xl hover:opacity-90 shadow-sm transition-all" 
-              onClick={() => handleColorSelect('bg-yellow-400')} />
-            <button className="h-24 bg-orange-500 rounded-xl hover:opacity-90 shadow-sm transition-all" 
-              onClick={() => handleColorSelect('bg-orange-500')} />
-            <button className="h-24 bg-red-500 rounded-xl hover:opacity-90 shadow-sm transition-all" 
-              onClick={() => handleColorSelect('bg-red-500')} />
+      <Card className="bg-white">
+        <CardContent className="pt-6">
+          <div className="mb-6">
+            <h2 className="text-lg font-medium mb-4">Risk Categories</h2>
+            <div className="flex gap-2">
+              {riskTypes.map((type) => (
+                <Button
+                  key={type.id}
+                  variant={selectedType === type.id ? "default" : "outline"}
+                  className={`px-6 ${
+                    selectedType === type.id 
+                      ? "bg-[#00A3FF] hover:bg-[#00A3FF]/90 text-white" 
+                      : "border-[#00A3FF] text-[#00A3FF] hover:bg-[#00A3FF] hover:text-white"
+                  }`}
+                  onClick={() => setSelectedType(type.id)}
+                >
+                  {type.label}
+                </Button>
+              ))}
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="p-4 text-left min-w-[200px]">
+                    <div className="text-base font-medium text-[#2C3E50]">Probability / Severity</div>
+                  </th>
+                  {matrixData[selectedType as keyof typeof matrixData]?.consequences.map((cons) => (
+                    <th key={cons.label} className="p-4 text-center border-l min-w-[200px]">
+                      <div className="font-medium text-[#2C3E50]">{cons.label}</div>
+                      <div className="text-sm text-gray-500 mt-1">{cons.subLabel}</div>
+                      <div className="font-medium mt-2">{cons.value}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {matrixData[selectedType as keyof typeof matrixData]?.likelihood.map((like) => (
+                  <tr key={like.label} className="border-b">
+                    <td className="p-4 border-r min-w-[200px]">
+                      <div className="font-medium text-[#2C3E50]">{like.label}</div>
+                      <div className="text-sm text-red-500">{like.value}</div>
+                      <div className="font-medium mt-2">{like.multiplier}</div>
+                    </td>
+                    {matrixData[selectedType as keyof typeof matrixData]?.consequences.map((cons) => {
+                      const value = like.multiplier * cons.value;
+                      return (
+                        <td 
+                          key={`${like.label}-${cons.label}`} 
+                          className={`${getCellColor(value)} text-center border min-w-[200px] h-[200px] align-middle text-xl font-medium`}
+                        >
+                          {value}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
+
+export default RiskMatrix
