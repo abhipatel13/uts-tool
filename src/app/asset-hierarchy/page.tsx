@@ -89,6 +89,7 @@ export default function DataLoader() {
   useEffect(() => {
     setMounted(true)
     fetchAssets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchAssets = async () => {

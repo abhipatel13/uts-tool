@@ -9,18 +9,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
-import { Upload, ChevronRight, ChevronDown } from "lucide-react"
+import { ChevronRight, ChevronDown } from "lucide-react"
 import { assetHierarchyApi } from "@/services/assetHierarchyApi"
 import { useToast } from "@/components/ui/use-toast"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 interface Asset {
   id: string;
@@ -63,29 +55,6 @@ export default function DataLoader() {
   const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [formData, setFormData] = useState<Omit<Asset, 'id' | 'createdAt' | 'updatedAt'>>({
-    name: '',
-    description: '',
-    level: 0,
-    fmea: '',
-    actions: '',
-    criticalityAssessment: '',
-    inspectionPoints: '',
-    maintenancePlant: '',
-    cmmsInternalId: '',
-    functionalLocation: '',
-    parent: null,
-    cmmsSystem: '',
-    siteReferenceName: '',
-    functionalLocationDesc: '',
-    functionalLocationLongDesc: '',
-    objectType: '',
-    systemStatus: 'Active',
-    make: '',
-    manufacturer: '',
-    serialNumber: ''
-  })
-  const [showAddDialog, setShowAddDialog] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [showDetailsDialog, setShowDetailsDialog] = useState(false)
 
@@ -243,106 +212,6 @@ export default function DataLoader() {
     const rootAssets = assets.filter(asset => !asset.parent);
     return rootAssets.map(asset => renderAssetRow(asset));
   }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    // Validate required fields
-    if (!formData.cmmsInternalId.trim()) {
-      toast({
-        title: "Error",
-        description: "CMMS Internal ID is required",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!formData.functionalLocation.trim()) {
-      toast({
-        title: "Error",
-        description: "Functional Location is required",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!formData.functionalLocationDesc.trim()) {
-      toast({
-        title: "Error",
-        description: "Functional Location Description is required",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      const assetToCreate = {
-        assets: [{
-          ...formData,
-          id: formData.functionalLocation,
-          // Ensure required fields are never null
-          cmmsInternalId: formData.cmmsInternalId.trim(),
-          functionalLocation: formData.functionalLocation.trim(),
-          functionalLocationDesc: formData.functionalLocationDesc.trim(),
-          description: formData.description.trim() || formData.functionalLocationDesc.trim(), // Use functionalLocationDesc as fallback
-          // Set default values for optional fields
-          functionalLocationLongDesc: formData.functionalLocationLongDesc?.trim() || '',
-          maintenancePlant: formData.maintenancePlant?.trim() || '',
-          cmmsSystem: formData.cmmsSystem?.trim() || '',
-          siteReferenceName: formData.siteReferenceName?.trim() || '',
-          objectType: formData.objectType?.trim() || '',
-          make: formData.make?.trim() || '',
-          manufacturer: formData.manufacturer?.trim() || '',
-          serialNumber: formData.serialNumber?.trim() || '',
-          systemStatus: formData.systemStatus || 'Active'
-        }]
-      }
-
-      await assetHierarchyApi.create(assetToCreate)
-      setShowAddDialog(false)
-      fetchAssets()
-      toast({
-        title: "Success!",
-        description: "Asset added successfully.",
-        variant: "default",
-      })
-      // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        level: 0,
-        fmea: '',
-        actions: '',
-        criticalityAssessment: '',
-        inspectionPoints: '',
-        maintenancePlant: '',
-        cmmsInternalId: '',
-        functionalLocation: '',
-        parent: null,
-        cmmsSystem: '',
-        siteReferenceName: '',
-        functionalLocationDesc: '',
-        functionalLocationLongDesc: '',
-        objectType: '',
-        systemStatus: 'Active',
-        make: '',
-        manufacturer: '',
-        serialNumber: ''
-      })
-    } catch (error) {
-      console.error('Error submitting form:', error)
-      toast({
-        title: "Error",
-        description: "Failed to create asset. Please try again.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
 
   return (
     <div className="p-8">
