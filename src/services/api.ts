@@ -1,7 +1,7 @@
 // API service for handling all API requests
 
 // Get the API base URL from environment variables
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
 // Define interfaces for API data types
 export interface Risk {
@@ -55,6 +55,13 @@ export interface Asset {
   level: number;  // Calculated based on hierarchy
   updatedAt: string;
   createdAt: string;
+}
+
+export enum UserRole {
+  SUPER_USER = 'SUPER_USER',
+  ADMIN = 'ADMIN',
+  SUPERVISOR = 'SUPERVISOR',
+  USER = 'USER'
 }
 
 // API response structure

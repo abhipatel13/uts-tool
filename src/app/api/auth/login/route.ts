@@ -1,17 +1,38 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    // Get the request body
+    const body = await request.json()
+    const { email, password } = body
 
-    // TODO: Add your authentication logic here
-    // This is where you would:
-    // 1. Validate the credentials against your database
-    // 2. Generate a JWT token
-    // 3. Set the token in a secure HTTP-only cookie
+    // Forward the request to the backend API
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    })
 
-    // For now, we'll just return a success response
-    return NextResponse.json({ message: "Login successful" })
-  } catch {
-    return new Response('Invalid request', { status: 400 })
+    // Get the response data
+    const data = await response.json()
+
+    // If the backend returns an error, return it to the client
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: data.error || 'Authentication failed' },
+        { status: response.status }
+      )
+    }
+
+    // Return the successful response from the backend
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Login API error:', error)
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    )
   }
 } 

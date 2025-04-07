@@ -4,25 +4,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-
-// Hardcoded valid credentials
-const VALID_CREDENTIALS = [
-  {
-    email: "jagpreet.a@utahtechnicalservicesllc.com",
-    password: "test",
-    company: "UTAH TECH SERVICES"
-  },
-  {
-    email: "jagpreet.a@utahtechnicalservicesllc.com",
-    password: "test",
-    company: "Utah Technical Services"
-  },
-  {
-    email: "jagpreet.a@utahtechnicalservicesllc.com",
-    password: "test",
-    company: "Utah Technical Services LLC"
-  }
-]
+import axios from "axios"
+import { setAuthToken, setUserData } from "@/utils/auth"
 
 export default function Login() {
   const router = useRouter()
@@ -63,27 +46,35 @@ export default function Login() {
     }
 
     try {
-      // Check against hardcoded credentials
-      const isValidUser = VALID_CREDENTIALS.some(
-        cred => 
-          cred.email === formData.email && 
-          cred.password === formData.password &&
-          cred.company === formData.company
-      )
-
-      if (isValidUser) {
-        // Store user info in localStorage
-        localStorage.setItem("user", JSON.stringify({
-          email: formData.email,
-          company: formData.company,
-          isAuthenticated: true
-        }))
-        router.push("/")
-      } else {
-        setError("Invalid credentials")
+      // Authenticate with backend API
+      const response = await axios.post('http://localhost:3000/api/auth/login', {
+        email: formData.email,
+        password: formData.password
+      })
+      
+      // Check if the response contains user data and token
+      if (!response.data.user || !response.data.token) {
+        throw new Error("Invalid response from server")
       }
-    } catch {
-      setError("An error occurred during login")
+      
+      const { user, token } = response.data
+      
+      // Store user data and token
+      setUserData({
+        ...user,
+        company: formData.company,
+        isAuthenticated: true
+      })
+      setAuthToken(token)
+      
+      router.push("/")
+    } catch (apiError: unknown) {
+      console.error("API login error:", apiError)
+      if (axios.isAxiosError(apiError)) {
+        setError(apiError.response?.data?.error || "Invalid credentials")
+      } else {
+        setError("An unexpected error occurred")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -140,8 +131,8 @@ export default function Login() {
             />
           </div>
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full bg-[rgb(44,62,80)] hover:bg-[rgb(44,62,80)]/90"
             disabled={isLoading}
           >

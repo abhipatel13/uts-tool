@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Image from 'next/image'
+import { getCurrentUser } from "@/utils/auth"
 
 interface NavItem {
   title: string;
@@ -62,67 +63,89 @@ const CustomIcons = {
   ),
 }
 
-const sidebarNavItems: NavItem[] = [
-  {
-    title: "Asset Hierarchy",
-    href: "/asset-hierarchy",
-    icon: CustomIcons.AssetHierarchy,
-    iconBg: "bg-[#3498DB]", 
-  },
-  {
-    title: "Safety",
-    href: "/safety",
-    icon: CustomIcons.Safety,
-    iconBg: "bg-[#2ECC71]",
-    subItems: [
-      { title: "Task Hazard", href: "/safety/task-hazard" },
-      { title: "Risk Assessment", href: "/safety/risk-assessment" },
-    ],
-  },
-  {
-    title: "Analytics / Reporting",
-    href: "/analytics",
-    icon: CustomIcons.Analytics,
-    iconBg: "bg-[#E67E22]",
-    subItems: [
-      { title: "Task Hazard", href: "/analytics/task-hazard" },
-      { title: "Risk Assessment", href: "/analytics/risk-assessment" },
-    ],
-  },
-  {
-    title: "Configurations",
-    href: "/configurations",
-    icon: CustomIcons.Configurations,
-    iconBg: "bg-[#E74C3C]", 
-    subItems: [
-      {
-        title: "Admin",
-        href: "/configurations/admin",
-        subItems: [
-          { title: "Users", href: "/configurations/admin/users" },
-          { title: "Data Loader", href: "/configurations/admin/data-loader" },
-          { title: "Licensing/subscription", href: "/configurations/admin/licensing" },
-        ]
-      },
-      {
-        title: "Preferences",
-        href: "/configurations/preferences",
-        subItems: [
-          { title: "Mitigating Action Trigger", href: "/configurations/preferences/mitigating-action-trigger" },
-        ]
-      },
-      {
-        title: "Templates",
-        href: "/configurations/templates",
-        subItems: [
-          { title: "Risk Matrix", href: "/configurations/template/risk-matrix" },
-          { title: "Mitigating Action Type", href: "/configurations/template/mitigating-action-type" },
-          { title: "General Risks", href: "/configurations/template/general-risks" },
-        ]
-      }
-    ],
-  },
-]
+// Define the sidebar navigation items
+const getSidebarNavItems = () => {
+  const user = getCurrentUser();
+  if (!user) return [];
+
+  // Determine which menu items to show based on user role
+  const showUsers = user.role === "superuser" || user.role === "admin";
+  const showLicenses = user.role === "superuser" || user.role === "admin";
+  const showAssets = user.role === "superuser" || user.role === "admin";
+  const showTaskHazard = user.role === "superuser" || user.role === "supervisor";
+  const showRiskAssessment = user.role === "superuser" || user.role === "supervisor";
+  const showConfigurations = user.role === "superuser";
+
+  // Only show Safety section if user has access to at least one of its sub-items
+  const showSafety = showTaskHazard || showRiskAssessment;
+  
+  // Only show Analytics section if user has access to at least one of its sub-items
+  const showAnalyticsSection = showTaskHazard || showRiskAssessment;
+
+  const items: NavItem[] = [
+    ...(showAssets ? [{
+      title: "Asset Hierarchy",
+      href: "/asset-hierarchy",
+      icon: CustomIcons.AssetHierarchy,
+      iconBg: "bg-[#3498DB]", 
+    }] : []),
+    ...(showSafety ? [{
+      title: "Safety",
+      href: "/safety",
+      icon: CustomIcons.Safety,
+      iconBg: "bg-[#2ECC71]",
+      subItems: [
+        ...(showTaskHazard ? [{ title: "Task Hazard", href: "/safety/task-hazard" }] : []),
+        ...(showRiskAssessment ? [{ title: "Risk Assessment", href: "/safety/risk-assessment" }] : []),
+      ],
+    }] : []),
+    ...(showAnalyticsSection ? [{
+      title: "Analytics / Reporting",
+      href: "/analytics",
+      icon: CustomIcons.Analytics,
+      iconBg: "bg-[#E67E22]",
+      subItems: [
+        ...(showTaskHazard ? [{ title: "Task Hazard", href: "/analytics/task-hazard" }] : []),
+        ...(showRiskAssessment ? [{ title: "Risk Assessment", href: "/analytics/risk-assessment" }] : []),
+      ],
+    }] : []),
+    ...(showConfigurations ? [{
+      title: "Configurations",
+      href: "/configurations",
+      icon: CustomIcons.Configurations,
+      iconBg: "bg-[#E74C3C]", 
+      subItems: [
+        {
+          title: "Admin",
+          href: "/configurations/admin",
+          subItems: [
+            ...(showUsers ? [{ title: "Users", href: "/configurations/admin/users" }] : []),
+            { title: "Data Loader", href: "/configurations/admin/data-loader" },
+            ...(showLicenses ? [{ title: "Licensing/subscription", href: "/configurations/admin/licensing" }] : []),
+          ]
+        },
+        {
+          title: "Preferences",
+          href: "/configurations/preferences",
+          subItems: [
+            { title: "Mitigating Action Trigger", href: "/configurations/preferences/mitigating-action-trigger" },
+          ]
+        },
+        {
+          title: "Templates",
+          href: "/configurations/templates",
+          subItems: [
+            { title: "Risk Matrix", href: "/configurations/template/risk-matrix" },
+            { title: "Mitigating Action Type", href: "/configurations/template/mitigating-action-type" },
+            { title: "General Risks", href: "/configurations/template/general-risks" },
+          ]
+        }
+      ],
+    }] : []),
+  ];
+
+  return items;
+};
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -130,6 +153,7 @@ export function Sidebar() {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([])
   const router = useRouter()
   const pathname = usePathname()
+  const sidebarNavItems = getSidebarNavItems();
 
   const toggleSubmenu = (href: string) => {
     setExpandedMenus(current => 

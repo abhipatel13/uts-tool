@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, LogOut } from "lucide-react"
+import { Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -11,9 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { signOut } from "next-auth/react"
+import { LogoutButton } from "@/components/logout-button"
+import { getCurrentUser } from "@/utils/auth"
 
 export function Header() {
+  const user = getCurrentUser()
+  const userInitials = user?.email ? user.email.substring(0, 2).toUpperCase() : "U"
+
   return (
     <header className="h-16 border-b bg-white px-8 flex items-center justify-end">
       <div className="flex items-center gap-4">
@@ -42,26 +46,19 @@ export function Header() {
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/avatars/user.png" alt="User" />
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarFallback>{userInitials}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>John Doe</DropdownMenuLabel>
+            <DropdownMenuLabel>{user?.email || "User"}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuItem>Help</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-  onClick={() => signOut({ 
-    callbackUrl: "/auth/login",
-    redirect: true 
-  })} 
-              className="text-red-600 cursor-pointer"
-                  >
-              <LogOut className="mr-2 h-4 w-4" />
-              Log out
+            <DropdownMenuItem className="text-red-600 cursor-pointer">
+              <LogoutButton />
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
