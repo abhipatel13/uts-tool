@@ -1,5 +1,13 @@
 import { getCurrentUser, hasPermission } from "./auth"
 
+interface DashboardItem {
+  title: string;
+  description: string;
+  icon: string;
+  href: string;
+  permission: string;
+}
+
 // Get role-specific color scheme
 export const getRoleColorScheme = () => {
   const user = getCurrentUser()
@@ -78,98 +86,71 @@ export const hasFeatureAccess = (feature: string): boolean => {
 }
 
 // Get role-specific dashboard items
-export const getDashboardItems = () => {
-  const user = getCurrentUser()
-  if (!user) return []
+export function getDashboardItems(): DashboardItem[] {
+  const user = getCurrentUser();
+  if (!user) return [];
 
   // Define all possible dashboard items
-  const allItems = [
-    {
-      title: "Users",
-      description: "Manage user accounts and permissions",
-      icon: "users",
-      href: "/admin/users",
-      permission: "account_creation",
-    },
-    {
-      title: "Licenses",
-      description: "Manage software licenses and subscriptions",
-      icon: "shield",
-      href: "/admin/licenses",
-      permission: "licensing_management",
-    },
+  const allItems: DashboardItem[] = [
     {
       title: "Asset Hierarchy",
-      description: "Manage asset hierarchy and relationships",
-      icon: "database",
-      href: "/admin/assets",
-      permission: "asset_hierarchy",
+      description: "Manage and view your asset hierarchy structure",
+      icon: "Building2",
+      href: "/asset-hierarchy",
+      permission: "asset_hierarchy"
     },
     {
-      title: "Safety Management",
-      description: "Manage safety protocols and incidents",
-      icon: "shield",
-      href: "/safety",
-      permission: "safety_management",
-    },
-    {
-      title: "Safety Reporting",
-      description: "Submit and view safety reports",
-      icon: "file-text",
-      href: "/safety/reporting",
-      permission: "safety_reporting",
-    },
-    {
-      title: "Analytics & Reporting",
-      description: "View analytics and generate reports",
-      icon: "bar-chart",
-      href: "/analytics",
-      permission: "analytics_reporting",
-    },
-    {
-      title: "System Configuration",
-      description: "Configure system settings and parameters",
-      icon: "settings",
-      href: "/configuration",
-      permission: "system_configuration",
+      title: "Task Hazard",
+      description: "Create and manage task hazard assessments",
+      icon: "AlertTriangle",
+      href: "/safety/task-hazard",
+      permission: "task_hazard_management"
     },
     {
       title: "Risk Assessment",
-      description: "View and manage risk assessments",
-      icon: "file-text",
-      href: "/risk-assessment",
-      permission: "risk_assessment",
+      description: "Create and manage risk assessments",
+      icon: "Shield",
+      href: "/safety/risk-assessment",
+      permission: "risk_assessment_creation"
     },
     {
-      title: "Create Assessment",
-      description: "Create a new risk assessment",
-      icon: "file-text",
-      href: "/risk-assessment/create",
-      permission: "risk_assessment_creation",
+      title: "Analytics",
+      description: "View analytics and reports",
+      icon: "BarChart3",
+      href: "/analytics",
+      permission: "analytics_reporting"
     },
-  ]
+    {
+      title: "Configuration",
+      description: "Manage system configurations",
+      icon: "Settings",
+      href: "/configurations",
+      permission: "configuration_management"
+    }
+  ];
 
-  // Filter items based on user role and permissions
+  // Filter items based on user role
   if (user.role === "superuser") {
-    return allItems; // Superuser sees all items
-  } else if (user.role === "admin") {
-    // Admin only sees account creation, licensing, and asset hierarchy
+    return allItems;
+  }
+
+  if (user.role === "admin") {
     return allItems.filter(item => 
-      item.permission === "account_creation" || 
-      item.permission === "licensing_management" || 
-      item.permission === "asset_hierarchy"
-    );
-  } else if (user.role === "supervisor") {
-    // Supervisor sees risk assessment, safety management, and analytics
-    return allItems.filter(item => 
-      item.permission === "risk_assessment" || 
-      item.permission === "safety_management" || 
-      item.permission === "analytics_reporting"
-    );
-  } else {
-    // Regular user only sees risk assessment creation
-    return allItems.filter(item => 
-      item.permission === "risk_assessment_creation"
+      item.permission === "asset_hierarchy" ||
+      item.permission === "configuration_management"
     );
   }
+
+  if (user.role === "supervisor") {
+    return allItems.filter(item => 
+      item.permission === "task_hazard_management" ||
+      item.permission === "risk_assessment_creation" ||
+      item.permission === "analytics_reporting"
+    );
+  }
+
+  // Regular user - only show risk assessment creation
+  return allItems.filter(item => 
+    item.permission === "risk_assessment_creation"
+  );
 } 

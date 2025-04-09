@@ -14,6 +14,7 @@ interface NavItem {
   icon?: React.ComponentType<{ className?: string }>;
   subItems?: NavItem[];
   iconBg?: string;
+  description?: string;
 }
 
 const CustomIcons = {
@@ -73,8 +74,8 @@ const getSidebarNavItems = () => {
   const showLicenses = user.role === "superuser" || user.role === "admin";
   const showAssets = user.role === "superuser" || user.role === "admin";
   const showTaskHazard = user.role === "superuser" || user.role === "supervisor";
-  const showRiskAssessment = user.role === "superuser" || user.role === "supervisor";
-  const showConfigurations = user.role === "superuser";
+  const showRiskAssessment = user.role === "superuser" || user.role === "supervisor" || user.role === "user";
+  const showConfigurations = user.role === "superuser" || user.role === "admin";
 
   // Only show Safety section if user has access to at least one of its sub-items
   const showSafety = showTaskHazard || showRiskAssessment;
@@ -119,12 +120,12 @@ const getSidebarNavItems = () => {
           title: "Admin",
           href: "/configurations/admin",
           subItems: [
-            ...(showUsers ? [{ title: "Users", href: "/configurations/admin/users" }] : []),
+            ...(showUsers ? [{ title: "User Management", href: "/configurations/admin/users", description: "Manage all users including regular users and supervisors" }] : []),
             { title: "Data Loader", href: "/configurations/admin/data-loader" },
-            ...(showLicenses ? [{ title: "Licensing/subscription", href: "/configurations/admin/licensing" }] : []),
+            ...(showLicenses ? [{ title: "Licensing", href: "/configurations/admin/licensing" }] : []),
           ]
         },
-        {
+        ...(user.role === "superuser" ? [{
           title: "Preferences",
           href: "/configurations/preferences",
           subItems: [
@@ -139,7 +140,7 @@ const getSidebarNavItems = () => {
             { title: "Mitigating Action Type", href: "/configurations/template/mitigating-action-type" },
             { title: "General Risks", href: "/configurations/template/general-risks" },
           ]
-        }
+        }] : []),
       ],
     }] : []),
   ];
