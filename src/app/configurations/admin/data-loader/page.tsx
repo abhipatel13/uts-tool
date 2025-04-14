@@ -224,13 +224,13 @@ export default function DataLoader() {
           <Button 
             onClick={downloadTemplate}
             variant="outline" 
-            className="border-[#00A3FF] text-[#00A3FF] hover:bg-[#00A3FF] hover:text-white"
+            className="border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white"
           >
             Download Template
           </Button>
           <Button 
             onClick={() => setShowUploadDialog(true)}
-            className="bg-[#00A3FF] hover:bg-[#00A3FF]/90"
+            className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]"
           >
             + Upload CSV
           </Button>

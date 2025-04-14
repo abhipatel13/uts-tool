@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LogoutButton } from "@/components/logout-button"
 import { getCurrentUser } from "@/utils/auth"
+import Link from 'next/link'
 
 export function Header() {
   const user = getCurrentUser()
@@ -53,7 +54,9 @@ export function Header() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{user?.email || "User"}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/configurations/profile">Profile</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuItem>Help</DropdownMenuItem>
             <DropdownMenuSeparator />

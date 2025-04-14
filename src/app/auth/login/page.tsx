@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import axios from "axios"
 import { setAuthToken, setUserData } from "@/utils/auth"
+import { authApi } from "@/services/authApi"
 
 export default function Login() {
   const router = useRouter()
@@ -47,13 +47,13 @@ export default function Login() {
 
     try {
       // Authenticate with backend API
-      const response = await axios.post('http://localhost:3000/api/auth/login', {
+      const response = await authApi.login({
         email: formData.email,
         password: formData.password
       })
       
       // Check if the response contains user data and token
-      if (!response.data.user || !response.data.token) {
+      if (!response.status) {
         throw new Error("Invalid response from server")
       }
       
@@ -65,16 +65,13 @@ export default function Login() {
         company: formData.company,
         isAuthenticated: true
       })
+
       setAuthToken(token)
       
       router.push("/")
     } catch (apiError: unknown) {
       console.error("API login error:", apiError)
-      if (axios.isAxiosError(apiError)) {
-        setError(apiError.response?.data?.error || "Invalid credentials")
-      } else {
-        setError("An unexpected error occurred")
-      }
+      setError(apiError instanceof Error ? apiError.message : "An unexpected error occurred")
     } finally {
       setIsLoading(false)
     }

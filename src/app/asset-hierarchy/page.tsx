@@ -380,7 +380,7 @@ export default function DataLoader() {
           <p className="text-gray-600">Manage your asset hierarchy structure here.</p>
         </div>
         <Button 
-          className="bg-[#00A3FF] hover:bg-[#00A3FF]/90 gap-2"
+          className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_0.8)] gap-2"
           onClick={() => handleDialogChange(true)}
         >
           <Plus className="h-4 w-4" /> Add Asset
@@ -649,10 +649,20 @@ export default function DataLoader() {
               </div>
             </div>
             <div className="flex justify-end gap-4">
-              <Button type="button" variant="outline" onClick={() => handleDialogChange(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => handleDialogChange(false)}
+                className="border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white"
+              >
                 Cancel
               </Button>
-              <Button type="submit">Add Asset</Button>
+              <Button 
+                type="submit"
+                className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_0.8)]"
+              >
+                Add Asset
+              </Button>
             </div>
           </form>
         </DialogContent>
