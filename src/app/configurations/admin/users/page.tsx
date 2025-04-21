@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/components/ui/use-toast";
 import { userApi } from "@/services/userApi";
 import { Badge } from "@/components/ui/badge";
-import { BackButton } from '@/components/ui/back-button';
 
 interface User {
   id: number;
@@ -126,7 +125,7 @@ export default function UserManagement() {
           description: "User deleted successfully",
         });
       }
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to delete user",
@@ -245,7 +244,6 @@ export default function UserManagement() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleDeleteUser(user.id.toString())}
-                  disabled={user.role === 'admin' && currentUser?.role !== 'superuser'}
                   className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white disabled:opacity-50"
                 >
                   Delete

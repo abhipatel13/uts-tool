@@ -2,11 +2,11 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Menu, X, Settings } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Image from 'next/image'
-import { getCurrentUser } from "@/utils/auth"
+import { getCurrentUser, hasPermission } from "@/utils/auth"
 
 interface NavItem {
   title: string;
@@ -62,6 +62,11 @@ const CustomIcons = {
       />
     </div>
   ),
+  Tactics: ({ className }: { className?: string }) => (
+    <div className={cn("p-2 rounded-full flex items-center justify-center bg-[#E74C3C]", className)}>
+      <Settings className="w-6 h-6 text-white" />
+    </div>
+  ),
 }
 
 // Define the sidebar navigation items
@@ -69,13 +74,16 @@ const getSidebarNavItems = () => {
   const user = getCurrentUser();
   if (!user) return [];
 
-  // Determine which menu items to show based on user role
+  // Determine which menu items to show based on user role and permissions
   const showUsers = user.role === "superuser" || user.role === "admin";
   const showLicenses = user.role === "superuser" || user.role === "admin";
-  const showAssets = user.role === "superuser" || user.role === "admin";
-  const showTaskHazard = user.role === "superuser" || user.role === "supervisor";
-  const showRiskAssessment = user.role === "superuser" || user.role === "supervisor" || user.role === "user";
+  const showAssets = hasPermission("view_asset_hierarchy") || hasPermission("asset_hierarchy");
+  const showTaskHazard = user.role === "superuser" || user.role === "admin" || user.role === "supervisor";
+  const showRiskAssessment = user.role === "superuser" || user.role === "admin" || user.role === "supervisor" || user.role === "user";
   const showConfigurations = user.role === "superuser" || user.role === "admin";
+  const showPreferences = user.role === "superuser" || user.role === "admin";
+  const showTemplates = user.role === "superuser" || user.role === "admin";
+  const showTactics = hasPermission("view_tactics");
 
   // Only show Safety section if user has access to at least one of its sub-items
   const showSafety = showTaskHazard || showRiskAssessment;
@@ -89,6 +97,12 @@ const getSidebarNavItems = () => {
       href: "/asset-hierarchy",
       icon: CustomIcons.AssetHierarchy,
       iconBg: "bg-[#3498DB]", 
+    }] : []),
+    ...(showTactics ? [{
+      title: "Tactics",
+      href: "/tactics",
+      icon: CustomIcons.Tactics,
+      iconBg: "bg-[#2ECC71]",
     }] : []),
     ...(showSafety ? [{
       title: "Safety",
@@ -125,14 +139,14 @@ const getSidebarNavItems = () => {
             ...(showLicenses ? [{ title: "Licensing", href: "/configurations/admin/licensing" }] : []),
           ]
         },
-        ...(user.role === "superuser" ? [{
+        ...(showPreferences ? [{
           title: "Preferences",
           href: "/configurations/preferences",
           subItems: [
             { title: "Mitigating Action Trigger", href: "/configurations/preferences/mitigating-action-trigger" },
           ]
-        },
-        {
+        }] : []),
+        ...(showTemplates ? [{
           title: "Templates",
           href: "/configurations/templates",
           subItems: [
@@ -187,16 +201,20 @@ export function Sidebar() {
           isCollapsed ? "justify-center" : "justify-between"
         )}>
           <div className="flex items-center gap-3">
-            <div className="bg-white p-2.5 rounded-xl flex items-center justify-center">
+            <div className={cn(
+              "bg-white rounded-lg flex items-center justify-center transition-all duration-300",
+              isCollapsed ? "p-1.5" : "p-2"
+            )}>
               <Image 
-                src="/performanceark.png" 
+                src="/uts-logo.png" 
                 alt="Logo" 
                 className={cn(
-                  "transition-all duration-300 rounded-lg",
-                  isCollapsed ? "h-8 w-8" : "h-10 w-auto"
-                )} 
-                width={210}
-                height={64}
+                  "transition-all duration-300",
+                  isCollapsed ? "w-8 h-8" : "w-15 h-15",
+                  "justify-center"
+                )}
+                width={150}
+                height={48}
                 priority
               />
             </div>
@@ -329,13 +347,13 @@ export function Sidebar() {
               {/* Mobile Logo */}
               <div className="px-6 py-4 flex items-center border-b border-[#2C3E50] shrink-0 bg-[#2C3E50]">
                 <div className="flex items-center gap-3">
-                  <div className="bg-white p-2.5 rounded-xl w-[92px] h-[92px] flex items-center justify-center">
+                  <div className="bg-white p-2 rounded-lg flex items-center justify-center">
                     <Image 
-                      src="/performanceark.png" 
+                      src="/uts-logo.png" 
                       alt="Logo" 
-                      className="w-[90px] h-[90px]"
-                      width={92}
-                      height={92}
+                      className="w-12 h-12"
+                      width={48}
+                      height={48}
                       priority
                     />
                   </div>

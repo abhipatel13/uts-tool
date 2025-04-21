@@ -49,7 +49,8 @@ export default function Login() {
       // Authenticate with backend API
       const response = await authApi.login({
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        company: formData.company
       })
       
       // Check if the response contains user data and token
@@ -61,7 +62,9 @@ export default function Login() {
       
       // Store user data and token
       setUserData({
-        ...user,
+        id: user._id,
+        email: user.email,
+        role: user.role,
         company: formData.company,
         isAuthenticated: true
       })

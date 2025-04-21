@@ -64,8 +64,8 @@ export const hasFeatureAccess = (feature: string): boolean => {
   const user = getCurrentUser()
   if (!user) return false
 
-  // Superuser has access to all features
-  if (user.role === "superuser") return true
+  // Superuser or Admin has access to all features
+  if (user.role === "superuser" || user.role === "admin") return true
 
   // Define feature permissions
   const featurePermissions: Record<string, string[]> = {
@@ -130,15 +130,8 @@ export function getDashboardItems(): DashboardItem[] {
   ];
 
   // Filter items based on user role
-  if (user.role === "superuser") {
+  if (user.role === "superuser" || user.role === "admin") { // Grant admin same access as superuser
     return allItems;
-  }
-
-  if (user.role === "admin") {
-    return allItems.filter(item => 
-      item.permission === "asset_hierarchy" ||
-      item.permission === "configuration_management"
-    );
   }
 
   if (user.role === "supervisor") {

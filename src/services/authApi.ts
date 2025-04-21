@@ -18,6 +18,7 @@ interface LoginResponse {
 interface LoginRequest {
   email: string;
   password: string;
+  company: string;
 }
 
 export const authApi = {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { ProtectedRoute } from '../components/ProtectedRoute';
+import ProtectedRoute from '../components/ProtectedRoute';
 import { useRouter } from 'next/router';
 
 const Dashboard: React.FC = () => {
@@ -26,25 +26,49 @@ const Dashboard: React.FC = () => {
       
       {/* Superuser Section */}
       <ProtectedRoute requiredRole="superuser">
-        <div className="bg-red-100 p-4 rounded-lg mb-4">
-          <h2 className="text-xl font-semibold mb-2">Superuser Controls</h2>
+        <div className="bg-purple-100 p-4 rounded-lg mb-4">
+          <h2 className="text-xl font-semibold mb-2">System Controls</h2>
           <p>You have access to all system features and controls.</p>
+          <div className="space-y-2 mt-4">
+            <button className="bg-purple-500 text-white px-4 py-2 rounded">
+              Manage Users
+            </button>
+            <button className="bg-purple-500 text-white px-4 py-2 rounded ml-2">
+              Manage Licenses
+            </button>
+            <button className="bg-purple-500 text-white px-4 py-2 rounded ml-2">
+              Asset Hierarchy
+            </button>
+            <button className="bg-purple-500 text-white px-4 py-2 rounded ml-2">
+              System Preferences
+            </button>
+            <button className="bg-purple-500 text-white px-4 py-2 rounded ml-2">
+              Templates
+            </button>
+          </div>
         </div>
       </ProtectedRoute>
 
       {/* Admin Section */}
       <ProtectedRoute requiredRole="admin">
-        <div className="bg-blue-100 p-4 rounded-lg mb-4">
-          <h2 className="text-xl font-semibold mb-2">Admin Controls</h2>
-          <div className="space-y-2">
-            <button className="bg-blue-500 text-white px-4 py-2 rounded">
+        <div className="bg-purple-100 p-4 rounded-lg mb-4">
+          <h2 className="text-xl font-semibold mb-2">System Controls</h2>
+          <p>You have access to all system features and controls.</p>
+          <div className="space-y-2 mt-4">
+            <button className="bg-purple-500 text-white px-4 py-2 rounded">
               Manage Users
             </button>
-            <button className="bg-blue-500 text-white px-4 py-2 rounded ml-2">
+            <button className="bg-purple-500 text-white px-4 py-2 rounded ml-2">
               Manage Licenses
             </button>
-            <button className="bg-blue-500 text-white px-4 py-2 rounded ml-2">
+            <button className="bg-purple-500 text-white px-4 py-2 rounded ml-2">
               Asset Hierarchy
+            </button>
+            <button className="bg-purple-500 text-white px-4 py-2 rounded ml-2">
+              System Preferences
+            </button>
+            <button className="bg-purple-500 text-white px-4 py-2 rounded ml-2">
+              Templates
             </button>
           </div>
         </div>
