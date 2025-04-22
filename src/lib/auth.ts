@@ -1,6 +1,19 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
+declare module "next-auth" {
+  interface User {
+    accessToken: string;
+    role: string;
+  }
+  interface Session {
+    user: {
+      accessToken: string;
+      role: string;
+    }
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -24,6 +37,7 @@ export const authOptions: NextAuthOptions = {
           const user = await res.json();
           return user;
         } catch (error) {
+          console.error('Error authorizing user:', error);
           return null;
         }
       }
@@ -38,15 +52,15 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.accessToken = user.accessToken;
-        token.role = user.role;
+        token.accessToken = user.accessToken as string;
+        token.role = user.role as string;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
-        session.user.accessToken = token.accessToken;
-        session.user.role = token.role;
+        session.user.accessToken = token.accessToken as string;
+        session.user.role = token.role as string;
       }
       return session;
     }

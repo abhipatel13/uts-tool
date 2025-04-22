@@ -158,6 +158,7 @@ export default function TacticsPage() {
 
   useEffect(() => {
     fetchTactics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchTactics = async () => {

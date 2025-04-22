@@ -66,7 +66,7 @@ export default function Dashboard() {
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">No Access</h2>
           <p className="text-gray-600">
-            You don't have access to any dashboard features. Please contact an administrator.
+            You don&apos;t have access to any dashboard features. Please contact an administrator.
           </p>
         </div>
       )}

@@ -394,7 +394,7 @@ export default function DataLoader() {
 
       {!canViewAssets && (
         <div className="bg-red-100 p-4 rounded-lg mb-4">
-          <p className="text-red-700">You don't have permission to view the Asset Hierarchy.</p>
+          <p className="text-red-700">You don&apos;t have permission to view the Asset Hierarchy.</p>
         </div>
       )}
 

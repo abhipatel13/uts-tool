@@ -78,7 +78,7 @@ export default function ProfilePage() {
         // Update local storage with new user data
         const updatedUser = { ...user, email: formData.email };
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        setUser(updatedUser);
+        setUser(updatedUser as User);
         
         setIsEditing(false);
         setFormData(prev => ({
@@ -94,6 +94,7 @@ export default function ProfilePage() {
         });
       }
     } catch (error) {
+      console.error('Error updating profile:', error);
       toast({
         title: "Error",
         description: "Failed to update profile",

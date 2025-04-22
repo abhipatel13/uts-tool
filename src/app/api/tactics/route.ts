@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { tacticsApi } from '@/services/tacticsApi';
 
-interface Tactic {
-  id?: number;
-  name: string;
-  description: string;
-  companyId: number;
-  createdBy: number;
-  updatedBy: number;
-}
-
 // GET all tactics
 export async function GET() {
   try {
@@ -67,7 +58,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const response = await tacticsApi.delete(Number(id));
+    const response = await tacticsApi.delete(id);
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error deleting tactic:', error);
