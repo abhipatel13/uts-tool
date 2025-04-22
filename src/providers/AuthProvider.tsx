@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 
 interface AuthUser {
   email?: string | null;
@@ -11,7 +11,7 @@ interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
 
   const logout = async () => {
-    // Implement logout logic
+    await signOut({ callbackUrl: '/auth/login' });
   };
 
   const user: AuthUser | null = session?.user ?? null;
