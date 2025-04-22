@@ -12,35 +12,45 @@ import { SessionProvider } from "next-auth/react"
 
 const inter = Inter({ subsets: ["latin"] })
 
+function RootLayoutContent({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isAuthPage = pathname?.startsWith('/auth')
+
+  return (
+    <>
+      {isAuthPage ? (
+        <div className="h-screen">
+          {children}
+        </div>
+      ) : (
+        <div className="flex h-screen">
+          <Sidebar />
+          <div className="flex-1 flex flex-col">
+            <Header />
+            <main className="flex-1 p-8">
+              {children}
+            </main>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-  const isAuthPage = pathname?.startsWith('/auth')
-
   return (
     <html lang="en">
       <body className={inter.className}>
         <SessionProvider>
           <AuthProvider>
             <Providers>
-              {isAuthPage ? (
-                <div className="h-screen">
-                  {children}
-                </div>
-              ) : (
-                <div className="flex h-screen">
-                  <Sidebar />
-                  <div className="flex-1 flex flex-col">
-                    <Header />
-                    <main className="flex-1 p-8">
-                      {children}
-                    </main>
-                  </div>
-                </div>
-              )}
+              <RootLayoutContent>
+                {children}
+              </RootLayoutContent>
             </Providers>
           </AuthProvider>
         </SessionProvider>
