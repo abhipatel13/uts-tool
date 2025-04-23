@@ -1,15 +1,17 @@
+'use client';
+
 import React from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import ProtectedRoute from '../components/ProtectedRoute';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
+  const handleLogout = async () => {
+    await logout();
+    router.push('/auth/login');
   };
 
   return (

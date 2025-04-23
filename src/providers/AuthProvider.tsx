@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   if (status === 'loading') {
-    return null; // or a loading spinner
+    return null; 
   }
 
   const user: AuthUser | null = session?.user ?? null;
