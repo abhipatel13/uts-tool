@@ -3,7 +3,26 @@
 import React from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import ProtectedRoute from '../components/ProtectedRoute';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/router';
+import { GetServerSideProps } from 'next';
+import { getSession } from 'next-auth/react';
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const session = await getSession(context);
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: '/auth/login',
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {}
+  };
+};
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
