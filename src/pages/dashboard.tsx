@@ -128,7 +128,7 @@ const Dashboard: React.FC = () => {
       {/* User Info */}
       <div className="bg-gray-100 p-4 rounded-lg">
         <h2 className="text-xl font-semibold mb-2">User Information</h2>
-        <p>Username: {user?.name}</p>
+        <p>Name: {user?.name}</p>
         <p>Role: {user?.role}</p>
         <p>Email: {user?.email}</p>
       </div>
