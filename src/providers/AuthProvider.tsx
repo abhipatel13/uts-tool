@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const logoutTimeoutRef = useRef<NodeJS.Timeout>();
+  const logoutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastLogoutAttemptRef = useRef<number>(0);
   
   const logout = async () => {

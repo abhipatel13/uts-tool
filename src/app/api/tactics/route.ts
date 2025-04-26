@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { tacticsApi } from '@/services/tacticsApi';
 
+interface ApiError extends Error {
+  status?: number;
+}
+
 // Helper function to handle errors
-const handleError = (error: any, message: string) => {
+const handleError = (error: ApiError | unknown, message: string) => {
   console.error(message, error);
+  const status = error instanceof Error && 'status' in error ? (error as ApiError).status : 500;
   return NextResponse.json(
     { error: message },
-    { status: error?.status || 500 }
+    { status }
   );
 };
 
