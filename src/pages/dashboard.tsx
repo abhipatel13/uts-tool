@@ -3,7 +3,6 @@
 import React from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import ProtectedRoute from '../components/ProtectedRoute';
-import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
 
@@ -25,12 +24,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 };
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
-  const router = useRouter();
+  const { user, logout, isLoggingOut } = useAuth();
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
     await logout();
-    router.push('/auth/login');
   };
 
   return (
@@ -39,9 +37,12 @@ const Dashboard: React.FC = () => {
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <button
           onClick={handleLogout}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+          disabled={isLoggingOut}
+          className={`${
+            isLoggingOut ? 'bg-gray-500' : 'bg-red-500 hover:bg-red-600'
+          } text-white px-4 py-2 rounded transition-colors`}
         >
-          Logout
+          {isLoggingOut ? 'Logging out...' : 'Logout'}
         </button>
       </div>
       

@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { tacticsApi } from '@/services/tacticsApi';
 
+// Helper function to handle errors
+const handleError = (error: any, message: string) => {
+  console.error(message, error);
+  return NextResponse.json(
+    { error: message },
+    { status: error?.status || 500 }
+  );
+};
+
 // GET all tactics
 export async function GET() {
   try {
     const response = await tacticsApi.getAll();
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error fetching tactics:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch tactics' },
-      { status: 500 }
-    );
+    return handleError(error, 'Failed to fetch tactics');
   }
 }
 
@@ -22,11 +27,7 @@ export async function POST(req: NextRequest) {
     const response = await tacticsApi.create(body);
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
-    console.error('Error creating tactic:', error);
-    return NextResponse.json(
-      { error: 'Failed to create tactic' },
-      { status: 500 }
-    );
+    return handleError(error, 'Failed to create tactic');
   }
 }
 
@@ -37,11 +38,7 @@ export async function PUT(req: NextRequest) {
     const response = await tacticsApi.update(body.id, body);
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error updating tactic:', error);
-    return NextResponse.json(
-      { error: 'Failed to update tactic' },
-      { status: 500 }
-    );
+    return handleError(error, 'Failed to update tactic');
   }
 }
 
@@ -61,10 +58,6 @@ export async function DELETE(req: NextRequest) {
     const response = await tacticsApi.delete(id);
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error deleting tactic:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete tactic' },
-      { status: 500 }
-    );
+    return handleError(error, 'Failed to delete tactic');
   }
 } 

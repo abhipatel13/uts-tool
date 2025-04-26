@@ -1,19 +1,3 @@
-import { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-
-declare module "next-auth" {
-  interface User {
-    accessToken: string;
-    role: string;
-  }
-  interface Session {
-    user: {
-      accessToken: string;
-      role: string;
-    }
-  }
-}
-
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -26,34 +10,49 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
         
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+          // Ensure HTTPS is used
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+          if (!apiUrl) throw new Error('API URL not configured');
+
+          const res = await fetch(`${apiUrl}/api/auth/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            credentials: 'include',
             body: JSON.stringify(credentials)
           });
           
-          if (!res.ok) return null;
+          if (!res.ok) {
+            const errorText = await res.text();
+            console.error('Login failed:', errorText);
+            throw new Error('Login failed');
+          }
           
           const user = await res.json();
+          if (!user) throw new Error('No user returned');
           return user;
         } catch (error) {
-          console.error('Error authorizing user:', error);
-          return null;
+          console.error('Auth error:', error);
+          throw error;
         }
       }
     })
   ],
-  session: {
-    strategy: "jwt"
-  },
   pages: {
-    signIn: "/login"
+    signIn: '/auth/login',
+    error: '/auth/error'
+  },
+  session: {
+    strategy: 'jwt',
+    maxAge: 24 * 60 * 60 // 24 hours
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.accessToken = user.accessToken as string;
-        token.role = user.role as string;
+        token.accessToken = user.accessToken;
+        token.role = user.role;
       }
       return token;
     },
