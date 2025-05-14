@@ -399,289 +399,314 @@ export default function DataLoader() {
       )}
 
       {canViewAssets && (
-        <>
-          <div className="bg-white rounded-lg shadow-sm border">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-4 text-[#2C3E50] font-medium">Asset ID</th>
-                  <th className="text-left p-4 text-[#2C3E50] font-medium">Asset Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {renderAssets()}
-              </tbody>
-            </table>
+        <div className="bg-white rounded-lg shadow h-[calc(100vh-200px)]">
+          <div className="h-full flex flex-col">
+            <div className="flex-none">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ID
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                  </tr>
+                </thead>
+              </table>
+            </div>
+            <div className="flex-1 overflow-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={2} className="px-6 py-4 text-center">
+                        Loading...
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={2} className="px-6 py-4 text-center text-red-500">
+                        {error}
+                      </td>
+                    </tr>
+                  ) : (
+                    renderAssets()
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-
-          <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Asset Details</DialogTitle>
-              </DialogHeader>
-              {selectedAsset && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Asset ID</Label>
-                    <p className="text-sm">{selectedAsset.id}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <p className="text-sm">{selectedAsset.name}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <p className="text-sm">{selectedAsset.description}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Maintenance Plant</Label>
-                    <p className="text-sm">{selectedAsset.maintenancePlant || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CMMS Internal ID</Label>
-                    <p className="text-sm">{selectedAsset.cmmsInternalId || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Parent</Label>
-                    <p className="text-sm">{selectedAsset.parent || 'No Parent'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CMMS System</Label>
-                    <p className="text-sm">{selectedAsset.cmmsSystem || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Site Reference Name</Label>
-                    <p className="text-sm">{selectedAsset.siteReferenceName || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Functional Location </Label>
-                    <p className="text-sm">{selectedAsset.functionalLocation || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Functional Location Description</Label>
-                    <p className="text-sm">{selectedAsset.functionalLocationDesc || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Functional Location Long Description</Label>
-                    <p className="text-sm">{selectedAsset.functionalLocationLongDesc || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Object Type</Label>
-                    <p className="text-sm">{selectedAsset.objectType || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>System Status</Label>
-                    <p className="text-sm">{selectedAsset.systemStatus}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Make</Label>
-                    <p className="text-sm">{selectedAsset.make || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Manufacturer</Label>
-                    <p className="text-sm">{selectedAsset.manufacturer || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Serial Number</Label>
-                    <p className="text-sm">{selectedAsset.serialNumber || '-'}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Level</Label>
-                    <p className="text-sm">{selectedAsset.level}</p>
-                  </div>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={showAddDialog} onOpenChange={handleDialogChange}>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Add New Asset</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Main Pump"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Input
-                      name="description"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Primary water pump"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Maintenance Plant</Label>
-                    <Input
-                      name="maintenancePlant"
-                      value={formData.maintenancePlant}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Off-Site Support"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Functional Location</Label>
-                    <Input
-                      name="functionalLocation"
-                      value={formData.functionalLocation}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Off-Site Support"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Functional Location Description</Label>
-                    <Input
-                      name="functionalLocationDesc"
-                      value={formData.functionalLocationDesc}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Off-Site Support"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Functional Location Long Description</Label>
-                    <Input
-                      name="functionalLocationLongDesc"
-                      value={formData.functionalLocationLongDesc}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Off-Site Support"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CMMS Internal ID</Label>
-                    <Input
-                      name="cmmsInternalId"
-                      value={formData.cmmsInternalId}
-                      onChange={handleInputChange}
-                      placeholder="e.g., IID001"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Parent</Label>
-                    <Select
-                      value={formData.parent || 'root'}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, parent: value === 'root' ? null : value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select parent asset" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="root">No Parent</SelectItem>
-                        {assets
-                          .filter(asset => asset.id && asset.id.trim() !== '')
-                          .map(asset => (
-                            <SelectItem 
-                              key={asset.id} 
-                              value={asset.id}
-                            >
-                              {asset.name} ({asset.id})
-                            </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CMMS System</Label>
-                    <Input
-                      name="cmmsSystem"
-                      value={formData.cmmsSystem}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Salt Lake City"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Site Reference Name</Label>
-                    <Input
-                      name="siteReferenceName"
-                      value={formData.siteReferenceName}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Salt Lake City, UT"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Object Type</Label>
-                    <Input
-                      name="objectType"
-                      value={formData.objectType}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Equipment"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>System Status</Label>
-                    <Select
-                      value={formData.systemStatus}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, systemStatus: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Make</Label>
-                    <Input
-                      name="make"
-                      value={formData.make}
-                      onChange={handleInputChange}
-                      placeholder="Make"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Manufacturer</Label>
-                    <Input
-                      name="manufacturer"
-                      value={formData.manufacturer}
-                      onChange={handleInputChange}
-                      placeholder="Manufacturer"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Serial Number</Label>
-                    <Input
-                      name="serialNumber"
-                      value={formData.serialNumber}
-                      onChange={handleInputChange}
-                      placeholder="Serial Number"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => handleDialogChange(false)}
-                    className="border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit"
-                    className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_0.8)]"
-                  >
-                    Add Asset
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </>
+        </div>
       )}
+
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Asset Details</DialogTitle>
+          </DialogHeader>
+          {selectedAsset && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Asset ID</Label>
+                <p className="text-sm">{selectedAsset.id}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <p className="text-sm">{selectedAsset.name}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <p className="text-sm">{selectedAsset.description}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Maintenance Plant</Label>
+                <p className="text-sm">{selectedAsset.maintenancePlant || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>CMMS Internal ID</Label>
+                <p className="text-sm">{selectedAsset.cmmsInternalId || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Parent</Label>
+                <p className="text-sm">{selectedAsset.parent || 'No Parent'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>CMMS System</Label>
+                <p className="text-sm">{selectedAsset.cmmsSystem || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Site Reference Name</Label>
+                <p className="text-sm">{selectedAsset.siteReferenceName || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location </Label>
+                <p className="text-sm">{selectedAsset.functionalLocation || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location Description</Label>
+                <p className="text-sm">{selectedAsset.functionalLocationDesc || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location Long Description</Label>
+                <p className="text-sm">{selectedAsset.functionalLocationLongDesc || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Object Type</Label>
+                <p className="text-sm">{selectedAsset.objectType || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>System Status</Label>
+                <p className="text-sm">{selectedAsset.systemStatus}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Make</Label>
+                <p className="text-sm">{selectedAsset.make || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Manufacturer</Label>
+                <p className="text-sm">{selectedAsset.manufacturer || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Serial Number</Label>
+                <p className="text-sm">{selectedAsset.serialNumber || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Level</Label>
+                <p className="text-sm">{selectedAsset.level}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAddDialog} onOpenChange={handleDialogChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Add New Asset</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto pr-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Main Pump"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Input
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Primary water pump"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Maintenance Plant</Label>
+                <Input
+                  name="maintenancePlant"
+                  value={formData.maintenancePlant}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Off-Site Support"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location</Label>
+                <Input
+                  name="functionalLocation"
+                  value={formData.functionalLocation}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Off-Site Support"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location Description</Label>
+                <Input
+                  name="functionalLocationDesc"
+                  value={formData.functionalLocationDesc}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Off-Site Support"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location Long Description</Label>
+                <Input
+                  name="functionalLocationLongDesc"
+                  value={formData.functionalLocationLongDesc}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Off-Site Support"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>CMMS Internal ID</Label>
+                <Input
+                  name="cmmsInternalId"
+                  value={formData.cmmsInternalId}
+                  onChange={handleInputChange}
+                  placeholder="e.g., IID001"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Parent</Label>
+                <Select
+                  value={formData.parent || 'root'}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, parent: value === 'root' ? null : value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select parent asset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="root">No Parent</SelectItem>
+                    {assets
+                      .filter(asset => asset.id && asset.id.trim() !== '')
+                      .map(asset => (
+                        <SelectItem 
+                          key={asset.id} 
+                          value={asset.id}
+                        >
+                          {asset.name} ({asset.id})
+                        </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>CMMS System</Label>
+                <Input
+                  name="cmmsSystem"
+                  value={formData.cmmsSystem}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Salt Lake City"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Site Reference Name</Label>
+                <Input
+                  name="siteReferenceName"
+                  value={formData.siteReferenceName}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Salt Lake City, UT"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Object Type</Label>
+                <Input
+                  name="objectType"
+                  value={formData.objectType}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Equipment"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>System Status</Label>
+                <Select
+                  value={formData.systemStatus}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, systemStatus: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Make</Label>
+                <Input
+                  name="make"
+                  value={formData.make}
+                  onChange={handleInputChange}
+                  placeholder="Make"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Manufacturer</Label>
+                <Input
+                  name="manufacturer"
+                  value={formData.manufacturer}
+                  onChange={handleInputChange}
+                  placeholder="Manufacturer"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Serial Number</Label>
+                <Input
+                  name="serialNumber"
+                  value={formData.serialNumber}
+                  onChange={handleInputChange}
+                  placeholder="Serial Number"
+                />
+              </div>
+            </div>
+          </form>
+          <div className="flex justify-end gap-4 mt-4 pt-4 border-t">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => handleDialogChange(false)}
+              className="border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              form="add-asset-form"
+              className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_0.8)]"
+            >
+              Add Asset
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 
