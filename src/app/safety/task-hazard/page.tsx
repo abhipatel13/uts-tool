@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
-import { Plus, X, Trash2, Edit2 } from "lucide-react"
+import { Plus, X, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import {
   Dialog,
@@ -250,6 +250,7 @@ export default function TaskHazard() {
   const [isLoadingAssets, setIsLoadingAssets] = useState(true)
   const [assetError, setAssetError] = useState<string | null>(null)
   const [activeConsequenceLabels, setActiveConsequenceLabels] = useState(personnelConsequenceLabels)
+  const [isEditMode, setIsEditMode] = useState(false)
   
   const [newTask, setNewTask] = useState({
     date: "",
@@ -675,9 +676,10 @@ export default function TaskHazard() {
     })
   }
 
-  const openRiskMatrix = (riskId: string, isAsIs: boolean) => {
+  const openRiskMatrix = (riskId: string, isAsIs: boolean, isEdit: boolean = false) => {
     setActiveRiskId(riskId)
     setIsAsIsMatrix(isAsIs)
+    setIsEditMode(isEdit)
     setShowRiskMatrix(true)
   }
 
@@ -1197,12 +1199,47 @@ export default function TaskHazard() {
                             type="button"
                             variant="outline"
                             className="w-full"
-                            onClick={() => risk.id && openRiskMatrix(risk.id, true)}
+                            onClick={() => risk.id && openRiskMatrix(risk.id, true, true)}
                           >
-                            {risk.asIsLikelihood && risk.asIsConsequence ? 
-                              `${risk.asIsLikelihood} / ${risk.asIsConsequence}` :
+                            {risk.asIsLikelihood && risk.asIsConsequence ? (
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 rounded ${getRiskColor(
+                                  getRiskScore(
+                                    risk.asIsLikelihood,
+                                    risk.asIsConsequence,
+                                    (() => {
+                                      switch (risk.riskType) {
+                                        case "Maintenance": return maintenanceConsequenceLabels;
+                                        case "Personnel": return personnelConsequenceLabels;
+                                        case "Revenue": return revenueConsequenceLabels;
+                                        case "Process": return processConsequenceLabels;
+                                        case "Environmental": return environmentalConsequenceLabels;
+                                        default: return personnelConsequenceLabels;
+                                      }
+                                    })()
+                                  ),
+                                  risk.riskType || ''
+                                )}`}>
+                                  {getRiskScore(
+                                    risk.asIsLikelihood,
+                                    risk.asIsConsequence,
+                                    (() => {
+                                      switch (risk.riskType) {
+                                        case "Maintenance": return maintenanceConsequenceLabels;
+                                        case "Personnel": return personnelConsequenceLabels;
+                                        case "Revenue": return revenueConsequenceLabels;
+                                        case "Process": return processConsequenceLabels;
+                                        case "Environmental": return environmentalConsequenceLabels;
+                                        default: return personnelConsequenceLabels;
+                                      }
+                                    })()
+                                  )}
+                                </span>
+                                <span>{`${risk.asIsLikelihood} / ${risk.asIsConsequence}`}</span>
+                              </div>
+                            ) : (
                               'Select Risk Level'
-                            }
+                            )}
                           </Button>
                         </div>
                         
@@ -1238,12 +1275,47 @@ export default function TaskHazard() {
                             type="button"
                             variant="outline"
                             className="w-full"
-                            onClick={() => risk.id && openRiskMatrix(risk.id, false)}
+                            onClick={() => risk.id && openRiskMatrix(risk.id, false, true)}
                           >
-                            {risk.mitigatedLikelihood && risk.mitigatedConsequence ? 
-                              `${risk.mitigatedLikelihood} / ${risk.mitigatedConsequence}` :
+                            {risk.mitigatedLikelihood && risk.mitigatedConsequence ? (
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 rounded ${getRiskColor(
+                                  getRiskScore(
+                                    risk.mitigatedLikelihood,
+                                    risk.mitigatedConsequence,
+                                    (() => {
+                                      switch (risk.riskType) {
+                                        case "Maintenance": return maintenanceConsequenceLabels;
+                                        case "Personnel": return personnelConsequenceLabels;
+                                        case "Revenue": return revenueConsequenceLabels;
+                                        case "Process": return processConsequenceLabels;
+                                        case "Environmental": return environmentalConsequenceLabels;
+                                        default: return personnelConsequenceLabels;
+                                      }
+                                    })()
+                                  ),
+                                  risk.riskType || ''
+                                )}`}>
+                                  {getRiskScore(
+                                    risk.mitigatedLikelihood,
+                                    risk.mitigatedConsequence,
+                                    (() => {
+                                      switch (risk.riskType) {
+                                        case "Maintenance": return maintenanceConsequenceLabels;
+                                        case "Personnel": return personnelConsequenceLabels;
+                                        case "Revenue": return revenueConsequenceLabels;
+                                        case "Process": return processConsequenceLabels;
+                                        case "Environmental": return environmentalConsequenceLabels;
+                                        default: return personnelConsequenceLabels;
+                                      }
+                                    })()
+                                  )}
+                                </span>
+                                <span>{`${risk.mitigatedLikelihood} / ${risk.mitigatedConsequence}`}</span>
+                              </div>
+                            ) : (
                               'Select Risk Level'
-                            }
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -1266,11 +1338,13 @@ export default function TaskHazard() {
 
       {/* Risk Matrix Dialog */}
       <Dialog open={showRiskMatrix} onOpenChange={setShowRiskMatrix}>
-        <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto before:bg-transparent after:bg-transparent">
+        <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {isAsIsMatrix ? 'Associated Risks' : 'Post-Mitigation Risks'} - {
-                newTask.risks.find(r => r.id === activeRiskId)?.riskType || 'Risk'
+              {isAsIsMatrix ? 'Associated Risks' : 'Post-Mitigation Risk Assessment'} - {
+                isEditMode 
+                  ? editTask?.risks?.find(r => r.id === activeRiskId)?.riskType || 'Risk'
+                  : newTask.risks.find(r => r.id === activeRiskId)?.riskType || 'Risk'
               } Assessment
             </DialogTitle>
           </DialogHeader>
@@ -1279,12 +1353,11 @@ export default function TaskHazard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isAsIsMatrix ? (
-                  <Label htmlFor="supervisorSignature">Risk Assessment</Label>
+                  <Label>Risk Assessment</Label>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="supervisorSignature">Supervisor Signature Required for High Risk ({'>'}9)</Label>
+                    <Label>Supervisor Signature Required for High Risk ({'>'}9)</Label>
                     <select
-                      id="supervisorSignature"
                       className="rounded-md border border-input px-3 py-1 text-sm"
                       value={enableSupervisorSignature.toString()}
                       onChange={(e) => setEnableSupervisorSignature(e.target.value === 'true')}
@@ -1295,7 +1368,11 @@ export default function TaskHazard() {
                   </div>
                 )}
               </div>
-              {!isAsIsMatrix && activeRiskId && newTask.risks.find(r => r.id === activeRiskId)?.requiresSupervisorSignature && (
+              {!isAsIsMatrix && activeRiskId && (
+                isEditMode 
+                  ? editTask?.risks?.find(r => r.id === activeRiskId)?.requiresSupervisorSignature
+                  : newTask.risks.find(r => r.id === activeRiskId)?.requiresSupervisorSignature
+              ) && (
                 <div className="text-amber-600 flex items-center gap-2">
                   <span className="text-sm font-medium">⚠️ Supervisor Signature Required</span>
                   <Button 
@@ -1315,9 +1392,16 @@ export default function TaskHazard() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Risk Type:</span>
                 <div className={`px-4 py-2 rounded-md ${
-                  riskCategories.find(c => c.id === newTask.risks.find(r => r.id === activeRiskId)?.riskType)?.color || 'bg-gray-200'
+                  riskCategories.find(c => c.id === (
+                    isEditMode 
+                      ? editTask?.risks?.find(r => r.id === activeRiskId)?.riskType
+                      : newTask.risks.find(r => r.id === activeRiskId)?.riskType
+                  ))?.color || 'bg-gray-200'
                 }`}>
-                  {newTask.risks.find(r => r.id === activeRiskId)?.riskType || 'Not Selected'}
+                  {isEditMode 
+                    ? editTask?.risks?.find(r => r.id === activeRiskId)?.riskType || 'Not Selected'
+                    : newTask.risks.find(r => r.id === activeRiskId)?.riskType || 'Not Selected'
+                  }
                 </div>
               </div>
             )}
@@ -1347,16 +1431,25 @@ export default function TaskHazard() {
                     </div>
                     {activeConsequenceLabels.map((consequence) => {
                       const score = getRiskScore(likelihood.value, consequence.value, activeConsequenceLabels);
-                      const isSelected = 
-                        isAsIsMatrix 
+                      const isSelected = isEditMode
+                        ? isAsIsMatrix
+                          ? editTask?.risks?.find(r => r.id === activeRiskId)?.asIsLikelihood === likelihood.value &&
+                            editTask?.risks?.find(r => r.id === activeRiskId)?.asIsConsequence === consequence.value
+                          : editTask?.risks?.find(r => r.id === activeRiskId)?.mitigatedLikelihood === likelihood.value &&
+                            editTask?.risks?.find(r => r.id === activeRiskId)?.mitigatedConsequence === consequence.value
+                        : isAsIsMatrix
                           ? newTask.risks.find(r => r.id === activeRiskId)?.asIsLikelihood === likelihood.value &&
                             newTask.risks.find(r => r.id === activeRiskId)?.asIsConsequence === consequence.value
                           : newTask.risks.find(r => r.id === activeRiskId)?.mitigatedLikelihood === likelihood.value &&
-                            newTask.risks.find(r => r.id === activeRiskId)?.mitigatedConsequence === consequence.value
+                            newTask.risks.find(r => r.id === activeRiskId)?.mitigatedConsequence === consequence.value;
+                      
                       return (
                         <button
                           key={`${likelihood.value}-${consequence.value}`}
-                          className={`${getRiskColor(score, newTask.risks.find(r => r.id === activeRiskId)?.riskType || '')} aspect-square flex items-center justify-center font-medium text-2xl
+                          className={`${getRiskColor(score, isEditMode 
+                            ? editTask?.risks?.find(r => r.id === activeRiskId)?.riskType || ''
+                            : newTask.risks.find(r => r.id === activeRiskId)?.riskType || ''
+                          )} aspect-square flex items-center justify-center font-medium text-2xl
                             ${isSelected ? 'ring-4 ring-blue-500 ring-inset' : ''}
                             hover:opacity-90 transition-opacity`}
                           onClick={() => {
@@ -1369,22 +1462,30 @@ export default function TaskHazard() {
                                 : {
                                     mitigatedLikelihood: likelihood.value,
                                     mitigatedConsequence: consequence.value,
-                                    requiresSupervisorSignature: newTask.risks.find(r => r.id === activeRiskId)?.riskType === "Maintenance" 
-                                      ? enableSupervisorSignature && score >= 16 // Critical risk threshold for Maintenance (16-25)
-                                      : enableSupervisorSignature && score > 9  // Original threshold for Personnel
-                                  }
-                              updateRisk(activeRiskId, updates)
+                                    requiresSupervisorSignature: (isEditMode 
+                                      ? editTask?.risks?.find(r => r.id === activeRiskId)?.riskType === "Maintenance"
+                                      : newTask.risks.find(r => r.id === activeRiskId)?.riskType === "Maintenance"
+                                    ) 
+                                      ? enableSupervisorSignature && score >= 16
+                                      : enableSupervisorSignature && score > 9
+                                  };
                               
+                              if (isEditMode) {
+                                updateEditRisk(activeRiskId, updates);
+                              } else {
+                                updateRisk(activeRiskId, updates);
+                              }
+
                               if (!isAsIsMatrix && enableSupervisorSignature && score > 9) {
-                                setShowRiskMatrix(false)
-                                setTimeout(() => navigateToSupervisorSignOff(activeRiskId), 100)
+                                setShowRiskMatrix(false);
+                                setTimeout(() => navigateToSupervisorSignOff(activeRiskId), 100);
                               }
                             }
                           }}
                         >
                           {score}
                         </button>
-                      )
+                      );
                     })}
                   </React.Fragment>
                 ))}
@@ -1394,7 +1495,9 @@ export default function TaskHazard() {
             <div className="flex justify-between items-center">
               <div className="flex gap-4">
                 {(() => {
-                  const riskType = newTask.risks.find(r => r.id === activeRiskId)?.riskType || "Personnel";
+                  const riskType = isEditMode
+                    ? editTask?.risks?.find(r => r.id === activeRiskId)?.riskType || "Personnel"
+                    : newTask.risks.find(r => r.id === activeRiskId)?.riskType || "Personnel";
                   const indicators = riskLevelIndicators[riskType as keyof typeof riskLevelIndicators] || riskLevelIndicators.Personnel;
                   
                   return (
@@ -1622,12 +1725,47 @@ export default function TaskHazard() {
                           type="button"
                           variant="outline"
                           className="w-full"
-                          onClick={() => risk.id && openRiskMatrix(risk.id, true)}
+                          onClick={() => risk.id && openRiskMatrix(risk.id, true, true)}
                         >
-                          {risk.asIsLikelihood && risk.asIsConsequence ? 
-                            `${risk.asIsLikelihood} / ${risk.asIsConsequence}` :
+                          {risk.asIsLikelihood && risk.asIsConsequence ? (
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 rounded ${getRiskColor(
+                                getRiskScore(
+                                  risk.asIsLikelihood,
+                                  risk.asIsConsequence,
+                                  (() => {
+                                    switch (risk.riskType) {
+                                      case "Maintenance": return maintenanceConsequenceLabels;
+                                      case "Personnel": return personnelConsequenceLabels;
+                                      case "Revenue": return revenueConsequenceLabels;
+                                      case "Process": return processConsequenceLabels;
+                                      case "Environmental": return environmentalConsequenceLabels;
+                                      default: return personnelConsequenceLabels;
+                                    }
+                                  })()
+                                ),
+                                risk.riskType || ''
+                              )}`}>
+                                {getRiskScore(
+                                  risk.asIsLikelihood,
+                                  risk.asIsConsequence,
+                                  (() => {
+                                    switch (risk.riskType) {
+                                      case "Maintenance": return maintenanceConsequenceLabels;
+                                      case "Personnel": return personnelConsequenceLabels;
+                                      case "Revenue": return revenueConsequenceLabels;
+                                      case "Process": return processConsequenceLabels;
+                                      case "Environmental": return environmentalConsequenceLabels;
+                                      default: return personnelConsequenceLabels;
+                                    }
+                                  })()
+                                )}
+                              </span>
+                              <span>{`${risk.asIsLikelihood} / ${risk.asIsConsequence}`}</span>
+                            </div>
+                          ) : (
                             'Select Risk Level'
-                          }
+                          )}
                         </Button>
                       </div>
                       
@@ -1663,12 +1801,47 @@ export default function TaskHazard() {
                           type="button"
                           variant="outline"
                           className="w-full"
-                          onClick={() => risk.id && openRiskMatrix(risk.id, false)}
+                          onClick={() => risk.id && openRiskMatrix(risk.id, false, true)}
                         >
-                          {risk.mitigatedLikelihood && risk.mitigatedConsequence ? 
-                            `${risk.mitigatedLikelihood} / ${risk.mitigatedConsequence}` :
+                          {risk.mitigatedLikelihood && risk.mitigatedConsequence ? (
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 rounded ${getRiskColor(
+                                getRiskScore(
+                                  risk.mitigatedLikelihood,
+                                  risk.mitigatedConsequence,
+                                  (() => {
+                                    switch (risk.riskType) {
+                                      case "Maintenance": return maintenanceConsequenceLabels;
+                                      case "Personnel": return personnelConsequenceLabels;
+                                      case "Revenue": return revenueConsequenceLabels;
+                                      case "Process": return processConsequenceLabels;
+                                      case "Environmental": return environmentalConsequenceLabels;
+                                      default: return personnelConsequenceLabels;
+                                    }
+                                  })()
+                                ),
+                                risk.riskType || ''
+                              )}`}>
+                                {getRiskScore(
+                                  risk.mitigatedLikelihood,
+                                  risk.mitigatedConsequence,
+                                  (() => {
+                                    switch (risk.riskType) {
+                                      case "Maintenance": return maintenanceConsequenceLabels;
+                                      case "Personnel": return personnelConsequenceLabels;
+                                      case "Revenue": return revenueConsequenceLabels;
+                                      case "Process": return processConsequenceLabels;
+                                      case "Environmental": return environmentalConsequenceLabels;
+                                      default: return personnelConsequenceLabels;
+                                    }
+                                  })()
+                                )}
+                              </span>
+                              <span>{`${risk.mitigatedLikelihood} / ${risk.mitigatedConsequence}`}</span>
+                            </div>
+                          ) : (
                             'Select Risk Level'
-                          }
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1693,146 +1866,113 @@ export default function TaskHazard() {
       </Dialog>
 
       <div className="bg-white rounded-lg shadow-sm border mb-6">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left p-4 text-[#2C3E50] font-medium">Task Risk ID</th>
-              <th className="text-left p-4 text-[#2C3E50] font-medium">Scope of Work</th>
-              <th className="text-left p-4 text-[#2C3E50] font-medium">Date & Time</th>
-              <th className="text-left p-4 text-[#2C3E50] font-medium">Location</th>
-              <th className="text-left p-4 text-[#2C3E50] font-medium">Highest Unmitigated</th>
-              <th className="text-left p-4 text-[#2C3E50] font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!isLoading && !error && tasks.length > 0 && tasks
-              .filter(task => {
-                const searchLower = searchTerm.toLowerCase();
-                return (
-                  task.scopeOfWork?.toLowerCase().includes(searchLower) ||
-                  task.assetSystem?.toLowerCase().includes(searchLower) ||
-                  task.location?.toLowerCase().includes(searchLower) ||
-                  task.individual?.toLowerCase().includes(searchLower) ||
-                  task.supervisor?.toLowerCase().includes(searchLower) ||
-                  task.id?.toLowerCase().includes(searchLower)
-                );
-              })
-              .map(task => {
-                // Calculate highest unmitigated risk score
-                let highestUnmitigatedScore = 0;
-                let highestUnmitigatedType = "";
-                
-                if (task.risks && task.risks.length > 0) {
-                  task.risks.forEach(risk => {
-                    const consequenceLabels = (() => {
-                      switch (risk.riskType) {
-                        case "Maintenance": return maintenanceConsequenceLabels;
-                        case "Personnel": return personnelConsequenceLabels;
-                        case "Revenue": return revenueConsequenceLabels;
-                        case "Process": return processConsequenceLabels;
-                        case "Environmental": return environmentalConsequenceLabels;
-                        default: return personnelConsequenceLabels;
-                      }
-                    })();
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-4 text-[#2C3E50] font-medium whitespace-nowrap">Task Risk ID</th>
+                <th className="text-left p-4 text-[#2C3E50] font-medium whitespace-nowrap">Scope of Work</th>
+                <th className="text-left p-4 text-[#2C3E50] font-medium whitespace-nowrap">Date & Time</th>
+                <th className="text-left p-4 text-[#2C3E50] font-medium whitespace-nowrap">Location</th>
+                <th className="text-left p-4 text-[#2C3E50] font-medium whitespace-nowrap">Highest Unmitigated</th>
+                <th className="text-left p-4 text-[#2C3E50] font-medium whitespace-nowrap">Status</th>
+                <th className="text-left p-4 text-[#2C3E50] font-medium whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!isLoading && !error && tasks.length > 0 &&
+                tasks
+                  .filter(task => {
+                    const searchLower = searchTerm.toLowerCase();
+                    return (
+                      task.scopeOfWork?.toLowerCase().includes(searchLower) ||
+                      task.assetSystem?.toLowerCase().includes(searchLower) ||
+                      task.location?.toLowerCase().includes(searchLower) ||
+                      task.individual?.toLowerCase().includes(searchLower) ||
+                      task.supervisor?.toLowerCase().includes(searchLower) ||
+                      task.id?.toLowerCase().includes(searchLower)
+                    );
+                  })
+                  .map(task => {
+                    // Calculate highest unmitigated risk score
+                    let highestUnmitigatedScore = 0;
+                    let highestUnmitigatedType = "";
                     
-                    const score = getRiskScore(risk.asIsLikelihood, risk.asIsConsequence, consequenceLabels);
-                    if (score > highestUnmitigatedScore) {
-                      highestUnmitigatedScore = score;
-                      highestUnmitigatedType = risk.riskType;
+                    if (task.risks && task.risks.length > 0) {
+                      task.risks.forEach(risk => {
+                        const consequenceLabels = (() => {
+                          switch (risk.riskType) {
+                            case "Maintenance": return maintenanceConsequenceLabels;
+                            case "Personnel": return personnelConsequenceLabels;
+                            case "Revenue": return revenueConsequenceLabels;
+                            case "Process": return processConsequenceLabels;
+                            case "Environmental": return environmentalConsequenceLabels;
+                            default: return personnelConsequenceLabels;
+                          }
+                        })();
+                        
+                        const score = getRiskScore(risk.asIsLikelihood, risk.asIsConsequence, consequenceLabels);
+                        if (score > highestUnmitigatedScore) {
+                          highestUnmitigatedScore = score;
+                          highestUnmitigatedType = risk.riskType;
+                        }
+                      });
                     }
-                  });
-                }
-                
-                return (
-                  <tr key={task.id} className="border-b hover:bg-gray-50 cursor-pointer" 
-                      onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
-                    <td className="p-4">{highlightMatch(task.id, searchTerm)}</td>
-                    <td className="p-4 cursor-pointer" onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
-                      {highlightMatch(task.scopeOfWork, searchTerm)}
-                    </td>
-                    <td className="p-4 cursor-pointer" onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
-                      {task.date} {task.time}
-                    </td>
-                    <td className="p-4 cursor-pointer" onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
-                      {highlightMatch(task.location, searchTerm)}
-                    </td>
-                    <td className="p-4 cursor-pointer" onClick={() => router.push(`/safety/task-hazard/${task.id}`)}>
-                      {highestUnmitigatedScore > 0 ? (
-                        <span className={`px-2 py-1 rounded ${getRiskColor(highestUnmitigatedScore, highestUnmitigatedType)}`}>
-                          {highestUnmitigatedScore}
-                        </span>
-                      ) : (
-                        "N/A"
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-4">
-                        <span className={`px-2 py-1 rounded-full text-xs ${task.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                          {task.status}
-                        </span>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setEditTask(task)
-                              setIsEditDialogOpen(true)
-                            }}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setDeleteTaskId(task.id)
-                              setIsDeleteDialogOpen(true)
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            {(!isLoading && !error && tasks.length === 0) && (
-              <tr>
-                <td colSpan={6} className="p-4 text-center">No tasks found. Create a new task to get started.</td>
-              </tr>
-            )}
-            {(!isLoading && !error && tasks.length > 0 && tasks.filter(task => {
-              const searchLower = searchTerm.toLowerCase();
-              return (
-                task.scopeOfWork?.toLowerCase().includes(searchLower) ||
-                task.assetSystem?.toLowerCase().includes(searchLower) ||
-                task.location?.toLowerCase().includes(searchLower) ||
-                task.individual?.toLowerCase().includes(searchLower) ||
-                task.supervisor?.toLowerCase().includes(searchLower) ||
-                task.id?.toLowerCase().includes(searchLower)
-              );
-            }).length === 0) && (
-              <tr>
-                <td colSpan={6} className="p-4 text-center">No tasks match your search criteria.</td>
-              </tr>
-            )}
-            {isLoading && (
-              <tr>
-                <td colSpan={6} className="p-4 text-center">Loading tasks...</td>
-              </tr>
-            )}
-            {error && (
-              <tr>
-                <td colSpan={6} className="p-4 text-center text-red-500">{error}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                    
+                    return (
+                      <tr 
+                        key={task.id} 
+                        className="border-b hover:bg-gray-50 cursor-pointer"
+                        onClick={() => {
+                          setEditTask(task);
+                          setIsEditDialogOpen(true);
+                        }}
+                      >
+                        <td className="p-4 whitespace-nowrap">{highlightMatch(task.id, searchTerm)}</td>
+                        <td className="p-4 whitespace-nowrap">{highlightMatch(task.scopeOfWork, searchTerm)}</td>
+                        <td className="p-4 whitespace-nowrap">{task.date} {task.time}</td>
+                        <td className="p-4 whitespace-nowrap">{highlightMatch(task.location, searchTerm)}</td>
+                        <td className="p-4 whitespace-nowrap">
+                          {highestUnmitigatedScore > 0 ? (
+                            <span className={`px-2 py-1 rounded ${getRiskColor(highestUnmitigatedScore, highestUnmitigatedType)}`}>
+                              {highestUnmitigatedScore}
+                            </span>
+                          ) : (
+                            "N/A"
+                          )}
+                        </td>
+                        <td className="p-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 rounded-full text-xs ${task.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                            {task.status}
+                          </span>
+                        </td>
+                        <td className="p-4 whitespace-nowrap">
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTaskId(task.id);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              {(!isLoading && !error && tasks.length === 0) && (
+                <tr>
+                  <td colSpan={7} className="p-4 text-center">No tasks found. Create a new task to get started.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
