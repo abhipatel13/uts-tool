@@ -115,7 +115,7 @@ const getSidebarNavItems = () => {
       ],
     }] : []),
     ...(showAnalyticsSection ? [{
-      title: "Analytics / Reporting",
+      title: "Analytics",
       href: "/analytics",
       icon: CustomIcons.Analytics,
       iconBg: "bg-[#E67E22]",
