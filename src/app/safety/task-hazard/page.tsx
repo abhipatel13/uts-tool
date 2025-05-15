@@ -17,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useRouter } from "next/navigation"
 import { taskHazardApi, assetHierarchyApi, type Asset } from "@/services/api"
 import type { TaskHazard } from "@/services/api"
+import { userApi } from "@/services/userApi"
+import type { User } from "@/services/userApi"
 
 // Define interface for risk (local version)
 interface Risk {
@@ -251,6 +253,10 @@ export default function TaskHazard() {
   const [assetError, setAssetError] = useState<string | null>(null)
   const [activeConsequenceLabels, setActiveConsequenceLabels] = useState(personnelConsequenceLabels)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [supervisors, setSupervisors] = useState<User[]>([])
+  const [isLoadingSupervisors, setIsLoadingSupervisors] = useState(true)
+  const [users, setUsers] = useState<User[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
   
   const [newTask, setNewTask] = useState({
     date: "",
@@ -960,6 +966,52 @@ export default function TaskHazard() {
     }
   };
 
+  // Fetch supervisors when component mounts
+  useEffect(() => {
+    const fetchSupervisors = async () => {
+      try {
+        setIsLoadingSupervisors(true)
+        const response = await userApi.getAll()
+        // Filter users to only include supervisors
+        const supervisorUsers = response.data.filter(user => user.role === 'supervisor')
+        setSupervisors(supervisorUsers)
+      } catch (error) {
+        console.error('Error fetching supervisors:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load supervisors. Please try again later.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoadingSupervisors(false)
+      }
+    }
+
+    fetchSupervisors()
+  }, [toast])
+
+  // Fetch all users when component mounts
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoadingUsers(true)
+        const response = await userApi.getAll()
+        setUsers(response.data)
+      } catch (error) {
+        console.error('Error fetching users:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load users. Please try again later.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoadingUsers(false)
+      }
+    }
+
+    fetchUsers()
+  }, [toast])
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -1104,21 +1156,51 @@ export default function TaskHazard() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="individual">Individual/Team</Label>
-                    <Input
-                      id="individual"
+                    <Select
                       value={newTask.individual}
-                      onChange={(e) => setNewTask({...newTask, individual: e.target.value})}
-                      placeholder="Enter individual or team"
-                    />
+                      onValueChange={(value) => setNewTask({...newTask, individual: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select individual/team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isLoadingUsers ? (
+                          <SelectItem value="loading" disabled>Loading users...</SelectItem>
+                        ) : users.length === 0 ? (
+                          <SelectItem value="none" disabled>No users found</SelectItem>
+                        ) : (
+                          users.map((user) => (
+                            <SelectItem key={user.id} value={user.email}>
+                              {user.email} ({user.role})
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="supervisor">Supervisor</Label>
-                    <Input
-                      id="supervisor"
+                    <Select
                       value={newTask.supervisor}
-                      onChange={(e) => setNewTask({...newTask, supervisor: e.target.value})}
-                      placeholder="Enter supervisor name"
-                    />
+                      onValueChange={(value) => setNewTask({...newTask, supervisor: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select supervisor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isLoadingSupervisors ? (
+                          <SelectItem value="loading" disabled>Loading supervisors...</SelectItem>
+                        ) : supervisors.length === 0 ? (
+                          <SelectItem value="none" disabled>No supervisors found</SelectItem>
+                        ) : (
+                          supervisors.map((supervisor) => (
+                            <SelectItem key={supervisor.id} value={supervisor.email}>
+                              {supervisor.email}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="location">Location</Label>
@@ -1617,21 +1699,51 @@ export default function TaskHazard() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="individual">Individual/Team</Label>
-                  <Input
-                    id="individual"
-                    value={editTask.individual}
-                    onChange={(e) => setEditTask({...editTask, individual: e.target.value})}
-                    placeholder="Enter individual or team"
-                  />
+                  <Select
+                    value={editTask?.individual || ""}
+                    onValueChange={(value) => setEditTask({...editTask!, individual: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select individual/team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingUsers ? (
+                        <SelectItem value="loading" disabled>Loading users...</SelectItem>
+                      ) : users.length === 0 ? (
+                        <SelectItem value="none" disabled>No users found</SelectItem>
+                      ) : (
+                        users.map((user) => (
+                          <SelectItem key={user.id} value={user.email}>
+                            {user.email} ({user.role})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="supervisor">Supervisor</Label>
-                  <Input
-                    id="supervisor"
-                    value={editTask.supervisor}
-                    onChange={(e) => setEditTask({...editTask, supervisor: e.target.value})}
-                    placeholder="Enter supervisor name"
-                  />
+                  <Select
+                    value={editTask?.supervisor || ""}
+                    onValueChange={(value) => setEditTask({...editTask!, supervisor: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select supervisor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingSupervisors ? (
+                        <SelectItem value="loading" disabled>Loading supervisors...</SelectItem>
+                      ) : supervisors.length === 0 ? (
+                        <SelectItem value="none" disabled>No supervisors found</SelectItem>
+                      ) : (
+                        supervisors.map((supervisor) => (
+                          <SelectItem key={supervisor.id} value={supervisor.email}>
+                            {supervisor.email}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="location">Location</Label>
