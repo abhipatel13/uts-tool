@@ -683,10 +683,10 @@ export default function TaskHazard() {
   }
 
   const openRiskMatrix = (riskId: string, isAsIs: boolean, isEdit: boolean = false) => {
-    setActiveRiskId(riskId)
-    setIsAsIsMatrix(isAsIs)
-    setIsEditMode(isEdit)
-    setShowRiskMatrix(true)
+    setActiveRiskId(riskId);
+    setIsAsIsMatrix(isAsIs);
+    setIsEditMode(isEdit);
+    setShowRiskMatrix(true);
   }
 
   const navigateToSupervisorSignOff = (riskId: string) => {
@@ -1281,7 +1281,7 @@ export default function TaskHazard() {
                             type="button"
                             variant="outline"
                             className="w-full"
-                            onClick={() => risk.id && openRiskMatrix(risk.id, true, true)}
+                            onClick={() => risk.id && openRiskMatrix(risk.id, true, false)}
                           >
                             {risk.asIsLikelihood && risk.asIsConsequence ? (
                               <div className="flex items-center gap-2">
@@ -1357,7 +1357,12 @@ export default function TaskHazard() {
                             type="button"
                             variant="outline"
                             className="w-full"
-                            onClick={() => risk.id && openRiskMatrix(risk.id, false, true)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (risk.id) {
+                                openRiskMatrix(risk.id, false, true);
+                              }
+                            }}
                           >
                             {risk.mitigatedLikelihood && risk.mitigatedConsequence ? (
                               <div className="flex items-center gap-2">
@@ -1533,35 +1538,36 @@ export default function TaskHazard() {
                             : newTask.risks.find(r => r.id === activeRiskId)?.riskType || ''
                           )} aspect-square flex items-center justify-center font-medium text-2xl
                             ${isSelected ? 'ring-4 ring-blue-500 ring-inset' : ''}
-                            hover:opacity-90 transition-opacity`}
-                          onClick={() => {
-                            if (activeRiskId) {
-                              const updates: Partial<Risk> = isAsIsMatrix
-                                ? { 
-                                    asIsLikelihood: likelihood.value,
-                                    asIsConsequence: consequence.value,
-                                  }
-                                : {
-                                    mitigatedLikelihood: likelihood.value,
-                                    mitigatedConsequence: consequence.value,
-                                    requiresSupervisorSignature: (isEditMode 
-                                      ? editTask?.risks?.find(r => r.id === activeRiskId)?.riskType === "Maintenance"
-                                      : newTask.risks.find(r => r.id === activeRiskId)?.riskType === "Maintenance"
-                                    ) 
-                                      ? enableSupervisorSignature && score >= 16
-                                      : enableSupervisorSignature && score > 9
-                                  };
-                              
-                              if (isEditMode) {
-                                updateEditRisk(activeRiskId, updates);
-                              } else {
-                                updateRisk(activeRiskId, updates);
-                              }
-
-                              if (!isAsIsMatrix && enableSupervisorSignature && score > 9) {
-                                setShowRiskMatrix(false);
-                                setTimeout(() => navigateToSupervisorSignOff(activeRiskId), 100);
-                              }
+                            hover:opacity-90 transition-opacity cursor-pointer`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const foundRisk = isEditMode
+                              ? editTask?.risks?.find(r => r.id === activeRiskId)
+                              : newTask.risks.find(r => r.id === activeRiskId);
+                            const updates: Partial<Risk> = isAsIsMatrix
+                              ? { 
+                                  asIsLikelihood: likelihood.value,
+                                  asIsConsequence: consequence.value,
+                                }
+                              : {
+                                  mitigatedLikelihood: likelihood.value,
+                                  mitigatedConsequence: consequence.value,
+                                  requiresSupervisorSignature: (isEditMode 
+                                    ? editTask?.risks?.find(r => r.id === activeRiskId)?.riskType === "Maintenance"
+                                    : newTask.risks.find(r => r.id === activeRiskId)?.riskType === "Maintenance"
+                                  ) 
+                                    ? enableSupervisorSignature && score >= 16
+                                    : enableSupervisorSignature && score > 9
+                                };
+                            if (isEditMode && editTask && foundRisk) {
+                              updateEditRisk(activeRiskId!, updates);
+                            } else if (!isEditMode) {
+                              updateRisk(activeRiskId!, updates);
+                            }
+                            if (!isAsIsMatrix && enableSupervisorSignature && score > 9) {
+                              setShowRiskMatrix(false);
+                              setTimeout(() => navigateToSupervisorSignOff(activeRiskId!), 100);
                             }
                           }}
                         >
@@ -1913,7 +1919,12 @@ export default function TaskHazard() {
                           type="button"
                           variant="outline"
                           className="w-full"
-                          onClick={() => risk.id && openRiskMatrix(risk.id, false, true)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (risk.id) {
+                              openRiskMatrix(risk.id, false, true);
+                            }
+                          }}
                         >
                           {risk.mitigatedLikelihood && risk.mitigatedConsequence ? (
                             <div className="flex items-center gap-2">

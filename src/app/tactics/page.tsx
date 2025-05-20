@@ -103,10 +103,10 @@ const EMPTY_ROW: AssetRow = {
 
 const COLUMNS = [
   { key: 'assetNumber', label: 'Asset Number' },
+  { key: 'assetDescription', label: 'Asset Description' },
   { key: 'manufacturer', label: 'Manufacturer' },
   { key: 'model', label: 'Model' },
   { key: 'assetGroup', label: 'Asset Group' },
-  { key: 'assetDescription', label: 'Asset Description' },
   { key: 'criticality', label: 'Criticality' },
   { key: 'failureMode', label: 'Failure Mode' },
   { key: 'failureCause', label: 'Failure Cause' },
@@ -443,7 +443,11 @@ export default function TacticsPage() {
                 <thead className="sticky top-0 bg-background">
                   <tr className="border-b">
                     {COLUMNS.map((col) => (
-                      <th key={col.key} className="border-r p-2 text-left bg-gray-50 font-medium text-sm">
+                      <th key={col.key} className={`border-r p-2 text-center bg-gray-50 font-medium text-sm ${
+                        col.key === 'assetNumber' ? 'sticky left-0 z-20 bg-gray-50 w-[200px] min-w-[200px] max-w-[200px]' :
+                        col.key === 'assetDescription' ? 'sticky left-[200px] z-10 bg-gray-50 w-[200px] min-w-[200px] max-w-[200px]' :
+                        ''
+                      }`}>
                         {col.label}
                       </th>
                     ))}
@@ -453,7 +457,11 @@ export default function TacticsPage() {
                   {formData.assetRows.map((row, rowIndex) => (
                     <tr key={rowIndex} className="border-b">
                       {COLUMNS.map((col) => (
-                        <td key={col.key} className="border-r p-1">
+                        <td key={col.key} className={`border-r p-1 text-center ${
+                          col.key === 'assetNumber' ? 'sticky left-0 z-20 bg-white w-[200px] min-w-[200px] max-w-[200px]' :
+                          col.key === 'assetDescription' ? 'sticky left-[200px] z-10 bg-white w-[200px] min-w-[200px] max-w-[200px]' :
+                          ''
+                        }`}>
                           {col.key === 'step1FailureEvident' || 
                            col.key === 'step2AffectsSafetyEnvironment' || 
                            col.key === 'step3SuitableTaskExists' || 
@@ -465,7 +473,7 @@ export default function TacticsPage() {
                             <Input
                               value={row[col.key as keyof AssetRow]}
                               onChange={(e) => handleRowChange(rowIndex, col.key as keyof AssetRow, e.target.value)}
-                              className="border-0 h-8 p-1 focus:ring-0"
+                              className="border-0 h-8 p-1 focus:ring-0 text-center"
                             />
                           )}
                         </td>
