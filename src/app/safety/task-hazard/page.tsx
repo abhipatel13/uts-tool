@@ -598,16 +598,16 @@ export default function TaskHazard() {
           id: risk.id,
           riskDescription: risk.riskDescription,
           riskType: risk.riskType,
-          asIsLikelihood: risk.asIsLikelihood,
-          asIsConsequence: risk.asIsConsequence,
-          mitigatingAction: risk.mitigatingAction,
-          mitigatingActionType: risk.mitigatingActionType,
-          mitigatedLikelihood: risk.mitigatedLikelihood,
-          mitigatedConsequence: risk.mitigatedConsequence,
-          requiresSupervisorSignature: risk.requiresSupervisorSignature
+          asIsLikelihood: risk.asIsLikelihood || "",
+          asIsConsequence: risk.asIsConsequence || "",
+          mitigatingAction: risk.mitigatingAction || "",
+          mitigatingActionType: risk.mitigatingActionType || "",
+          mitigatedLikelihood: risk.mitigatedLikelihood || "",
+          mitigatedConsequence: risk.mitigatedConsequence || "",
+          requiresSupervisorSignature: risk.requiresSupervisorSignature || false
         }))
       };
-
+      
       // Use the API service instead of direct fetch
       await taskHazardApi.createTaskHazard(formattedTask);
 
@@ -772,7 +772,23 @@ export default function TaskHazard() {
     if (!editTask) return
 
     try {
-      await taskHazardApi.updateTaskHazard(editTask.id, editTask)
+      const formattedTask = {
+        ...editTask,
+        risks: (editTask.risks || []).map(risk => ({
+          id: risk.id || "",
+          riskDescription: risk.riskDescription || "",
+          riskType: risk.riskType || "",
+          asIsLikelihood: risk.asIsLikelihood || "",
+          asIsConsequence: risk.asIsConsequence || "",
+          mitigatingAction: risk.mitigatingAction || "",
+          mitigatingActionType: risk.mitigatingActionType || "",
+          mitigatedLikelihood: risk.mitigatedLikelihood || "",
+          mitigatedConsequence: risk.mitigatedConsequence || "",
+          requiresSupervisorSignature: risk.requiresSupervisorSignature || false
+        }))
+      };
+      
+      await taskHazardApi.updateTaskHazard(formattedTask.id, formattedTask);
       
       toast({
         title: "Success",
@@ -781,11 +797,11 @@ export default function TaskHazard() {
       })
       
       // Refresh tasks list
-      fetchTasks()
-      setIsEditDialogOpen(false)
-      setEditTask(null)
+      fetchTasks();
+      setIsEditDialogOpen(false);
+      setEditTask(null);
     } catch (error) {
-      console.error('Error updating task:', error)
+      console.error('Error updating task:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update task hazard assessment. Please try again.",
@@ -1013,7 +1029,7 @@ export default function TaskHazard() {
     fetchUsers()
   }, [toast])
 
-  // Add a new function to standardize risk matrix click handling
+  // Make sure the handleRiskMatrixClick function passes the correct format of values
   const handleRiskMatrixClick = (likelihood: string, consequence: string, score: number) => {
     // Get the current risk
     const currentRisk = isEditMode
@@ -1036,6 +1052,7 @@ export default function TaskHazard() {
             : enableSupervisorSignature && score > 9
         };
 
+
     // Update the appropriate state
     if (isEditMode && editTask) {
       updateEditRisk(activeRiskId!, updates);
@@ -1049,6 +1066,8 @@ export default function TaskHazard() {
       setTimeout(() => navigateToSupervisorSignOff(activeRiskId!), 100);
     }
   };
+
+  // Add a function to log what we're sending to the API
 
   return (
     <div className="p-8">
