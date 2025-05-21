@@ -275,6 +275,7 @@ export default function TaskHazard() {
 
   // Add state for API data
   const [tasks, setTasks] = useState<TaskHazardData[]>([])
+  console.log("tasks", tasks)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -1012,6 +1013,43 @@ export default function TaskHazard() {
     fetchUsers()
   }, [toast])
 
+  // Add a new function to standardize risk matrix click handling
+  const handleRiskMatrixClick = (likelihood: string, consequence: string, score: number) => {
+    // Get the current risk
+    const currentRisk = isEditMode
+      ? editTask?.risks?.find(r => r.id === activeRiskId)
+      : newTask.risks.find(r => r.id === activeRiskId);
+
+    if (!currentRisk) return;
+
+    // Create updates based on whether it's as-is or mitigated
+    const updates: Partial<Risk> = isAsIsMatrix
+      ? { 
+          asIsLikelihood: likelihood,
+          asIsConsequence: consequence,
+        }
+      : {
+          mitigatedLikelihood: likelihood,
+          mitigatedConsequence: consequence,
+          requiresSupervisorSignature: (currentRisk.riskType === "Maintenance")
+            ? enableSupervisorSignature && score >= 16
+            : enableSupervisorSignature && score > 9
+        };
+
+    // Update the appropriate state
+    if (isEditMode && editTask) {
+      updateEditRisk(activeRiskId!, updates);
+    } else {
+      updateRisk(activeRiskId!, updates);
+    }
+
+    // Handle supervisor signature if needed
+    if (!isAsIsMatrix && enableSupervisorSignature && score > 9) {
+      setShowRiskMatrix(false);
+      setTimeout(() => navigateToSupervisorSignOff(activeRiskId!), 100);
+    }
+  };
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -1357,12 +1395,7 @@ export default function TaskHazard() {
                             type="button"
                             variant="outline"
                             className="w-full"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (risk.id) {
-                                openRiskMatrix(risk.id, false, true);
-                              }
-                            }}
+                            onClick={() => risk.id && openRiskMatrix(risk.id, false, false)}
                           >
                             {risk.mitigatedLikelihood && risk.mitigatedConsequence ? (
                               <div className="flex items-center gap-2">
@@ -1518,57 +1551,28 @@ export default function TaskHazard() {
                     </div>
                     {activeConsequenceLabels.map((consequence) => {
                       const score = getRiskScore(likelihood.value, consequence.value, activeConsequenceLabels);
-                      const isSelected = isEditMode
-                        ? isAsIsMatrix
-                          ? editTask?.risks?.find(r => r.id === activeRiskId)?.asIsLikelihood === likelihood.value &&
-                            editTask?.risks?.find(r => r.id === activeRiskId)?.asIsConsequence === consequence.value
-                          : editTask?.risks?.find(r => r.id === activeRiskId)?.mitigatedLikelihood === likelihood.value &&
-                            editTask?.risks?.find(r => r.id === activeRiskId)?.mitigatedConsequence === consequence.value
-                        : isAsIsMatrix
-                          ? newTask.risks.find(r => r.id === activeRiskId)?.asIsLikelihood === likelihood.value &&
-                            newTask.risks.find(r => r.id === activeRiskId)?.asIsConsequence === consequence.value
-                          : newTask.risks.find(r => r.id === activeRiskId)?.mitigatedLikelihood === likelihood.value &&
-                            newTask.risks.find(r => r.id === activeRiskId)?.mitigatedConsequence === consequence.value;
+                      const currentRisk = isEditMode
+                        ? editTask?.risks?.find(r => r.id === activeRiskId)
+                        : newTask.risks.find(r => r.id === activeRiskId);
                       
+                      const isSelected = isAsIsMatrix
+                        ? currentRisk?.asIsLikelihood === likelihood.value && 
+                          currentRisk?.asIsConsequence === consequence.value
+                        : currentRisk?.mitigatedLikelihood === likelihood.value && 
+                          currentRisk?.mitigatedConsequence === consequence.value;
+
                       return (
                         <button
                           key={`${likelihood.value}-${consequence.value}`}
-                          className={`${getRiskColor(score, isEditMode 
-                            ? editTask?.risks?.find(r => r.id === activeRiskId)?.riskType || ''
-                            : newTask.risks.find(r => r.id === activeRiskId)?.riskType || ''
-                          )} aspect-square flex items-center justify-center font-medium text-2xl
+                          type="button"
+                          className={`${getRiskColor(score, currentRisk?.riskType || '')} 
+                            aspect-square flex items-center justify-center font-medium text-2xl
                             ${isSelected ? 'ring-4 ring-blue-500 ring-inset' : ''}
                             hover:opacity-90 transition-opacity cursor-pointer`}
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            const foundRisk = isEditMode
-                              ? editTask?.risks?.find(r => r.id === activeRiskId)
-                              : newTask.risks.find(r => r.id === activeRiskId);
-                            const updates: Partial<Risk> = isAsIsMatrix
-                              ? { 
-                                  asIsLikelihood: likelihood.value,
-                                  asIsConsequence: consequence.value,
-                                }
-                              : {
-                                  mitigatedLikelihood: likelihood.value,
-                                  mitigatedConsequence: consequence.value,
-                                  requiresSupervisorSignature: (isEditMode 
-                                    ? editTask?.risks?.find(r => r.id === activeRiskId)?.riskType === "Maintenance"
-                                    : newTask.risks.find(r => r.id === activeRiskId)?.riskType === "Maintenance"
-                                  ) 
-                                    ? enableSupervisorSignature && score >= 16
-                                    : enableSupervisorSignature && score > 9
-                                };
-                            if (isEditMode && editTask && foundRisk) {
-                              updateEditRisk(activeRiskId!, updates);
-                            } else if (!isEditMode) {
-                              updateRisk(activeRiskId!, updates);
-                            }
-                            if (!isAsIsMatrix && enableSupervisorSignature && score > 9) {
-                              setShowRiskMatrix(false);
-                              setTimeout(() => navigateToSupervisorSignOff(activeRiskId!), 100);
-                            }
+                            handleRiskMatrixClick(likelihood.value, consequence.value, score);
                           }}
                         >
                           {score}
@@ -1919,12 +1923,7 @@ export default function TaskHazard() {
                           type="button"
                           variant="outline"
                           className="w-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (risk.id) {
-                              openRiskMatrix(risk.id, false, true);
-                            }
-                          }}
+                          onClick={() => risk.id && openRiskMatrix(risk.id, false, true)}
                         >
                           {risk.mitigatedLikelihood && risk.mitigatedConsequence ? (
                             <div className="flex items-center gap-2">
