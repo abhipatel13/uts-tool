@@ -59,7 +59,7 @@ export default function Login() {
       }
       
       const { user, token } = response.data
-      
+
       // Store user data and token
       setUserData({
         id: user._id,

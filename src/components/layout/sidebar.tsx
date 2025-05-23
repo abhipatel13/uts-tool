@@ -84,9 +84,10 @@ const getSidebarNavItems = () => {
   const showPreferences = user.role === "superuser" || user.role === "admin";
   const showTemplates = user.role === "superuser" || user.role === "admin";
   const showTactics = hasPermission("view_tactics");
+  const showApprovalRequests = user.role === "supervisor";
 
   // Only show Safety section if user has access to at least one of its sub-items
-  const showSafety = showTaskHazard || showRiskAssessment;
+  const showSafety = showTaskHazard || showRiskAssessment || showApprovalRequests;
   
   // Only show Analytics section if user has access to at least one of its sub-items
   const showAnalyticsSection = showTaskHazard || showRiskAssessment;
@@ -112,6 +113,7 @@ const getSidebarNavItems = () => {
       subItems: [
         ...(showTaskHazard ? [{ title: "Task Hazard", href: "/safety/task-hazard" }] : []),
         ...(showRiskAssessment ? [{ title: "Risk Assessment", href: "/safety/risk-assessment" }] : []),
+        ...(showApprovalRequests ? [{ title: "Approval Requests", href: "/safety/supervisor-dashboard" }] : []),
       ],
     }] : []),
     ...(showAnalyticsSection ? [{

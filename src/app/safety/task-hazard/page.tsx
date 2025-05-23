@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useRouter } from "next/navigation"
+// import { useRouter } from "next/navigation"
 import { taskHazardApi, assetHierarchyApi, type Asset } from "@/services/api"
 import type { TaskHazard } from "@/services/api"
 import { userApi } from "@/services/userApi"
@@ -237,7 +237,6 @@ const riskLevelIndicators = {
 type TaskHazardData = TaskHazard;
 
 export default function TaskHazard() {
-  const router = useRouter()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [assetDropdownOpen, setAssetDropdownOpen] = useState(false)
@@ -581,6 +580,9 @@ export default function TaskHazard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // Check if any risks require supervisor signature
+      const requiresSupervisorApproval = newTask.risks.some(risk => risk.requiresSupervisorSignature);
+      
       // Format the data according to API requirements
       const formattedTask: Omit<TaskHazardData, 'id'> = {
         date: newTask.date,
@@ -593,7 +595,7 @@ export default function TaskHazard() {
         supervisor: newTask.supervisor,
         location: newTask.location,
         geoFenceLimit: newTask.geoFenceLimit,
-        status: newTask.status,
+        status: requiresSupervisorApproval ? 'Pending' : 'Active',
         risks: newTask.risks.map(risk => ({
           id: risk.id,
           riskDescription: risk.riskDescription,
@@ -610,36 +612,19 @@ export default function TaskHazard() {
       
       // Use the API service instead of direct fetch
       await taskHazardApi.createTaskHazard(formattedTask);
-
-      // Show success toast
+      
       toast({
         title: "Success",
-        description: "Task hazard assessment has been created successfully.",
+        description: requiresSupervisorApproval 
+          ? "Task hazard assessment has been created and is pending supervisor approval."
+          : "Task hazard assessment has been created successfully.",
         variant: "default",
       })
       
-      // Reset form and close dialog
-      setNewTask({
-        date: "",
-        time: "",
-        scopeOfWork: "",  
-        assetSystem: "",
-        systemLockoutRequired: false,
-        trainedWorkforce: "",
-        risks: [],
-        individual: "",
-        supervisor: "",
-        status: "Active",
-        location: "",
-        geoFenceLimit: 200,
-      });
-      setOpen(false);
-
-      // Refresh tasks
-      fetchTasks();
+      setOpen(false)
+      fetchTasks()
     } catch (error) {
-      console.error('Error adding task:', error);
-      // Show error toast
+      console.error('Error creating task:', error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create task hazard assessment. Please try again.",
@@ -688,11 +673,6 @@ export default function TaskHazard() {
     setIsAsIsMatrix(isAsIs);
     setIsEditMode(isEdit);
     setShowRiskMatrix(true);
-  }
-
-  const navigateToSupervisorSignOff = (riskId: string) => {
-    // Save current state if needed
-    router.push(`/safety/supervisor-sign-off?riskId=${riskId}`)
   }
 
   const openGeoFenceSettings = (isNewTask: boolean) => {
@@ -769,11 +749,18 @@ export default function TaskHazard() {
 
   const handleEditTask = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!editTask) return
+    if (!editTask) return;
 
     try {
+      // Check if any risks require supervisor signature
+      const requiresSupervisorApproval = editTask.risks.some(risk => risk.requiresSupervisorSignature);
+      
+      // Simple status logic: if requires approval -> Pending, otherwise always Active
+      const newStatus = requiresSupervisorApproval ? 'Pending' : 'Active';
+      
       const formattedTask = {
         ...editTask,
+        status: newStatus,
         risks: (editTask.risks || []).map(risk => ({
           id: risk.id || "",
           riskDescription: risk.riskDescription || "",
@@ -788,11 +775,17 @@ export default function TaskHazard() {
         }))
       };
       
+      if (!formattedTask.id) {
+        throw new Error('Task ID is required');
+      }
+      
       await taskHazardApi.updateTaskHazard(formattedTask.id, formattedTask);
       
       toast({
         title: "Success",
-        description: "Task hazard assessment has been updated successfully.",
+        description: requiresSupervisorApproval 
+          ? "Task hazard assessment has been updated and is pending supervisor approval."
+          : "Task hazard assessment has been updated successfully.",
         variant: "default",
       })
       
@@ -1036,6 +1029,9 @@ export default function TaskHazard() {
       ? editTask?.risks?.find(r => r.id === activeRiskId)
       : newTask.risks.find(r => r.id === activeRiskId);
 
+    console.log('Current Risk:', currentRisk);
+    console.log('Score:', score);
+
     if (!currentRisk) return;
 
     // Create updates based on whether it's as-is or mitigated
@@ -1052,19 +1048,61 @@ export default function TaskHazard() {
             : enableSupervisorSignature && score > 9
         };
 
+    console.log('Risk Updates:', updates);
 
     // Update the appropriate state
     if (isEditMode && editTask) {
+      // First update the risk
       updateEditRisk(activeRiskId!, updates);
+      
+      if (!isAsIsMatrix) {
+        // After updating the risk, check if any risks now require supervisor signature
+        const updatedRisks = editTask.risks.map(risk => 
+          risk.id === activeRiskId 
+            ? { ...risk, ...updates }
+            : risk
+        );
+        
+        const requiresApproval = updatedRisks.some(risk => risk.requiresSupervisorSignature);        
+        // Update the task with new risks and status
+        setEditTask(prev => {
+          const newState = {
+            ...prev!,
+            risks: updatedRisks,
+            // If any risk requires signature -> Pending, otherwise always Active
+            status: requiresApproval ? 'Pending' : 'Active'
+          };
+          return newState;
+        });
+      }
     } else {
+      // First update the risk
       updateRisk(activeRiskId!, updates);
+      
+      if (!isAsIsMatrix) {
+        // After updating the risk, check if any risks now require supervisor signature
+        const updatedRisks = newTask.risks.map(risk => 
+          risk.id === activeRiskId 
+            ? { ...risk, ...updates }
+            : risk
+        );
+        
+        const requiresApproval = updatedRisks.some(risk => risk.requiresSupervisorSignature);
+        
+        // Update the task with new risks and status
+        setNewTask(prev => {
+          const newState = {
+            ...prev,
+            risks: updatedRisks,
+            // If any risk requires signature -> Pending, otherwise always Active
+            status: requiresApproval ? 'Pending' : 'Active'
+          };
+          return newState;
+        });
+      }
     }
 
-    // Handle supervisor signature if needed
-    if (!isAsIsMatrix && enableSupervisorSignature && score > 9) {
-      setShowRiskMatrix(false);
-      setTimeout(() => navigateToSupervisorSignOff(activeRiskId!), 100);
-    }
+    setShowRiskMatrix(false);
   };
 
   // Add a function to log what we're sending to the API
@@ -1435,27 +1473,32 @@ export default function TaskHazard() {
                                   ),
                                   risk.riskType || ''
                                 )}`}>
-                                  {getRiskScore(
-                                    risk.mitigatedLikelihood,
-                                    risk.mitigatedConsequence,
-                                    (() => {
-                                      switch (risk.riskType) {
-                                        case "Maintenance": return maintenanceConsequenceLabels;
-                                        case "Personnel": return personnelConsequenceLabels;
-                                        case "Revenue": return revenueConsequenceLabels;
-                                        case "Process": return processConsequenceLabels;
-                                        case "Environmental": return environmentalConsequenceLabels;
-                                        default: return personnelConsequenceLabels;
-                                      }
-                                    })()
-                                  )}
+                                  {risk.mitigatedLikelihood} x {risk.mitigatedConsequence}
                                 </span>
-                                <span>{`${risk.mitigatedLikelihood} / ${risk.mitigatedConsequence}`}</span>
+                                <span className="text-gray-500">= Score {getRiskScore(
+                                  risk.mitigatedLikelihood,
+                                  risk.mitigatedConsequence,
+                                  (() => {
+                                    switch (risk.riskType) {
+                                      case "Maintenance": return maintenanceConsequenceLabels;
+                                      case "Personnel": return personnelConsequenceLabels;
+                                      case "Revenue": return revenueConsequenceLabels;
+                                      case "Process": return processConsequenceLabels;
+                                      case "Environmental": return environmentalConsequenceLabels;
+                                      default: return personnelConsequenceLabels;
+                                    }
+                                  })()
+                                )}</span>
                               </div>
                             ) : (
-                              'Select Risk Level'
+                              <div className="text-gray-500">Not assessed</div>
                             )}
                           </Button>
+                          {risk.requiresSupervisorSignature && (
+                            <div className="mt-2">
+                              <span className="text-amber-600 text-xs">⚠️ Supervisor signature required - Status will remain pending until approved</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1513,15 +1556,7 @@ export default function TaskHazard() {
                   : newTask.risks.find(r => r.id === activeRiskId)?.requiresSupervisorSignature
               ) && (
                 <div className="text-amber-600 flex items-center gap-2">
-                  <span className="text-sm font-medium">⚠️ Supervisor Signature Required</span>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="text-xs"
-                    onClick={() => navigateToSupervisorSignOff(activeRiskId)}
-                  >
-                    Sign Off
-                  </Button>
+                  <span className="text-sm font-medium">⚠️ Supervisor Signature Required - Status will remain pending until approved</span>
                 </div>
               )}
             </div>
@@ -1963,27 +1998,32 @@ export default function TaskHazard() {
                                 ),
                                 risk.riskType || ''
                               )}`}>
-                                {getRiskScore(
-                                  risk.mitigatedLikelihood,
-                                  risk.mitigatedConsequence,
-                                  (() => {
-                                    switch (risk.riskType) {
-                                      case "Maintenance": return maintenanceConsequenceLabels;
-                                      case "Personnel": return personnelConsequenceLabels;
-                                      case "Revenue": return revenueConsequenceLabels;
-                                      case "Process": return processConsequenceLabels;
-                                      case "Environmental": return environmentalConsequenceLabels;
-                                      default: return personnelConsequenceLabels;
-                                    }
-                                  })()
-                                )}
+                                {risk.mitigatedLikelihood} x {risk.mitigatedConsequence}
                               </span>
-                              <span>{`${risk.mitigatedLikelihood} / ${risk.mitigatedConsequence}`}</span>
+                              <span className="text-gray-500">= Score {getRiskScore(
+                                risk.mitigatedLikelihood,
+                                risk.mitigatedConsequence,
+                                (() => {
+                                  switch (risk.riskType) {
+                                    case "Maintenance": return maintenanceConsequenceLabels;
+                                    case "Personnel": return personnelConsequenceLabels;
+                                    case "Revenue": return revenueConsequenceLabels;
+                                    case "Process": return processConsequenceLabels;
+                                    case "Environmental": return environmentalConsequenceLabels;
+                                    default: return personnelConsequenceLabels;
+                                  }
+                                })()
+                              )}</span>
                             </div>
                           ) : (
-                            'Select Risk Level'
+                            <div className="text-gray-500">Not assessed</div>
                           )}
                         </Button>
+                        {risk.requiresSupervisorSignature && (
+                          <div className="mt-2">
+                            <span className="text-amber-600 text-xs">⚠️ Supervisor signature required - Status will remain pending until approved</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2083,7 +2123,15 @@ export default function TaskHazard() {
                           )}
                         </td>
                         <td className="p-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 rounded-full text-xs ${task.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            task.status === 'Active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : task.status === 'Pending'
+                              ? 'bg-amber-100 text-amber-800'
+                              : task.status === 'Rejected'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
                             {task.status}
                           </span>
                         </td>

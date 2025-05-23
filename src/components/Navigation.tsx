@@ -24,6 +24,7 @@ export function Navigation() {
   const showAssets = user.role === "superuser" || user.role === "admin"
   const showRiskAssessment = user.role === "superuser" || user.role === "supervisor"
   const showRiskAssessmentCreation = user.role === "superuser" || user.role === "user"
+  const showApprovalRequests = user.role === "supervisor"
 
   return (
     <nav className="bg-white border-b">
@@ -95,6 +96,22 @@ export function Navigation() {
                 >
                   <Database className="h-4 w-4 mr-1" />
                   Assets
+                </Link>
+              )}
+
+              {/* Approval Requests - Only for supervisors */}
+              {showApprovalRequests && (
+                <Link
+                  href="/safety/supervisor-dashboard"
+                  className={cn(
+                    "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium",
+                    isActive("/safety/supervisor-dashboard")
+                      ? "border-[rgb(44,62,80)] text-[rgb(44,62,80)]"
+                      : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  )}
+                >
+                  <Shield className="h-4 w-4 mr-1" />
+                  Supervisor Dashboard
                 </Link>
               )}
 
@@ -239,6 +256,25 @@ export function Navigation() {
                 <div className="flex items-center">
                   <Database className="h-4 w-4 mr-2" />
                   Assets
+                </div>
+              </Link>
+            )}
+
+            {/* Approval Requests - Mobile */}
+            {showApprovalRequests && (
+              <Link
+                href="/safety/supervisor-dashboard"
+                className={cn(
+                  "block pl-3 pr-4 py-2 border-l-4 text-base font-medium",
+                  isActive("/safety/supervisor-dashboard")
+                    ? "bg-[rgb(44,62,80)]/10 border-[rgb(44,62,80)] text-[rgb(44,62,80)]"
+                    : "border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700"
+                )}
+                onClick={() => setIsOpen(false)}
+              >
+                <div className="flex items-center">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Supervisor Dashboard
                 </div>
               </Link>
             )}

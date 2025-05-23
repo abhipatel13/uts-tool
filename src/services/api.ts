@@ -115,36 +115,41 @@ export const taskHazardApi = {
       throw new Error('Failed to create task hazard')
     }
 
-    return response.json()
+    const result = await response.json();
+    return result;
   },
 
   // Get all task hazard assessments
   getTaskHazards: async (): Promise<ApiResponse<TaskHazard[]>> => {
-    return fetchApi<ApiResponse<TaskHazard[]>>('/api/task-hazards', {
+    const response = await fetchApi<ApiResponse<TaskHazard[]>>('/api/task-hazards', {
       method: 'GET',
     });
+    return response;
   },
 
   // Get a specific task hazard assessment
   getTaskHazard: async (id: string): Promise<ApiResponse<TaskHazard>> => {
-    return fetchApi<ApiResponse<TaskHazard>>(`/api/task-hazards/${id}`, {
+    const response = await fetchApi<ApiResponse<TaskHazard>>(`/api/task-hazards/${id}`, {
       method: 'GET',
     });
+    return response;
   },
 
   // Update a task hazard assessment
   updateTaskHazard: async (id: string, taskData: Partial<TaskHazard>): Promise<ApiResponse<TaskHazard>> => {
-    return fetchApi<ApiResponse<TaskHazard>>(`/api/task-hazards/${id}`, {
+    const response = await fetchApi<ApiResponse<TaskHazard>>(`/api/task-hazards/${id}`, {
       method: 'PUT',
       body: JSON.stringify(taskData),
     });
+    return response;
   },
 
   // Delete a task hazard assessment
   deleteTaskHazard: async (id: string): Promise<ApiResponse<void>> => {
-    return fetchApi<ApiResponse<void>>(`/api/task-hazards/${id}`, {
+    const response = await fetchApi<ApiResponse<void>>(`/api/task-hazards/${id}`, {
       method: 'DELETE',
     });
+    return response;
   },
 };
 
