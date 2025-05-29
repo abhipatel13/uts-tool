@@ -1,8 +1,53 @@
 import axios from 'axios';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+// Get auth token from localStorage
+const getAuthToken = () => localStorage.getItem('token');
+
+// Create headers with auth token
+const getHeaders = () => {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : '',
+  };
+};
+
+// Create axios instance with default config
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
+  baseURL: API_BASE_URL
 });
+
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = getAuthToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    config.headers['Content-Type'] = 'application/json';
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle auth errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear invalid token
+      localStorage.removeItem('token');
+      // Redirect to login
+      window.location.href = '/login';
+      return Promise.reject(new Error('Authentication expired. Please login again.'));
+    }
+    return Promise.reject(error);
+  }
+);
 
 export interface AssetDetails {
   asset_id: string;
@@ -62,27 +107,97 @@ interface ApiResponse<T> {
 
 export const tacticsApi = {
   create: async (data: CreateTacticRequest): Promise<ApiResponse<Tactic>> => {
-    const response = await api.post('/api/tactics', data);
-    return response.data;
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await api.post('/api/tactics', data, {
+        headers: getHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.message || 'Failed to create tactic');
+      }
+      throw error;
+    }
   },
 
   getAll: async (): Promise<ApiResponse<Tactic[]>> => {
-    const response = await api.get('/api/tactics');
-    return response.data;
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await api.get('/api/tactics', {
+        headers: getHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.message || 'Failed to fetch tactics');
+      }
+      throw error;
+    }
   },
 
   getById: async (id: string): Promise<ApiResponse<Tactic>> => {
-    const response = await api.get(`/api/tactics/${id}`);
-    return response.data;
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await api.get(`/api/tactics/${id}`, {
+        headers: getHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.message || 'Failed to fetch tactic');
+      }
+      throw error;
+    }
   },
 
   update: async (id: string, data: Partial<CreateTacticRequest>): Promise<ApiResponse<Tactic>> => {
-    const response = await api.put(`/api/tactics/${id}`, data);
-    return response.data;
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await api.put(`/api/tactics/${id}`, data, {
+        headers: getHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.message || 'Failed to update tactic');
+      }
+      throw error;
+    }
   },
 
   delete: async (id: string): Promise<ApiResponse<void>> => {
-    const response = await api.delete(`/api/tactics/${id}`);
-    return response.data;
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await api.delete(`/api/tactics/${id}`, {
+        headers: getHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.message || 'Failed to delete tactic');
+      }
+      throw error;
+    }
   }
 }; 

@@ -1,5 +1,7 @@
 // API service for handling all API requests
 
+import { getAuthToken } from "@/utils/auth";
+
 // Get the API base URL from environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
@@ -107,6 +109,7 @@ export const taskHazardApi = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify(task),
     })
@@ -123,6 +126,9 @@ export const taskHazardApi = {
   getTaskHazards: async (): Promise<ApiResponse<TaskHazard[]>> => {
     const response = await fetchApi<ApiResponse<TaskHazard[]>>('/api/task-hazards', {
       method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
     });
     return response;
   },
@@ -181,6 +187,9 @@ export const assetHierarchyApi = {
   getAll: async (): Promise<ApiResponse<Asset[]>> => {
     return fetchApi<ApiResponse<Asset[]>>('/api/asset-hierarchy', {
       method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
     });
   },
 
@@ -188,6 +197,9 @@ export const assetHierarchyApi = {
   getOne: async (id: string): Promise<ApiResponse<Asset>> => {
     return fetchApi<ApiResponse<Asset>>(`/api/asset-hierarchy/${id}`, {
       method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
     });
   },
 

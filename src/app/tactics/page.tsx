@@ -183,12 +183,20 @@ export default function TacticsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Get user data from localStorage
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : null;
+      
+      if (!user || !user.company) {
+        throw new Error('User company information not found');
+      }
+
       const response = await tacticsApi.create({
         analysis_name: formData.analysis_name,
         location: formData.location,
         status: formData.status,
-        company: "default_company",
-        created_by: "default_user",
+        company: user.company,
+        created_by: user.id || 'unknown',
         asset_details: {
           asset_id: formData.assetRows[0].assetNumber,
           manufacturer: formData.assetRows[0].manufacturer,
