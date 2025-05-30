@@ -146,7 +146,7 @@ export default function RiskAssessment() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="assetSystem">Asset or System being worked on</Label>
+                  <Label htmlFor="assetSystem">Asset</Label>
                   <Input
                     id="assetSystem"
                     value={formData.assetSystem}

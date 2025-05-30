@@ -274,7 +274,6 @@ export default function TaskHazard() {
 
   // Add state for API data
   const [tasks, setTasks] = useState<TaskHazardData[]>([])
-  console.log("tasks", tasks)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -1922,25 +1921,25 @@ export default function TaskHazard() {
                                 ),
                                 risk.riskType || ''
                               )}`}>
-                                {getRiskScore(
-                                  risk.asIsLikelihood,
-                                  risk.asIsConsequence,
-                                  (() => {
-                                    switch (risk.riskType) {
-                                      case "Maintenance": return maintenanceConsequenceLabels;
-                                      case "Personnel": return personnelConsequenceLabels;
-                                      case "Revenue": return revenueConsequenceLabels;
-                                      case "Process": return processConsequenceLabels;
-                                      case "Environmental": return environmentalConsequenceLabels;
-                                      default: return personnelConsequenceLabels;
-                                    }
-                                  })()
-                                )}
+                                {risk.asIsLikelihood} x {risk.asIsConsequence}
                               </span>
-                              <span>{`${risk.asIsLikelihood} / ${risk.asIsConsequence}`}</span>
+                              <span className="text-gray-500">= Score {getRiskScore(
+                                risk.asIsLikelihood,
+                                risk.asIsConsequence,
+                                (() => {
+                                  switch (risk.riskType) {
+                                    case "Maintenance": return maintenanceConsequenceLabels;
+                                    case "Personnel": return personnelConsequenceLabels;
+                                    case "Revenue": return revenueConsequenceLabels;
+                                    case "Process": return processConsequenceLabels;
+                                    case "Environmental": return environmentalConsequenceLabels;
+                                    default: return personnelConsequenceLabels;
+                                  }
+                                })()
+                              )}</span>
                             </div>
                           ) : (
-                            'Select Risk Level'
+                            <div className="text-gray-500">Not assessed</div>
                           )}
                         </Button>
                       </div>

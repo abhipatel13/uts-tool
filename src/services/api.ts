@@ -137,6 +137,9 @@ export const taskHazardApi = {
   getTaskHazard: async (id: string): Promise<ApiResponse<TaskHazard>> => {
     const response = await fetchApi<ApiResponse<TaskHazard>>(`/api/task-hazards/${id}`, {
       method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
     });
     return response;
   },
@@ -146,6 +149,9 @@ export const taskHazardApi = {
     const response = await fetchApi<ApiResponse<TaskHazard>>(`/api/task-hazards/${id}`, {
       method: 'PUT',
       body: JSON.stringify(taskData),
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
     });
     return response;
   },
@@ -154,6 +160,9 @@ export const taskHazardApi = {
   deleteTaskHazard: async (id: string): Promise<ApiResponse<void>> => {
     const response = await fetchApi<ApiResponse<void>>(`/api/task-hazards/${id}`, {
       method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
     });
     return response;
   },
@@ -167,6 +176,9 @@ export const geoFenceApi = {
   getGeoFenceSettings: async (): Promise<ApiResponse<GeoFenceSettings>> => {
     return fetchApi<ApiResponse<GeoFenceSettings>>('/api/geo-fence-settings', {
       method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
     });
   },
 
@@ -175,6 +187,9 @@ export const geoFenceApi = {
     return fetchApi<ApiResponse<GeoFenceSettings>>('/api/geo-fence-settings', {
       method: 'PUT',
       body: JSON.stringify(settings),
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
     });
   },
 };
