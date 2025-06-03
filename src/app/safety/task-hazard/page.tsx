@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-// import { useRouter } from "next/navigation"
 import { taskHazardApi, assetHierarchyApi, type Asset } from "@/services/api"
 import type { TaskHazard } from "@/services/api"
 import { userApi } from "@/services/userApi"
@@ -273,7 +272,7 @@ export default function TaskHazard() {
   })
 
   // Add state for API data
-  const [tasks, setTasks] = useState<TaskHazardData[]>([])
+  const [tasks, setTasks] = useState<TaskHazardData[]>([])  
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -498,10 +497,14 @@ export default function TaskHazard() {
 
   // Update the asset system selection handler
   const handleAssetSelection = (assetId: string) => {
-    setNewTask({...newTask, assetSystem: assetId})
-    expandParentAssets(assetId)
-    setAssetDropdownOpen(false)
-  }
+    if (isEditDialogOpen && editTask) {
+      setEditTask({...editTask, assetSystem: assetId});
+    } else {
+      setNewTask({...newTask, assetSystem: assetId});
+    }
+    setAssetDropdownOpen(false);
+    expandParentAssets(assetId);
+  };
 
   // Render asset hierarchy recursively
   const renderAssetHierarchy = (assets: Asset[]) => {
@@ -756,6 +759,8 @@ export default function TaskHazard() {
       
       // Simple status logic: if requires approval -> Pending, otherwise always Active
       const newStatus = requiresSupervisorApproval ? 'Pending' : 'Active';
+
+      console.log('New Status:', newStatus);
       
       const formattedTask = {
         ...editTask,
@@ -777,6 +782,8 @@ export default function TaskHazard() {
       if (!formattedTask.id) {
         throw new Error('Task ID is required');
       }
+      
+      console.log('Formatted Task:', formattedTask);
       
       await taskHazardApi.updateTaskHazard(formattedTask.id, formattedTask);
       
@@ -1723,6 +1730,61 @@ export default function TaskHazard() {
                     placeholder="Enter scope of work"
                   />
                 </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="assetSystem">Asset or System being worked on</Label>
+                  <div className="relative" ref={assetDropdownRef}>
+                    <div 
+                      className="flex items-center justify-between border rounded-md px-3 py-2 cursor-pointer hover:border-gray-400 h-10 text-sm"
+                      onClick={() => setAssetDropdownOpen(!assetDropdownOpen)}
+                    >
+                      {editTask?.assetSystem ? (
+                        <div className="flex items-center">
+                          <span className="font-medium">
+                            {assets.find(a => a.id === editTask.assetSystem)?.name || 'Unknown Asset'}
+                          </span>
+                          <span className="ml-2 text-muted-foreground">
+                            {assets.find(a => a.id === editTask.assetSystem)?.description || ''}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Select asset or system</span>
+                      )}
+                      <span className="text-gray-500">{assetDropdownOpen ? '▲' : '▼'}</span>
+                    </div>
+                    
+                    {assetDropdownOpen && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg">
+                        <div className="p-2 pb-0">
+                          <Input
+                            placeholder="Search assets..."
+                            value={searchAsset}
+                            onChange={(e) => setSearchAsset(e.target.value)}
+                            className="mb-2"
+                          />
+                        </div>
+                        <div className="max-h-[350px] overflow-y-auto">
+                          {isLoadingAssets ? (
+                            <div className="p-2 text-sm text-muted-foreground text-center">
+                              Loading assets...
+                            </div>
+                          ) : assetError ? (
+                            <div className="p-2 text-sm text-red-500 text-center">
+                              {assetError}
+                            </div>
+                          ) : filteredAssets.length === 0 ? (
+                            <div className="p-2 text-sm text-muted-foreground text-center">
+                              No assets found
+                            </div>
+                          ) : (
+                            <div className="asset-hierarchy">
+                              {renderAssetHierarchy(getTopLevelAssets())}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="systemLockout">System Lockout Required</Label>
                   <select
@@ -1838,6 +1900,8 @@ export default function TaskHazard() {
                   >
                     <option value="Active">Active</option>
                     <option value="Completed">Completed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Rejected">Rejected</option>
                     <option value="Cancelled">Cancelled</option>
                   </select>
                 </div>

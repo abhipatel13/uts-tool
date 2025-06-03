@@ -10,33 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ChevronRight, ChevronDown } from "lucide-react"
 import { assetHierarchyApi } from "@/services/assetHierarchyApi"
 import { useToast } from "@/components/ui/use-toast"
 
-interface Asset {
-  id: string;
-  name: string;
-  description: string;
-  level: number;
-  fmea: string;
-  actions: string;
-  criticalityAssessment: string;
-  inspectionPoints: string;
-  maintenancePlant: string;
-  cmmsInternalId: string;
-  functionalLocation: string;
-  parent: string | null;
-  cmmsSystem: string;
-  siteReferenceName: string;
-  functionalLocationDesc: string;
-  functionalLocationLongDesc: string;
-  objectType?: string;
-  systemStatus: string;
-  make?: string;
-  manufacturer?: string;
-  serialNumber?: string;
-  primaryKey?: string;
+interface UploadStatus {
+  id?: string;
+  fileName: string;
+  status: 'uploading' | 'completed' | 'error';
+  uploadedBy?: string;
+  uploadedAt?: string;
+  fileSize?: number;
 }
 
 const sampleCsvContent = `Maintenance Plant,Primary Key,CMMS Internal ID,Functional Location,Parent,CMMS System,Site Reference Name,Functional Location Description,Functional Location Long Description,Object Type (Taxonomy Mapping Value),System Status,Make,Manufacturer,Serial Number,Asset Description
@@ -49,87 +32,35 @@ Off-Site Support,,IID005,Cars-Honda-Oil-Filter,Cars-Honda-Engine,SAP01,Salt Lake
 
 export default function DataLoader() {
   const { toast } = useToast()
-  const [assets, setAssets] = useState<Asset[]>([])
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [showUploadDialog, setShowUploadDialog] = useState(false)
-  const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set())
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false)
+  const [uploadHistory, setUploadHistory] = useState<UploadStatus[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true)
 
-  // Fetch assets when component mounts
+  // Fetch upload history when component mounts
   useEffect(() => {
-    fetchAssets()
+    fetchUploadHistory()
   }, [])
 
-  const fetchAssets = async () => {
+  const fetchUploadHistory = async () => {
     try {
-      setIsLoading(true)
-      setError(null)
-      const response = await assetHierarchyApi.getAll()
-      
-      if (!Array.isArray(response.data)) {
-        throw new Error('Invalid response format from server')
+      setIsLoadingHistory(true)
+      const response = await assetHierarchyApi.getUploadHistory()
+      console.log("response",response)
+      if (response.status) {
+        setUploadHistory(response.data)
+      } else {
+        throw new Error(response.message || 'Failed to fetch upload history')
       }
-
-      setAssets(response.data)
-      
-      // Expand root level assets by default
-      const rootAssets = new Set(
-        response.data
-          .filter((asset: Asset) => asset.level === 0)
-          .map((asset: Asset) => asset.id)
-      ) as Set<string>
-      setExpandedAssets(rootAssets)
-    } catch (err) {
-      console.error('Error fetching assets:', err)
-      setError('Failed to load assets. Please try again later.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    console.log("File:", file);
-    if (!file) return
-
-    setUploadError(null)
-
-    try {
-      const response = await assetHierarchyApi.uploadCSV(file)
-      console.log("Response:", response);
-      
-      if (!Array.isArray(response.data)) {
-        throw new Error('Invalid response format from server')
-      }
-
-      setAssets(response.data)
-      
-      // Expand root level assets by default
-      const rootAssets = new Set(
-        response.data
-          .filter((a) => a.level === 0)
-          .map((a) => a.id)
-      ) as Set<string>
-      setExpandedAssets(rootAssets)
-      setShowUploadDialog(false)
-
-      // Show success toast
-      toast({
-        title: "Success!",
-        description: `Successfully uploaded ${response.data.length} assets.`,
-        variant: "default",
-      })
     } catch (error) {
-      console.error('Error uploading file:', error)
-      setUploadError('Failed to upload file. Please try again.')
+      console.error('Error fetching upload history:', error)
       toast({
         title: "Error",
-        description: "Failed to upload file. Please try again.",
+        description: "Failed to fetch upload history.",
         variant: "destructive",
       })
+    } finally {
+      setIsLoadingHistory(false)
     }
   }
 
@@ -145,72 +76,56 @@ export default function DataLoader() {
     window.URL.revokeObjectURL(url)
   }
 
-  const toggleAsset = (assetId: string) => {
-    setExpandedAssets(prev => {
-      const next = new Set(prev)
-      if (next.has(assetId)) {
-        next.delete(assetId)
-      } else {
-        next.add(assetId)
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadError(null)
+    const newUploadStatus = {
+      fileName: file.name,
+      status: 'uploading' as const
+    }
+    setUploadHistory(prev => [newUploadStatus, ...prev])
+
+    try {
+      const response = await assetHierarchyApi.uploadCSV(file)
+      
+      if (!response.data || !response.fileUpload) {
+        throw new Error('Invalid response format from server')
       }
-      return next
-    })
-  }
 
-  const hasChildren = (assetId: string) => {
-    return assets.some(a => a.parent === assetId)
-  }
+      const updatedStatus = {
+        id: response.fileUpload.id,
+        fileName: response.fileUpload.originalName,
+        status: response.fileUpload.status,
+        uploadedBy: response.fileUpload.uploadedBy
+      }
+      setUploadHistory(prev => [updatedStatus, ...prev.slice(1)])
+      setShowUploadDialog(false)
 
-  const renderAssetRows = () => {
-    const renderAssetRow = (asset: Asset, depth: number = 0) => {
-      const isExpanded = expandedAssets.has(asset.id);
-      const hasChildAssets = hasChildren(asset.id);
-      const childAssets = assets.filter(a => a.parent === asset.id);
-      const paddingLeft = depth * 24;
+      // Show success toast
+      toast({
+        title: "Success!",
+        description: "File uploaded successfully.",
+        variant: "default",
+      })
 
-      return (
-        <React.Fragment key={asset.id}>
-          <tr className="border-b hover:bg-gray-50">
-            <td className="p-4">
-              <div style={{ paddingLeft: `${paddingLeft}px` }} className="flex items-center">
-                {hasChildAssets && (
-                  <button
-                    onClick={() => toggleAsset(asset.id)}
-                    className="mr-2 p-1 hover:bg-gray-200 rounded-md focus:outline-none"
-                  >
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-                )}
-                {!hasChildAssets && <span className="w-6" />}
-                <span className="font-medium">{asset.id}</span>
-              </div>
-            </td>
-            <td 
-              className="p-4 cursor-pointer hover:text-blue-600"
-              onClick={() => {
-                setSelectedAsset(asset);
-                setShowDetailsDialog(true);
-              }}
-            >
-              <div className="flex flex-col">
-                <span>{asset.description || asset.functionalLocationDesc || '-'}</span>
-                <span className="text-sm text-gray-500">
-                  {asset.parent ? `Parent: ${asset.parent}` : 'Root Asset'}
-                </span>
-              </div>
-            </td>
-          </tr>
-          {isExpanded && childAssets.map(child => renderAssetRow(child, depth + 1))}
-        </React.Fragment>
-      );
-    };
-
-    const rootAssets = assets.filter(asset => !asset.parent);
-    return rootAssets.map(asset => renderAssetRow(asset));
+      // Refresh upload history
+      fetchUploadHistory()
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      setUploadError('Failed to upload file. Please try again.')
+      const failedStatus = {
+        fileName: file.name,
+        status: 'error' as const
+      }
+      setUploadHistory(prev => [failedStatus, ...prev.slice(1)])
+      toast({
+        title: "Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -218,7 +133,7 @@ export default function DataLoader() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#2C3E50]">Data Loader</h1>
-          <p className="text-gray-600">Manage your asset hierarchy structure here.</p>
+          <p className="text-gray-600">Upload and manage your asset hierarchy data.</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -237,7 +152,52 @@ export default function DataLoader() {
         </div>
       </div>
 
-      {/* Add Upload Dialog */}
+      {/* File Upload History */}
+      <div className="mb-6">
+        <div className="space-y-3">
+          {isLoadingHistory ? (
+            <div className="text-center py-4 text-gray-500">
+              Loading upload history...
+            </div>
+          ) : uploadHistory.length === 0 ? (
+            <div className="text-center py-4 text-gray-500">
+              No files have been uploaded yet
+            </div>
+          ) : (
+            uploadHistory.map((upload, index) => (
+              <div key={upload.id || index} className="bg-white rounded-lg border p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-900">{upload.fileName}</span>
+                      <span className="text-sm text-gray-500">
+                        {upload.uploadedBy ? `Uploaded by ${upload.uploadedBy}` : 'Uploading...'}
+                        {upload.uploadedAt && ` • ${new Date(upload.uploadedAt).toLocaleDateString()}`}
+                      </span>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-sm ${
+                      upload.status === 'uploading' ? 'bg-blue-100 text-blue-800' :
+                      upload.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {upload.status === 'uploading' ? 'Uploading...' :
+                       upload.status === 'completed' ? 'Completed' :
+                       'Upload Failed'}
+                    </span>
+                  </div>
+                  {upload.fileSize && (
+                    <span className="text-sm text-gray-500">
+                      {(upload.fileSize / 1024).toFixed(1)} KB
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Upload Dialog */}
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
         <DialogContent>
           <DialogHeader>
@@ -264,106 +224,6 @@ export default function DataLoader() {
             </div>
           </div>
         </DialogContent>
-      </Dialog>
-
-      <div className="bg-white rounded-lg shadow-sm border">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left p-4 text-[#2C3E50] font-medium">Asset ID</th>
-              <th className="text-left p-4 text-[#2C3E50] font-medium">Asset Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={2} className="text-center py-8">Loading assets...</td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td colSpan={2} className="text-center py-8 text-red-500">{error}</td>
-              </tr>
-            ) : (
-              renderAssetRows()
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        {selectedAsset && (
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Asset Details</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <div>
-                <Label>Asset ID</Label>
-                <div className="mt-1 text-sm">{selectedAsset.id}</div>
-              </div>
-              <div>
-                <Label>Name</Label>
-                <div className="mt-1 text-sm">{selectedAsset.name}</div>
-              </div>
-              <div>
-                <Label>Description</Label>
-                <div className="mt-1 text-sm">{selectedAsset.description || '-'}</div>
-              </div>
-              <div>
-                <Label>CMMS Internal ID</Label>
-                <div className="mt-1 text-sm">{selectedAsset.cmmsInternalId}</div>
-              </div>
-              <div>
-                <Label>Maintenance Plant</Label>
-                <div className="mt-1 text-sm">{selectedAsset.maintenancePlant || '-'}</div>
-              </div>
-              <div>
-                <Label>CMMS System</Label>
-                <div className="mt-1 text-sm">{selectedAsset.cmmsSystem || '-'}</div>
-              </div>
-              <div>
-                <Label>Site Reference</Label>
-                <div className="mt-1 text-sm">{selectedAsset.siteReferenceName || '-'}</div>
-              </div>
-              <div>
-                <Label>Functional Location</Label>
-                <div className="mt-1 text-sm">{selectedAsset.functionalLocation || '-'}</div>
-              </div>
-              <div>
-                <Label>Functional Location Description</Label>
-                <div className="mt-1 text-sm">{selectedAsset.functionalLocationDesc || '-'}</div>
-              </div>
-              <div>
-                <Label>Object Type</Label>
-                <div className="mt-1 text-sm">{selectedAsset.objectType || '-'}</div>
-              </div>
-              <div>
-                <Label>System Status</Label>
-                <div className="mt-1 text-sm">{selectedAsset.systemStatus}</div>
-              </div>
-              <div>
-                <Label>Make</Label>
-                <div className="mt-1 text-sm">{selectedAsset.make || '-'}</div>
-              </div>
-              <div>
-                <Label>Manufacturer</Label>
-                <div className="mt-1 text-sm">{selectedAsset.manufacturer || '-'}</div>
-              </div>
-              <div>
-                <Label>Serial Number</Label>
-                <div className="mt-1 text-sm">{selectedAsset.serialNumber || '-'}</div>
-              </div>
-              <div>
-                <Label>Level</Label>
-                <div className="mt-1 text-sm">{selectedAsset.level}</div>
-              </div>
-              <div>
-                <Label>Parent</Label>
-                <div className="mt-1 text-sm">{selectedAsset.parent || 'Root Asset'}</div>
-              </div>
-            </div>
-          </DialogContent>
-        )}
       </Dialog>
     </div>
   )

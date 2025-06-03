@@ -36,10 +36,7 @@ export async function POST(request: Request): Promise<NextResponse<TaskHazardRes
     
     // Validate the request body
     const validatedData = taskHazardSchema.parse(body);
-    
-    // TODO: Add your database logic here to save the task hazard
-    // For now, we'll just return the validated data
-    
+        
     return NextResponse.json({
       success: true,
       data: validatedData,

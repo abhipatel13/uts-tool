@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Menu, X, Settings } from "lucide-react"
+import { ChevronLeft, ChevronRight, Menu, X, Settings, CreditCard } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Image from 'next/image'
@@ -20,14 +20,14 @@ interface NavItem {
 const CustomIcons = {
   AssetHierarchy: ({ className }: { className?: string }) => (
     <div className={className}>
-    <Image
-      src="/asset-hierarchy.png"
-      alt="Asset Hierarchy"
-      width={60}
-      height={60}
-      priority
-    />
-  </div>
+      <Image
+        src="/asset-hierarchy.png"
+        alt="Asset Hierarchy"
+        width={60}
+        height={60}
+        priority
+      />
+    </div>
   ),
   Safety: ({ className }: { className?: string }) => (
     <div className={className}>
@@ -67,6 +67,11 @@ const CustomIcons = {
       <Settings className="w-6 h-6 text-white" />
     </div>
   ),
+  Payments: ({ className }: { className?: string }) => (
+    <div className={cn("p-2 rounded-full flex items-center justify-center bg-[#9B59B6]", className)}>
+      <CreditCard className="w-6 h-6 text-white" />
+    </div>
+  ),
 }
 
 // Define the sidebar navigation items
@@ -85,6 +90,8 @@ const getSidebarNavItems = () => {
   const showTemplates = user.role === "superuser" || user.role === "admin";
   const showTactics = hasPermission("view_tactics");
   const showApprovalRequests = user.role === "supervisor";
+  // Add payment permissions
+  const showPaymentManagement = user.role === "superuser" || user.role === "admin";
 
   // Only show Safety section if user has access to at least one of its sub-items
   const showSafety = showTaskHazard || showRiskAssessment || showApprovalRequests;
@@ -139,6 +146,7 @@ const getSidebarNavItems = () => {
             ...(showUsers ? [{ title: "User Management", href: "/configurations/admin/users", description: "Manage all users including regular users and supervisors" }] : []),
             { title: "Data Loader", href: "/configurations/admin/data-loader" },
             ...(showLicenses ? [{ title: "Licensing", href: "/configurations/admin/licensing" }] : []),
+            ...(showPaymentManagement ? [{ title: "Payment Management", href: "/admin/payments", description: "Process and manage user payments" }] : []),
           ]
         },
         ...(showPreferences ? [{
@@ -159,6 +167,13 @@ const getSidebarNavItems = () => {
         }] : []),
       ],
     }] : []),
+    // Add Payment History for all users
+    {
+      title: "My Payments",
+      href: "/payments/history",
+      icon: CustomIcons.Payments,
+      iconBg: "bg-[#9B59B6]"
+    }
   ];
 
   return items;

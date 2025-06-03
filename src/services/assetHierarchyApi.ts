@@ -33,6 +33,26 @@ interface CreateAssetRequest {
   assets: Asset[];
 }
 
+interface FileUpload {
+  id: string;
+  fileName: string;
+  originalName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedBy: string;
+  status: 'uploading' | 'completed' | 'error';
+  company: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AssetHierarchyUploadResponse {
+  success: boolean;
+  message: string;
+  data: Asset[];
+  fileUpload: FileUpload;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const getAuthToken = () => localStorage.getItem('token');
@@ -75,7 +95,7 @@ export const assetHierarchyApi = {
   },
 
   // Upload CSV file
-  uploadCSV: async (file: File): Promise<ApiResponse<Asset[]>> => {
+  uploadCSV: async (file: File): Promise<AssetHierarchyUploadResponse> => {
     const token = getAuthToken();
     if (!token) {
       throw new Error('No authentication token found');
@@ -153,6 +173,33 @@ export const assetHierarchyApi = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Failed to fetch asset');
+    }
+
+    return response.json();
+  },
+
+  // Get upload history
+  getUploadHistory: async (): Promise<ApiResponse<FileUpload[]>> => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/asset-hierarchy/upload-history`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (response.status === 401) {
+      handleAuthError(response.status);
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch upload history');
     }
 
     return response.json();
