@@ -701,6 +701,7 @@ export default function DataLoader() {
               type="submit"
               form="add-asset-form"
               className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_0.8)]"
+              onClick={handleSubmit}
             >
               Add Asset
             </Button>
