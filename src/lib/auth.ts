@@ -3,11 +3,13 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 declare module "next-auth" {
   interface User {
+    id: string;
     accessToken?: string;
     role?: string;
   }
   interface Session {
     user: {
+      id: string;
       accessToken?: string;
       role?: string;
     } & DefaultSession["user"]
@@ -67,6 +69,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id;
         token.accessToken = user.accessToken;
         token.role = user.role;
       }
@@ -74,6 +77,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token) {
+        session.user.id = token.id as string;
         session.user.accessToken = token.accessToken as string;
         session.user.role = token.role as string;
       }

@@ -166,14 +166,7 @@ const getSidebarNavItems = () => {
           ]
         }] : []),
       ],
-    }] : []),
-    // Add Payment History for all users
-    {
-      title: "My Payments",
-      href: "/payments/history",
-      icon: CustomIcons.Payments,
-      iconBg: "bg-[#9B59B6]"
-    }
+    }] : []),  
   ];
 
   return items;
