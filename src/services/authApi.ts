@@ -25,7 +25,6 @@ export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/login`, data);
-      console.log("response", response.data);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {

@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
-import axios from "axios"
 import { useToast } from "@/components/ui/use-toast"
 
 export function LogoutButton() {
@@ -12,17 +11,6 @@ export function LogoutButton() {
 
   const handleLogout = async () => {
     try {
-      // Get the token from localStorage
-      const token = localStorage.getItem("token")
-      
-      if (token) {
-        // Call the logout API endpoint with the token
-        await axios.post('/api/auth/logout', {}, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
-      }
       
       // Clear all auth data from localStorage
       localStorage.removeItem("user")
