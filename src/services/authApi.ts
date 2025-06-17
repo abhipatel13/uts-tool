@@ -1,4 +1,3 @@
-import { API_BASE_URL } from '@/config/api';
 import axios from 'axios';
 
 interface LoginResponse {
@@ -24,7 +23,7 @@ interface LoginRequest {
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, data);
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, data);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -36,7 +35,7 @@ export const authApi = {
 
   logout: async (token: string): Promise<void> => {
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/logout`, null, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, null, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

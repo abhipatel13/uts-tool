@@ -53,8 +53,6 @@ interface AssetHierarchyUploadResponse {
   fileUpload: FileUpload;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
 const getAuthToken = () => localStorage.getItem('token');
 
 const handleAuthError = (status: number) => {
@@ -73,7 +71,7 @@ export const assetHierarchyApi = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/asset-hierarchy`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/asset-hierarchy`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -104,7 +102,7 @@ export const assetHierarchyApi = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_BASE_URL}/api/asset-hierarchy/upload-csv`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/asset-hierarchy/upload-csv`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -131,7 +129,7 @@ export const assetHierarchyApi = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/asset-hierarchy`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/asset-hierarchy`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -158,7 +156,7 @@ export const assetHierarchyApi = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/asset-hierarchy/${id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/asset-hierarchy/${id}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -185,7 +183,7 @@ export const assetHierarchyApi = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/asset-hierarchy/upload-history`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/asset-hierarchy/upload-history`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

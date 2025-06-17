@@ -2,9 +2,6 @@
 
 import { getAuthToken } from "@/utils/auth";
 
-// Get the API base URL from environment variables
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-
 // Define interfaces for API data types
 export interface Risk {
   id?: string;
@@ -80,7 +77,7 @@ async function fetchApi<T>(
   endpoint: string, 
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`;
   
   const response = await fetch(url, {
     ...options,
@@ -105,7 +102,7 @@ async function fetchApi<T>(
 export const taskHazardApi = {
   // Create a new task hazard
   createTaskHazard: async (task: Omit<TaskHazard, 'id'>): Promise<TaskHazard> => {
-    const response = await fetch(`${API_BASE_URL}/api/task-hazards`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/task-hazards`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

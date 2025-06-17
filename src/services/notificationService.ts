@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../config';
 
 export interface Notification {
   id: number;
@@ -17,12 +16,12 @@ export interface Notification {
 
 const notificationService = {
   getMyNotifications: async (): Promise<Notification[]> => {
-    const response = await axios.get(`${API_BASE_URL}/notifications/my-notifications`);
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/notifications/my-notifications`);
     return response.data.data;
   },
 
   markAsRead: async (notificationId: number): Promise<void> => {
-    await axios.put(`${API_BASE_URL}/notifications/${notificationId}/mark-read`);
+    await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/notifications/${notificationId}/mark-read`);
   },
 };
 

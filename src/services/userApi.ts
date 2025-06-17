@@ -1,4 +1,3 @@
-import { API_BASE_URL } from '@/config/api';
 import axios from 'axios';
 
 export interface User {
@@ -41,7 +40,7 @@ export const userApi = {
     const token = getAuthToken();
     console.log('Using token:', token);
 
-    const response = await fetch(`${API_BASE_URL}/api/users/all`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/all`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -62,7 +61,7 @@ export const userApi = {
   // Create new user
   create: async (data: CreateUserRequest): Promise<ApiResponse<User>> => {
     const token = getAuthToken();
-    const response = await fetch(`${API_BASE_URL}/api/users`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -81,7 +80,7 @@ export const userApi = {
   // Delete user
   delete: async (userId: string): Promise<ApiResponse<void>> => {
     const token = getAuthToken();
-    const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -100,7 +99,7 @@ export const userApi = {
       const token = localStorage.getItem('auth_token');
       if (!token) throw new Error('No authentication token');
 
-      const response = await axios.put(`${API_BASE_URL}/api/auth/profile`, data, {
+      const response = await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/profile`, data, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
