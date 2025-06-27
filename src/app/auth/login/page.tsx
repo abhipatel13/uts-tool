@@ -65,7 +65,7 @@ export default function Login() {
         id: user._id,
         email: user.email,
         role: user.role,
-        company: formData.company,
+        company: user.company,
         isAuthenticated: true
       })
 
