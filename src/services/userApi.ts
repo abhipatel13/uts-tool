@@ -38,9 +38,10 @@ export const userApi = {
   getAll: async (): Promise<ApiResponse<User[]>> => {
     console.log('Fetching users...');
     const token = getAuthToken();
+    console.log("token",token);
     console.log('Using token:', token);
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/all`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/getAllUser`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -80,7 +81,7 @@ export const userApi = {
   // Delete user
   delete: async (userId: string): Promise<ApiResponse<void>> => {
     const token = getAuthToken();
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/deleteUser/${userId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`

@@ -14,7 +14,9 @@ interface User {
   id: number;
   email: string;
   role: string;
-  company: string;
+  company: {
+    name: string;
+  } | string;
 }
 
 interface NewUser {
@@ -67,7 +69,12 @@ export default function UserManagement() {
           const user = JSON.parse(userData);
           setCurrentUser(user);
           // Set the company in newUser state when current user is loaded
-          setNewUser(prev => ({ ...prev, company: user.company }));
+          setNewUser({ 
+            email: '', 
+            password: '', 
+            role: 'user',
+            company: typeof user.company === 'string' ? user.company : user?.company?.name || '' 
+          });
         }
       } catch (error) {
         console.error('Error fetching current user:', error);
@@ -98,7 +105,7 @@ export default function UserManagement() {
           email: '', 
           password: '', 
           role: 'user',
-          company: currentUser?.company || '' 
+          company: typeof currentUser?.company === 'string' ? currentUser.company : currentUser?.company?.name || '' 
         });
         // Refresh the users list
         const updatedResponse = await userApi.getAll();
@@ -238,7 +245,9 @@ export default function UserManagement() {
                   {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                 </Badge>
               </TableCell>
-              <TableCell>{user.company}</TableCell>
+              <TableCell>
+                {typeof user.company === 'string' ? user.company : user.company.name}
+              </TableCell>
               <TableCell>
                 <Button
                   variant="outline"
