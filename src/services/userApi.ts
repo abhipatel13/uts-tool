@@ -62,7 +62,7 @@ export const userApi = {
   // Create new user
   create: async (data: CreateUserRequest): Promise<ApiResponse<User>> => {
     const token = getAuthToken();
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/createUser`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
