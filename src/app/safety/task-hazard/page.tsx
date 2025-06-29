@@ -878,18 +878,7 @@ export default function TaskHazard() {
     if (!editTask) return
     setEditTask({
       ...editTask,
-      risks: (editTask.risks || []).filter(risk => risk.id === riskId).map(risk => ({
-        id: risk.id || "",
-        riskDescription: risk.riskDescription || "",
-        riskType: risk.riskType || "",
-        asIsLikelihood: risk.asIsLikelihood || "",
-        asIsConsequence: risk.asIsConsequence || "",
-        mitigatingAction: risk.mitigatingAction || "",
-        mitigatedLikelihood: risk.mitigatedLikelihood || "",
-        mitigatedConsequence: risk.mitigatedConsequence || "",
-        mitigatingActionType: risk.mitigatingActionType || "",
-        requiresSupervisorSignature: risk.requiresSupervisorSignature || false,
-      }))
+      risks: (editTask.risks || []).filter(risk => risk.id != riskId)
     })
   }
 
@@ -987,9 +976,11 @@ export default function TaskHazard() {
     const fetchSupervisors = async () => {
       try {
         setIsLoadingSupervisors(true)
+        setIsLoadingUsers(true)
         const response = await userApi.getAll()
         // Filter users to only include supervisors
         const supervisorUsers = response.data.filter(user => user.role === 'supervisor')
+        setUsers(response.data)
         setSupervisors(supervisorUsers)
       } catch (error) {
         console.error('Error fetching supervisors:', error)
@@ -1000,32 +991,11 @@ export default function TaskHazard() {
         })
       } finally {
         setIsLoadingSupervisors(false)
-      }
-    }
-
-    fetchSupervisors()
-  }, [toast])
-
-  // Fetch all users when component mounts
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setIsLoadingUsers(true)
-        const response = await userApi.getAll()
-        setUsers(response.data)
-      } catch (error) {
-        console.error('Error fetching users:', error)
-        toast({
-          title: "Error",
-          description: "Failed to load users. Please try again later.",
-          variant: "destructive",
-        })
-      } finally {
         setIsLoadingUsers(false)
       }
     }
 
-    fetchUsers()
+    fetchSupervisors()
   }, [toast])
 
   // Make sure the handleRiskMatrixClick function passes the correct format of values
