@@ -34,7 +34,7 @@ export const PaymentService = {
     validityMonths?: number;
   }) => {
     try {
-      const response = await axios.post(`${API_URL}/payments/process`, data, {
+      const response = await axios.post(`${API_URL}/api/payments/process`, data, {
         headers: getHeaders()
       });
       return response.data;
@@ -46,7 +46,7 @@ export const PaymentService = {
   // Get all payments (SuperAdmin only)
   getAllPayments: async () => {
     try {
-      const response = await axios.get(`${API_URL}/payments/all`, {
+      const response = await axios.get(`${API_URL}/api/payments/all`, {
         headers: getHeaders()
       });
       return response.data;
@@ -58,7 +58,7 @@ export const PaymentService = {
   // Get user's payment history
   getUserPayments: async (userId: number) => {
     try {
-      const response = await axios.get(`${API_URL}/payments/user/${userId}`, {
+      const response = await axios.get(`${API_URL}/api/payments/user/${userId}`, {
         headers: getHeaders()
       });
       return response.data;
@@ -70,7 +70,7 @@ export const PaymentService = {
   // Check payment status
   checkPaymentStatus: async (userId: number) => {
     try {
-      const response = await axios.get(`${API_URL}/payments/status/${userId}`, {
+      const response = await axios.get(`${API_URL}/api/payments/status/${userId}`, {
         headers: getHeaders()
       });
       return response.data;
@@ -82,7 +82,7 @@ export const PaymentService = {
   // Get all users' subscription status (SuperAdmin only)
   getAllUsersSubscriptionStatus: async () => {
     try {
-      const response = await axios.get(`${API_URL}/payments/users/subscription-status`, {
+      const response = await axios.get(`${API_URL}/api/payments/users/subscription-status`, {
         headers: getHeaders()
       });
       return response.data;

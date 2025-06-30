@@ -68,7 +68,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: '1',
     name: 'Monthly',
-    price: 99.99,
+    price: 30,
     duration: 1,
     features: [
       'Full access to all features',
@@ -80,11 +80,11 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: '6',
     name: '6 Months',
-    price: 549.99,
+    price: 50,
     duration: 6,
     features: [
       'All Monthly features',
-      'Save 8% compared to monthly',
+      'Save 72% compared to monthly',
       'Quarterly review sessions',
       'Premium support'
     ]
@@ -92,11 +92,11 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: '12',
     name: 'Annual',
-    price: 999.99,
+    price: 100,
     duration: 12,
     features: [
       'All 6-month features',
-      'Save 17% compared to monthly',
+      'Save 72% compared to monthly',
       'Dedicated account manager',
       'Custom solutions'
     ]
