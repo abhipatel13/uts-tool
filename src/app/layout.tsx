@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { SubscriptionReminder } from "@/components/layout/SubscriptionReminder"
 import { usePathname } from "next/navigation"
 import { Providers } from "@/app/providers"
 import { Toaster } from "@/components/ui/toaster"
@@ -27,6 +28,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
           <Sidebar />
           <div className="flex-1 flex flex-col">
             <Header />
+            <SubscriptionReminder />
             <main className="flex-1 p-8">
               {children}
             </main>
