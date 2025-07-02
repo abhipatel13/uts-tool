@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/components/ui/use-toast";
 import { userApi } from "@/services/userApi";
 import { Badge } from "@/components/ui/badge";
+import { BackButton } from "@/components/ui/back-button";
 
 interface User {
   id: number;
@@ -151,6 +152,9 @@ export default function UserManagement() {
 
   return (
     <div className="container mx-auto py-10">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">User Management</h1>
         <div className="flex items-center gap-4">

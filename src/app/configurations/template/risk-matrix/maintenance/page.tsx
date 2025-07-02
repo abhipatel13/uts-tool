@@ -3,6 +3,7 @@
 import React from 'react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { BackButton } from "@/components/ui/back-button"
 import {
   Select,
   SelectContent,
@@ -37,6 +38,9 @@ const MaintenanceRiskMatrix = () => {
 
   return (
     <div className="p-6">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <Card className="bg-white">
         <CardContent className="pt-6">
           <div className="mb-6 flex items-center gap-4">

@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, CheckCircle, XCircle } from "lucide-react"
+import { CheckCircle, XCircle } from "lucide-react"
 import { taskHazardApi } from "@/services/api"
 import { useToast } from "@/components/ui/use-toast"
 import type { TaskHazard } from "@/services/api"
+import { BackButton } from "@/components/ui/back-button"
 
 function SupervisorSignOffContent() {
   const router = useRouter()
@@ -142,14 +143,9 @@ function SupervisorSignOffContent() {
   
   return (
     <div className="container mx-auto py-8">
-      <Button 
-        variant="ghost" 
-        className="mb-6 flex items-center gap-2"
-        onClick={() => router.back()}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Task Hazard
-      </Button>
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       
       {/* Approval Requests Section */}
       <div className="bg-white rounded-lg shadow-sm border p-6 max-w-4xl mx-auto mb-8">

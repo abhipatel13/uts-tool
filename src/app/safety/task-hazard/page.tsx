@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, X, Trash2 } from "lucide-react"
+import { BackButton } from "@/components/ui/back-button"
 import { useToast } from "@/components/ui/use-toast"
 import {
   Dialog,
@@ -1085,6 +1086,9 @@ export default function TaskHazard() {
 
   return (
     <div className="p-8">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[#2C3E50]">Task Hazard Assessment</h1>
         <div className="flex gap-4">

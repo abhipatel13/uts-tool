@@ -176,6 +176,7 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>([])
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const router = useRouter()
   const pathname = usePathname()
   const sidebarNavItems = getSidebarNavItems();
@@ -236,22 +237,27 @@ export function Sidebar() {
           <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             <div className="py-4">
               {sidebarNavItems.map((item) => (
-                <div key={item.href} className="px-3 mb-2">
+                <div key={item.href} className="px-3 mb-2 relative">
                   <div 
                     className={cn(
-                      "flex items-center justify-between px-3 py-2.5 text-white hover:bg-[#2C3E50] rounded-lg cursor-pointer",
-                      pathname === item.href && "bg-[#2C3E50] text-white"
+                      "flex items-center justify-center px-0 py-2.5 text-white rounded-lg cursor-pointer group transition-all duration-200",
+                      pathname === item.href && "bg-[#2C3E50] text-white",
+                      isCollapsed ? "hover:bg-[#223142] w-10 h-10 mx-auto" : "justify-between px-3 hover:bg-[#2C3E50]"
                     )}
                     onClick={() => handleMenuClick(item)}
+                    onMouseEnter={() => isCollapsed && setHoveredItem(item.href)}
+                    onMouseLeave={() => setHoveredItem(null)}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "flex items-center justify-center",
+                      isCollapsed ? "w-10 h-10" : "gap-3"
+                    )}>
                       {item.icon && (
-                        <div 
-                      >
-                          <item.icon className="h-8 w-8 text-white" />
+                        <div>
+                          <item.icon className="h-8 w-8 text-white mx-auto" />
                         </div>
                       )}
-                      {!isCollapsed && <span className="text-sm text-white">{item.title}</span>}
+                      {!isCollapsed && <span className="text-sm text-white ml-3">{item.title}</span>}
                     </div>
                     {!isCollapsed && item.subItems && (
                       <ChevronRight 
@@ -261,7 +267,66 @@ export function Sidebar() {
                         )}
                       />
                     )}
+                    {/* Tooltip for collapsed sidebar */}
+                    {isCollapsed && (
+                      <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-[9999] pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 opacity-0 transition-opacity duration-200">
+                        <div className="bg-[#1B2631] text-white px-3 py-2 rounded shadow-lg text-sm whitespace-nowrap border border-[#2C3E50]">
+                          {item.title}
+                        </div>
+                      </div>
+                    )}
                   </div>
+                  {/* Tooltip for collapsed submenus */}
+                  {isCollapsed && item.subItems && hoveredItem === item.href && (
+                    <div 
+                      className="absolute left-full top-0 ml-2 bg-[#1B2631] border border-[#2C3E50] rounded-lg shadow-xl z-[9999] min-w-[220px]"
+                      onMouseEnter={() => setHoveredItem(item.href)}
+                      onMouseLeave={() => setHoveredItem(null)}
+                    >
+                      <div className="p-3">
+                        <div className="text-white font-medium text-sm mb-3 border-b border-[#2C3E50] pb-2">{item.title}</div>
+                        <div className="space-y-1">
+                          {item.subItems.map((subItem) => (
+                            <div key={subItem.href}>
+                              <div 
+                                className={cn(
+                                  "px-3 py-2 text-white/90 hover:bg-[#2C3E50] hover:text-white rounded-lg cursor-pointer text-sm transition-colors",
+                                  pathname === subItem.href && "bg-[#2C3E50] text-white"
+                                )}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(subItem.href);
+                                  setHoveredItem(null);
+                                }}
+                              >
+                                {subItem.title}
+                              </div>
+                              {subItem.subItems && (
+                                <div className="ml-3 space-y-1 mt-1">
+                                  {subItem.subItems.map((nestedItem) => (
+                                    <div
+                                      key={nestedItem.href}
+                                      className={cn(
+                                        "px-3 py-1.5 text-white/80 hover:bg-[#2C3E50] hover:text-white rounded cursor-pointer text-xs transition-colors",
+                                        pathname === nestedItem.href && "bg-[#2C3E50] text-white"
+                                      )}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(nestedItem.href);
+                                        setHoveredItem(null);
+                                      }}
+                                    >
+                                      {nestedItem.title}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {!isCollapsed && item.subItems && expandedMenus.includes(item.href) && (
                     <div className="mt-1 ml-4 space-y-1">
                       {item.subItems.map((subItem) => (

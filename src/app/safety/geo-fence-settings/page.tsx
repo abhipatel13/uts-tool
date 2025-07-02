@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { useToast } from "@/components/ui/use-toast"
+import { BackButton } from "@/components/ui/back-button"
 
 function GeoFenceSettingsContent() {
   const searchParams = useSearchParams()
@@ -69,6 +70,9 @@ function GeoFenceSettingsContent() {
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <h1 className="text-2xl font-bold text-[#2C3E50] mb-6">Geo Fence Settings</h1>
       
       <div className="bg-white rounded-lg shadow-sm border p-6 space-y-6">

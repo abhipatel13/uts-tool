@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BackButton } from "@/components/ui/back-button"
 
 const PersonnelRiskMatrix = () => {
   const likelihood = [
@@ -28,6 +29,9 @@ const PersonnelRiskMatrix = () => {
 
   return (
     <div className="p-6">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Personnel Risk Matrix</CardTitle>

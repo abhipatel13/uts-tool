@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { BackButton } from "@/components/ui/back-button"
 
 const mitigatingActionTypes = [
   {
@@ -15,6 +16,9 @@ const mitigatingActionTypes = [
 export default function MitigatingActionType() {
   return (
     <div className="p-8">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Mitigating Action Types</h1>
         <div className="flex gap-4">

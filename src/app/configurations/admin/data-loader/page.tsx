@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { BackButton } from "@/components/ui/back-button"
 import {
   Dialog,
   DialogContent,
@@ -130,6 +131,9 @@ export default function DataLoader() {
 
   return (
     <div className="p-8">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#2C3E50]">Data Loader</h1>

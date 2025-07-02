@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { PaymentService } from '@/services/PaymentService';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/ui/back-button";
 import {
   Table,
   TableBody,
@@ -233,6 +234,9 @@ export default function PaymentAndSubscriptionPage() {
 
   return (
     <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Payment & Subscription Management</h1>
         <div className="text-sm text-gray-500">

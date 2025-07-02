@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Shield, CheckCircle, XCircle, AlertTriangle, ClipboardList } from "lucide-react"
 import { taskHazardApi } from "@/services/api"
 import type { TaskHazard } from "@/services/api"
+import { BackButton } from "@/components/ui/back-button"
 
 export default function SupervisorDashboard() {
   const { toast } = useToast()
@@ -265,6 +266,9 @@ export default function SupervisorDashboard() {
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <BackButton text="Back" />
+          </div>
           <h1 className="text-2xl font-bold mb-6">Supervisor Dashboard</h1>
           
           {isLoading ? (

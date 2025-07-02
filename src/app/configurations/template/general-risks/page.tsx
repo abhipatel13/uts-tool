@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { BackButton } from "@/components/ui/back-button"
 
 export default function GeneralRisk() {
   const [types, setTypes] = useState<string[]>([])
@@ -27,6 +28,9 @@ export default function GeneralRisk() {
 
   return (
     <div className="p-8">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <h1 className="text-2xl font-bold mb-6">General Risks</h1>
       
       <div className="bg-white rounded-lg shadow-sm border p-6">

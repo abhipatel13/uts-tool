@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {  MapPin } from "lucide-react"
+import { BackButton } from "@/components/ui/back-button"
 import {
   Dialog,
   DialogContent,
@@ -100,6 +101,9 @@ export default function RiskAssessment() {
 
   return (
     <div className="p-8">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Task Hazard Analytics</h1>
         <div className="flex gap-4">

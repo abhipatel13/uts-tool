@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import notificationService, { Notification } from '../../services/notificationService';
+import { BackButtonVariants } from '@/components/ui/back-button';
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -57,6 +58,9 @@ export default function NotificationsPage() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
+      <div style={{ marginBottom: '24px' }}>
+        <BackButtonVariants.Dashboard />
+      </div>
       <Typography variant="h4" gutterBottom>
         Notifications
       </Typography>

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { getCurrentUser } from "@/utils/auth"
+import { BackButton } from "@/components/ui/back-button"
 
 export default function Unauthorized() {
   const router = useRouter()
@@ -11,6 +12,9 @@ export default function Unauthorized() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
+        <div className="mb-6">
+          <BackButton text="Back" />
+        </div>
         <h1 className="text-2xl font-bold mb-4 text-[rgb(44,62,80)]">Access Denied</h1>
         
         <div className="mb-6">

@@ -1,6 +1,7 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
+import { BackButton } from "@/components/ui/back-button"
 
 const taskHazardData = [
   {
@@ -16,6 +17,9 @@ const taskHazardData = [
 export default function TaskHazardAnalytics() {
   return (
     <div className="p-8">
+      <div className="mb-6">
+        <BackButton text="Back" />
+      </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Risk Assessment Dashboard</h1>
         <div className="flex gap-4">
