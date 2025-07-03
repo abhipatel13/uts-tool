@@ -7,6 +7,15 @@ export default {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    // Risk matrix colors - ensure these are always included in the build
+    'bg-[#8DC63F]',
+    'bg-[#FFFF00]',
+    'bg-[#F7941D]',
+    'bg-[#ED1C24]',
+    'text-black',
+    'text-white',
+  ],
   theme: {
   	extend: {
   		colors: {
@@ -58,5 +67,6 @@ export default {
   		}
   	}
   },
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
