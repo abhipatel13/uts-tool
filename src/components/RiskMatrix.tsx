@@ -76,7 +76,7 @@ export function RiskMatrix({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[700px] lg:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isAsIsMatrix ? 'Associated Risks' : 'Post-Mitigation Risk Assessment'} - {
@@ -84,17 +84,17 @@ export function RiskMatrix({
             } Assessment
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Configuration Toggle */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               {isAsIsMatrix ? (
-                <Label>Risk Assessment</Label>
+                <Label className="text-sm">Risk Assessment</Label>
               ) : (
-                <div className="flex items-center gap-2">
-                  <Label>Supervisor Signature Required for High Risk ({'>'}9)</Label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <Label className="text-sm">Supervisor Signature Required for High Risk ({'>'}9)</Label>
                   <select
-                    className="rounded-md border border-input px-3 py-1 text-sm"
+                    className="rounded-md border border-input px-2 py-1 text-xs sm:text-sm"
                     value={enableSupervisorSignature.toString()}
                     onChange={(e) => setEnableSupervisorSignature(e.target.value === 'true')}
                   >
@@ -106,7 +106,7 @@ export function RiskMatrix({
             </div>
             {!isAsIsMatrix && risk?.requiresSupervisorSignature && (
               <div className="text-amber-600 flex items-center gap-2">
-                <span className="text-sm font-medium">⚠️ Supervisor Signature Required - Status will remain pending until approved</span>
+                <span className="text-xs sm:text-sm font-medium">⚠️ Supervisor Signature Required</span>
               </div>
             )}
           </div>
@@ -114,8 +114,8 @@ export function RiskMatrix({
           {/* Selected Risk Type */}
           {risk && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Risk Type:</span>
-              <div className={`px-4 py-2 rounded-md ${
+              <span className="text-xs sm:text-sm text-gray-500">Risk Type:</span>
+              <div className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-medium ${
                 riskCategories.find(c => c.id === risk.riskType)?.color || 'bg-gray-200'
               }`}>
                 {risk.riskType || 'Not Selected'}
@@ -125,15 +125,16 @@ export function RiskMatrix({
 
           {/* Risk Matrix Grid */}
           <div className="border rounded-lg overflow-hidden">
-            <div className="grid grid-cols-6 divide-x divide-y">
+            <div className="grid grid-cols-6 divide-x divide-y text-xs sm:text-sm [&>*]:aspect-square max-w-2xl mx-auto">
               {/* Header */}
-              <div className="bg-white p-4 font-medium">
-                Probability / Severity
+              <div className="bg-white p-2 sm:p-3 font-medium">
+                <div className="leading-tight">Probability</div>
+                <div className="text-xs text-gray-500 mt-1">Severity →</div>
               </div>
               {activeConsequenceLabels.map((consequence) => (
-                <div key={consequence.value} className="bg-white p-2 text-center">
-                  <div className="font-medium">{consequence.label}</div>
-                  <div className="text-xs text-gray-500">{consequence.description}</div>
+                <div key={consequence.value} className="bg-white p-1 sm:p-2 text-center">
+                  <div className="font-medium text-xs sm:text-sm">{consequence.label}</div>
+                  <div className="text-xs text-gray-500 hidden sm:block mt-1">{consequence.description}</div>
                   <div className="text-xs font-medium mt-1">{consequence.score}</div>
                 </div>
               ))}
@@ -141,9 +142,9 @@ export function RiskMatrix({
               {/* Matrix Rows */}
               {likelihoodLabels.map((likelihood) => (
                 <React.Fragment key={likelihood.value}>
-                  <div className="bg-white p-2">
-                    <div className="font-medium">{likelihood.label}</div>
-                    <div className="text-xs text-gray-500">{likelihood.description}</div>
+                  <div className="bg-white p-1 sm:p-2">
+                    <div className="font-medium text-xs sm:text-sm">{likelihood.label}</div>
+                    <div className="text-xs text-gray-500 hidden sm:block mt-1">{likelihood.description}</div>
                     <div className="text-xs font-medium mt-1">{likelihood.score}</div>
                   </div>
                   {activeConsequenceLabels.map((consequence) => {
@@ -160,8 +161,8 @@ export function RiskMatrix({
                         key={`${likelihood.value}-${consequence.value}`}
                         type="button"
                         className={`${getRiskColor(score, risk?.riskType || '')} 
-                          aspect-square flex items-center justify-center font-medium text-2xl
-                          ${isSelected ? 'ring-4 ring-blue-500 ring-inset' : ''}
+                          h-full w-full flex items-center justify-center font-bold text-sm sm:text-lg lg:text-xl
+                          ${isSelected ? 'ring-2 sm:ring-4 ring-blue-500 ring-inset' : ''}
                           hover:opacity-90 transition-opacity cursor-pointer`}
                         onClick={(e) => {
                           e.preventDefault();
@@ -178,8 +179,8 @@ export function RiskMatrix({
             </div>
           </div>
 
-          <div className="flex justify-between items-center">
-            <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-4">
               {(() => {
                 const riskType = risk?.riskType || "Personnel";
                 const indicators = riskLevelIndicators[riskType as keyof typeof riskLevelIndicators] || riskLevelIndicators.Personnel;
@@ -187,16 +188,19 @@ export function RiskMatrix({
                 return (
                   <>
                     {indicators.map((indicator, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <div className={`w-4 h-4 ${indicator.color} rounded`}></div>
-                        <span className="text-sm">{indicator.label}</span>
+                      <div key={index} className="flex items-center gap-1 sm:gap-2">
+                        <div className={`w-3 h-3 sm:w-4 sm:h-4 ${indicator.color} rounded`}></div>
+                        <span className="text-xs sm:text-sm">{indicator.label}</span>
                       </div>
                     ))}
                   </>
                 );
               })()}
             </div>
-            <Button onClick={() => onOpenChange(false)}>
+            <Button 
+              onClick={() => onOpenChange(false)}
+              className="self-end sm:self-auto text-sm px-4 py-2"
+            >
               Done
             </Button>
           </div>
