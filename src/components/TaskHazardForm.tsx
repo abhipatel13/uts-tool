@@ -63,6 +63,10 @@ export default function TaskHazardForm({
     setFormData(prev => ({...prev, supervisor: supervisor as string}))
   }, [])
 
+  const handleAssetSystemChange = useCallback((assetId: string) => {
+    setFormData(prev => ({...prev, assetSystem: assetId}))
+  }, [])
+
   // Initialize form data based on mode
   const [formData, setFormData] = useState(() => {
     if (mode === 'edit' && task) {
@@ -373,13 +377,21 @@ export default function TaskHazardForm({
           throw new Error('Task ID is required for updates');
         }
         await taskHazardApi.updateTaskHazard(taskId, formattedData);
-        toast({
-          title: "Success",
-          description: requiresSupervisorApproval 
-            ? "Task hazard assessment has been updated and is pending supervisor approval."
-            : "Task hazard assessment has been updated successfully.",
-          variant: "default",
-        })
+        if (formattedData.status === 'Completed') {
+          toast({
+            title: "Success",
+            description: "Task hazard assessment has been updated successfully.",
+            variant: "default",
+          })
+        } else {
+          toast({
+            title: "Success",
+            description: requiresSupervisorApproval 
+              ? "Task hazard assessment has been updated and is pending supervisor approval."
+              : "Task hazard assessment has been updated successfully.",
+            variant: "default",
+          })
+        }
       }
       
       onOpenChange(false);
@@ -508,7 +520,7 @@ export default function TaskHazardForm({
             <div className="md:col-span-2">
               <AssetSelector
                 value={formData.assetSystem}
-                onValueChange={(assetId) => setFormData(prev => ({...prev, assetSystem: assetId}))}
+                onValueChange={handleAssetSystemChange}
                 error={validationErrors.assetSystem}
               />
             </div>
