@@ -45,7 +45,7 @@ export function UserSelector({
     const fetchUsers = async () => {
       try {
         setIsLoadingUsers(true)
-        const response = await userApi.getAll()
+        const response = await userApi.getAllRestricted()
         let filteredUsers = response.data
         
         // Apply role filter if specified

@@ -247,7 +247,7 @@ export default function SupervisorDashboard() {
                     <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-sm line-clamp-1">{task.scopeOfWork}</p>
-                      <p className="text-xs text-gray-500 mt-1">ID: {task.id.slice(0, 8)}...</p>
+                      <p className="text-xs text-gray-500 mt-1">ID: {task.id}...</p>
                       <p className="text-xs text-gray-500">Date: {task.date}</p>
                       <div className="flex items-center mt-1">
                         <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">

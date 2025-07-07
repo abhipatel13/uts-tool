@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, X } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
@@ -50,6 +50,18 @@ export default function TaskHazardForm({
   const [showRiskMatrix, setShowRiskMatrix] = useState(false)
   const [activeRiskId, setActiveRiskId] = useState<string | null>(null)
   const [isAsIsMatrix, setIsAsIsMatrix] = useState(true)
+
+  // Memoize the role filter to prevent unnecessary re-renders
+  const supervisorRoleFilter = useMemo(() => ['supervisor'], [])
+
+  // Memoize the onChange callbacks to prevent unnecessary re-renders
+  const handleIndividualsChange = useCallback((individuals: string | string[]) => {
+    setFormData(prev => ({...prev, individuals: individuals as string[]}))
+  }, [])
+
+  const handleSupervisorChange = useCallback((supervisor: string | string[]) => {
+    setFormData(prev => ({...prev, supervisor: supervisor as string}))
+  }, [])
 
   // Initialize form data based on mode
   const [formData, setFormData] = useState(() => {
@@ -263,7 +275,7 @@ export default function TaskHazardForm({
 
 
   // Validate form data
-  const validateForm = (): boolean => {
+  const validateForm = (): { isValid: boolean; errors: Record<string, string> } => {
     const errors: Record<string, string> = {};
     
     if (!formData.date) errors.date = "Date is required";
@@ -273,6 +285,7 @@ export default function TaskHazardForm({
     if (!formData.individuals || formData.individuals.length === 0) errors.individuals = "At least one individual/team member is required";
     if (!formData.supervisor) errors.supervisor = "Supervisor is required";
     if (!formData.location?.trim()) errors.location = "Location is required";
+    if (!formData.trainedWorkforce?.trim()) errors.trainedWorkforce = "Trained workforce is required";
     
     // Validate risks
     if (formData.risks.length === 0) {
@@ -292,7 +305,7 @@ export default function TaskHazardForm({
     }
     
     setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    return { isValid: Object.keys(errors).length === 0, errors };
   };
 
 
@@ -309,10 +322,11 @@ export default function TaskHazardForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!validateForm()) {
+    const validation = validateForm();
+    if (!validation.isValid) {
       toast({
         title: "Validation Error",
-        description: "Please fix the errors below and try again.",
+        description: Object.values(validation.errors).at(0) || "Please fix the errors below and try again.",
         variant: "destructive",
       });
       return;
@@ -328,7 +342,6 @@ export default function TaskHazardForm({
       const formattedData = {
         ...formDataWithoutIndividuals,
         individual: individuals.join(', '), // Convert array to comma-separated string for API
-        status: requiresSupervisorApproval ? 'Pending' : 'Active',
         risks: formData.risks.map(risk => ({
           id: risk.id || "",
           riskDescription: risk.riskDescription || "",
@@ -454,7 +467,7 @@ export default function TaskHazardForm({
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="date" className="text-sm font-medium">Date *</Label>
+              <Label htmlFor="date" className="text-sm font-medium">Date</Label>
               <Input
                 id="date"
                 type="date"
@@ -467,7 +480,7 @@ export default function TaskHazardForm({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="time" className="text-sm font-medium">Time *</Label>
+              <Label htmlFor="time" className="text-sm font-medium">Time</Label>
               <Input
                 id="time"
                 type="time"
@@ -480,7 +493,7 @@ export default function TaskHazardForm({
               )}
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="scopeOfWork" className="text-sm font-medium">Scope of Work *</Label>
+              <Label htmlFor="scopeOfWork" className="text-sm font-medium">Scope of Work</Label>
               <Input
                 id="scopeOfWork"
                 value={formData.scopeOfWork}
@@ -524,7 +537,7 @@ export default function TaskHazardForm({
             <div className="space-y-2">
                <UserSelector
                  value={formData.individuals}
-                 onChange={(individuals) => setFormData(prev => ({...prev, individuals: individuals as string[]}))}
+                 onChange={handleIndividualsChange}
                  error={validationErrors.individuals}
                  label="Individual/Team"
                  placeholder="Select individuals/team members"
@@ -535,13 +548,13 @@ export default function TaskHazardForm({
             <div className="space-y-2">
               <UserSelector
                 value={formData.supervisor || ""}
-                onChange={(supervisor) => setFormData(prev => ({...prev, supervisor: supervisor as string}))}
+                onChange={handleSupervisorChange}
                 error={validationErrors.supervisor}
                 label="Supervisor"
                 placeholder="Select supervisor"
                 required={true}
                 multiple={false}
-                roleFilter={['supervisor']}
+                roleFilter={supervisorRoleFilter}
               />
             </div>
             {openGeoFence ? (
@@ -570,7 +583,7 @@ export default function TaskHazardForm({
             </div>
             )}
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="location" className="text-sm font-medium">Location *</Label>
+              <Label htmlFor="location" className="text-sm font-medium">Location</Label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   id="location"
@@ -645,7 +658,7 @@ export default function TaskHazardForm({
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <div>
-                <Label className="text-sm font-medium">Risks and Controls *</Label>
+                <Label className="text-sm font-medium">Risks and Controls</Label>
                 {validationErrors.risks && (
                   <div className="text-red-500 text-xs mt-1">{validationErrors.risks}</div>
                 )}
@@ -680,7 +693,7 @@ export default function TaskHazardForm({
                   
                   <div className="space-y-4">
                     <div>
-                      <Label className="text-sm font-medium">Risk Description *</Label>
+                      <Label className="text-sm font-medium">Risk Description</Label>
                       <Input
                         value={risk.riskDescription || ""}
                         onChange={(e) => risk.id && updateRisk(risk.id, { riskDescription: e.target.value })}
@@ -694,7 +707,7 @@ export default function TaskHazardForm({
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-sm font-medium">Risk Type *</Label>
+                        <Label className="text-sm font-medium">Risk Type</Label>
                         <Select
                           value={risk.riskType || ""}
                           onValueChange={(value) => risk.id && updateRisk(risk.id, { riskType: value })}
@@ -746,7 +759,7 @@ export default function TaskHazardForm({
                     </div>
                     
                     <div>
-                      <Label className="text-sm font-medium">Mitigating Action *</Label>
+                      <Label className="text-sm font-medium">Mitigating Action</Label>
                       <Input
                         value={risk.mitigatingAction || ""}
                         onChange={(e) => risk.id && updateRisk(risk.id, { mitigatingAction: e.target.value })}

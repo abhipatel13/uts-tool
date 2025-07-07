@@ -42,7 +42,8 @@ export const hasPermission = (permission: string): boolean => {
     supervisor: [
       'risk_assessment',
       'safety_management',
-      'analytics_reporting'
+      'analytics_reporting',
+      'view_asset_hierarchy'
     ],
     user: [
       'risk_assessment_creation',

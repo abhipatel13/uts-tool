@@ -144,6 +144,6 @@ export function getDashboardItems(): DashboardItem[] {
 
   // Regular user - only show risk assessment creation
   return allItems.filter(item => 
-    item.permission === "risk_assessment_creation"
+    item.permission === "task_hazard_management"
   );
 } 
