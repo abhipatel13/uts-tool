@@ -9,10 +9,9 @@ interface AssetSelectorProps {
   value: string;
   onValueChange: (assetId: string) => void;
   error?: string;
-  className?: string;
 }
 
-export function AssetSelector({ value, onValueChange, error, className }: AssetSelectorProps) {
+export function AssetSelector({ value, onValueChange, error }: AssetSelectorProps) {
   const [assetDropdownOpen, setAssetDropdownOpen] = useState(false)
   const assetDropdownRef = React.useRef<HTMLDivElement>(null)
   const [searchAsset, setSearchAsset] = useState("")
@@ -260,7 +259,7 @@ export function AssetSelector({ value, onValueChange, error, className }: AssetS
       <Label htmlFor="assetSystem">Asset or System being worked on *</Label>
       <div className="relative" ref={assetDropdownRef}>
         <div 
-          className={`flex items-center justify-between border rounded-md px-3 py-2 cursor-pointer hover:border-gray-400 h-10 text-sm ${error ? "border-red-500" : ""} ${className || ""}`}
+          className={`flex items-center justify-between border rounded-md px-3 py-2 cursor-pointer hover:border-gray-400 h-10 text-sm ${error ? "border-red-500" : ""}`}
           onClick={() => setAssetDropdownOpen(!assetDropdownOpen)}
         >
           {value ? (

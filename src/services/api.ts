@@ -32,6 +32,23 @@ export interface TaskHazard {
   geoFenceLimit?: number;
 }
 
+export interface RiskAssessment {
+  id: string;
+  date: string;
+  time: string;
+  scopeOfWork: string;
+  assetSystem: string;
+  systemLockoutRequired: boolean;
+  trainedWorkforce: boolean;
+  risks: Risk[];
+  individuals: string;
+  supervisor: string;
+  status: string;
+  location: string;
+  createdBy?: string;
+  createdOn?: string;
+}
+
 export interface GeoFenceSettings {
   limit: number;
 }
@@ -166,6 +183,75 @@ export const taskHazardApi = {
 };
 
 /**
+ * Risk Assessment API functions
+ */
+export const riskAssessmentApi = {
+  // Create a new risk assessment
+  createRiskAssessment: async (assessment: Omit<RiskAssessment, 'id'>): Promise<RiskAssessment> => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/risk-assessments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+      body: JSON.stringify(assessment),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create risk assessment');
+    }
+
+    const result = await response.json();
+    return result;
+  },
+
+  // Get all risk assessments
+  getRiskAssessments: async (): Promise<ApiResponse<RiskAssessment[]>> => {
+    const response = await fetchApi<ApiResponse<RiskAssessment[]>>('/api/risk-assessments', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+
+  // Get a specific risk assessment
+  getRiskAssessment: async (id: string): Promise<ApiResponse<RiskAssessment>> => {
+    const response = await fetchApi<ApiResponse<RiskAssessment>>(`/api/risk-assessments/${id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+
+  // Update a risk assessment
+  updateRiskAssessment: async (id: string, assessmentData: Partial<RiskAssessment>): Promise<ApiResponse<RiskAssessment>> => {
+    const response = await fetchApi<ApiResponse<RiskAssessment>>(`/api/risk-assessments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(assessmentData),
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+
+  // Delete a risk assessment
+  deleteRiskAssessment: async (id: string): Promise<ApiResponse<void>> => {
+    const response = await fetchApi<ApiResponse<void>>(`/api/risk-assessments/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+};
+
+/**
  * Geo Fence API functions
  */
 export const geoFenceApi = {
@@ -231,8 +317,9 @@ export const assetHierarchyApi = {
 
 const api = {
   taskHazardApi,
+  riskAssessmentApi,
   geoFenceApi,
   assetHierarchyApi,
 };
 
-export default api; 
+export default api;
