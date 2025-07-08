@@ -1,18 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { Badge, IconButton, Menu, MenuItem, Typography, Box } from '@mui/material';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import notificationService, { Notification } from '../services/notificationService';
+import { Bell } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
+import { notificationApi, type Notification } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 const NotificationBell: React.FC = () => {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
 
   const fetchNotifications = async () => {
     try {
-      const data = await notificationService.getMyNotifications();
-      setNotifications(data);
+      const response = await notificationApi.getMyNotifications();
+      const unreadNotifications = response.data.filter(n => !n.isRead);
+      setNotifications(unreadNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
@@ -25,82 +35,90 @@ const NotificationBell: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
       try {
-        await notificationService.markAsRead(notification.id);
+        await notificationApi.markAsRead(notification.id);
         fetchNotifications(); // Refresh notifications
       } catch (error) {
         console.error('Error marking notification as read:', error);
       }
     }
-    handleClose();
+
+    // Navigate based on notification type
+    if (!notification.type) return;
+    switch (notification.type) {
+      case 'payment':
+        break;
+      case 'approval':
+        router.push('/safety/supervisor-dashboard');
+        break;
+      case 'risk':
+        router.push('/safety/risk-assessment');
+        break;
+      case 'task':
+        router.push('/safety/task-hazard');
+        break;
+      default:
+        break;
+    }
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.length;
 
   return (
-    <>
-      <IconButton
-        onClick={handleClick}
-        size="large"
-        aria-label={`show ${unreadCount} new notifications`}
-        color="inherit"
-      >
-        <Badge badgeContent={unreadCount} color="error">
-          <NotificationsIcon />
-        </Badge>
-      </IconButton>
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          style: {
-            maxHeight: '400px',
-            width: '350px',
-          },
-        }}
-      >
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
+              {unreadCount}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[350px] max-h-[400px] overflow-y-auto">
+        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+        <DropdownMenuSeparator />
         {notifications.length === 0 ? (
-          <MenuItem>
-            <Typography>No notifications</Typography>
-          </MenuItem>
+          <DropdownMenuItem disabled>
+            <span className="text-muted-foreground">No unread notifications</span>
+          </DropdownMenuItem>
         ) : (
-          notifications.map((notification) => (
-            <MenuItem
-              key={notification.id}
-              onClick={() => handleNotificationClick(notification)}
-              sx={{
-                backgroundColor: notification.isRead ? 'transparent' : 'action.hover',
-                display: 'block',
-                padding: 2,
-              }}
-            >
-              <Typography variant="subtitle2" fontWeight="bold">
-                {notification.title}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {notification.message}
-              </Typography>
-              <Box sx={{ mt: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                </Typography>
-              </Box>
-            </MenuItem>
-          ))
+          <>
+            {notifications.map((notification) => (
+              <DropdownMenuItem
+                key={notification.id}
+                onClick={() => handleNotificationClick(notification)}
+                className={`block p-3 cursor-pointer ${
+                  notification.isRead ? '' : 'bg-muted/50'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">{notification.title}</span>
+                    {!notification.isRead && (
+                      <Badge variant="default" className="h-2 w-2 p-0 rounded-full bg-blue-500"></Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {notification.message}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                  </p>
+                </div>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push('/notifications')} className="text-sm text-muted-foreground">
+              View All Notifications
+            </DropdownMenuItem>
+          </>
         )}
-      </Menu>
-    </>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

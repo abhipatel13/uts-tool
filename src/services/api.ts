@@ -73,6 +73,20 @@ export interface Asset {
   createdAt: string;
 }
 
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  type?: 'license' | 'payment' | 'system' | 'other' | 'approval' | 'risk' | 'task';
+  isRead: boolean;
+  createdAt: string;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
 export enum UserRole {
   SUPER_USER = 'SUPER_USER',
   ADMIN = 'ADMIN',
@@ -315,11 +329,37 @@ export const assetHierarchyApi = {
   },
 };
 
+/**
+ * Notification API functions
+ */
+export const notificationApi = {
+  // Get user's notifications
+  getMyNotifications: async (): Promise<ApiResponse<Notification[]>> => {
+    return fetchApi<ApiResponse<Notification[]>>('/api/notifications/my-notifications', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+  },
+
+  // Mark notification as read
+  markAsRead: async (notificationId: number): Promise<ApiResponse<void>> => {
+    return fetchApi<ApiResponse<void>>(`/api/notifications/${notificationId}/mark-read`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+  },
+};
+
 const api = {
   taskHazardApi,
   riskAssessmentApi,
   geoFenceApi,
   assetHierarchyApi,
+  notificationApi,
 };
 
 export default api;
