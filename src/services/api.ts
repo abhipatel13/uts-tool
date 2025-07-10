@@ -184,6 +184,18 @@ export const taskHazardApi = {
     return response;
   },
 
+  // Approve or reject a task hazard assessment
+  approveOrRejectTaskHazard: async (id: string, taskData: Partial<TaskHazard>): Promise<ApiResponse<TaskHazard>> => {
+    const response = await fetchApi<ApiResponse<TaskHazard>>(`/api/task-hazards/approval/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(taskData),
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+
   // Delete a task hazard assessment
   deleteTaskHazard: async (id: string): Promise<ApiResponse<void>> => {
     const response = await fetchApi<ApiResponse<void>>(`/api/task-hazards/${id}`, {

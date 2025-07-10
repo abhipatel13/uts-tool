@@ -111,12 +111,12 @@ const NotificationBell: React.FC = () => {
                 </div>
               </DropdownMenuItem>
             ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push('/notifications')} className="text-sm text-muted-foreground">
-              View All Notifications
-            </DropdownMenuItem>
           </>
         )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push('/notifications')} className="text-sm text-muted-foreground">
+          View All Notifications
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -119,7 +119,7 @@ export default function SupervisorDashboard() {
       const task = taskResponse.data
       
       // Update task status to Active
-      await taskHazardApi.updateTaskHazard(taskId, {
+      await taskHazardApi.approveOrRejectTaskHazard(taskId, {
         ...task,
         status: 'Active'
       })
@@ -181,7 +181,7 @@ export default function SupervisorDashboard() {
       const task = taskResponse.data
       
       // Update task status to Rejected
-      await taskHazardApi.updateTaskHazard(taskId, {
+      await taskHazardApi.approveOrRejectTaskHazard(taskId, {
         ...task,
         status: 'Rejected'
       })
@@ -645,7 +645,7 @@ export default function SupervisorDashboard() {
                   </div>
                 </div>
                 
-                {currentView === 'approval-requests' && (
+                {selectedTask.status === 'Pending' && (
                   <div className="flex justify-end gap-3 pt-4">
                     <Button 
                       variant="outline" 
