@@ -12,36 +12,33 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { taskHazardApi, type TaskHazard, type Risk } from "@/services/api"
+import { riskAssessmentApi, type RiskAssessment, type Risk } from "@/services/api"
 import { riskCategories, getConsequenceLabels, getRiskScore, getRiskColor } from "@/lib/risk-utils"
-
-
-import { GeoFenceSettings } from './GeoFenceSettings'
 import { AssetSelector } from './AssetSelector'
-import { RiskMatrix } from './RiskMatrix'
 import { UserSelector } from './UserSelector'
 import { LocationSelector } from './LocationSelector'
+import { RiskMatrix } from './RiskMatrix'
 
-interface TaskHazardFormProps {
+interface RiskAssessmentFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'create' | 'edit';
-  task?: TaskHazard | null;
+  assessment?: RiskAssessment | null;
   onSuccess?: () => void;
 }
 
-export default function TaskHazardForm({
+export default function RiskAssessmentForm({
   open,
   onOpenChange,
   mode,
-  task,
+  assessment,
   onSuccess
-}: TaskHazardFormProps) {
+}: RiskAssessmentFormProps) {
   const { toast } = useToast() as { toast: (params: { title: string; description: string; variant?: "default" | "destructive" }) => void }
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
-  const [openGeoFence, setOpenGeoFence] = useState(false)
   const [showRiskMatrix, setShowRiskMatrix] = useState(false)
   const [activeRiskId, setActiveRiskId] = useState<string | null>(null)
   const [isAsIsMatrix, setIsAsIsMatrix] = useState(true)
@@ -50,8 +47,8 @@ export default function TaskHazardForm({
   const supervisorRoleFilter = useMemo(() => ['supervisor'], [])
 
   // Memoize the onChange callbacks to prevent unnecessary re-renders
-  const handleIndividualsChange = useCallback((individuals: string | string[]) => {
-    setFormData(prev => ({...prev, individuals: individuals as string[]}))
+  const handleIndividualChange = useCallback((individual: string | string[]) => {
+    setFormData(prev => ({...prev, individuals: individual as string}))
   }, [])
 
   const handleSupervisorChange = useCallback((supervisor: string | string[]) => {
@@ -66,45 +63,8 @@ export default function TaskHazardForm({
     setFormData(prev => ({...prev, location: location}))
   }, [])
 
-  // Initialize form data based on mode
-  const [formData, setFormData] = useState(() => {
-    if (mode === 'edit' && task) {
-      return {
-        id: task.id,
-        date: task.date,
-        time: task.time,
-        scopeOfWork: task.scopeOfWork,
-        assetSystem: task.assetSystem,
-        systemLockoutRequired: task.systemLockoutRequired,
-        trainedWorkforce: task.trainedWorkforce,
-        risks: convertApiRisksToLocal(task.risks),
-        individuals: Array.isArray(task.individual) 
-          ? task.individual 
-          : task.individual ? task.individual.split(',').map(email => email.trim()).filter(Boolean) : [],
-        supervisor: task.supervisor,
-        status: task.status,
-        location: task.location,
-        geoFenceLimit: task.geoFenceLimit || 200,
-      }
-    }
-    return {
-      date: "",
-      time: "",
-      scopeOfWork: "",
-      assetSystem: "",
-      systemLockoutRequired: false,
-      trainedWorkforce: "",
-      risks: [] as Risk[],
-      individuals: [] as string[],
-      supervisor: "",
-      status: "Active",
-      location: "",
-      geoFenceLimit: 200,
-    }
-  })
-
   // Convert API risks to local format
-  const convertApiRisksToLocal = (apiRisks: TaskHazard['risks']): Risk[] => {
+  const convertApiRisksToLocal = (apiRisks: RiskAssessment['risks']): Risk[] => {
     if (!apiRisks) return [];
     return apiRisks.map(risk => ({
       id: risk.id || Date.now().toString(),
@@ -120,40 +80,58 @@ export default function TaskHazardForm({
     }));
   };
 
-
-
-  // Update form data when task changes (for edit mode)
-  useEffect(() => {
-    if (mode === 'edit' && task) {
-      setFormData({
-        id: task.id,
-        date: task.date,
-        time: task.time,
-        scopeOfWork: task.scopeOfWork,
-        assetSystem: task.assetSystem,
-        systemLockoutRequired: task.systemLockoutRequired,
-        trainedWorkforce: task.trainedWorkforce,
-        risks: convertApiRisksToLocal(task.risks),
-        individuals: Array.isArray(task.individual) 
-          ? task.individual 
-          : task.individual ? task.individual.split(',').map(email => email.trim()).filter(Boolean) : [],
-        supervisor: task.supervisor,
-        status: task.status,
-        location: task.location,
-        geoFenceLimit: task.geoFenceLimit || 200,
-      })
-      setOpenGeoFence(false);
+  // Initialize form data based on mode
+  const [formData, setFormData] = useState(() => {
+    if (mode === 'edit' && assessment) {
+      return {
+        id: assessment.id,
+        date: assessment.date,
+        time: assessment.time,
+        scopeOfWork: assessment.scopeOfWork,
+        assetSystem: assessment.assetSystem,
+        systemLockoutRequired: assessment.systemLockoutRequired,
+        trainedWorkforce: assessment.trainedWorkforce,
+        risks: convertApiRisksToLocal(assessment.risks),
+        individuals: assessment.individuals,
+        supervisor: assessment.supervisor,
+        status: assessment.status,
+        location: assessment.location,
+      }
     }
-  }, [mode, task])
+    return {
+      date: "",
+      time: "",
+      scopeOfWork: "",
+      assetSystem: "",
+      systemLockoutRequired: false,
+      trainedWorkforce: false,
+      risks: [] as Risk[],
+      individuals: "",
+      supervisor: "",
+      status: "Active",
+      location: "",
+    }
+  })
 
-  const setGeoFenceLimit = (limit: number) => {
-    setFormData(prev => ({...prev, geoFenceLimit: limit}))
-  }
-
-
-
-  
-
+  // Update form data when assessment changes (for edit mode)
+  useEffect(() => {
+    if (mode === 'edit' && assessment) {
+      setFormData({
+        id: assessment.id,
+        date: assessment.date,
+        time: assessment.time,
+        scopeOfWork: assessment.scopeOfWork,
+        assetSystem: assessment.assetSystem,
+        systemLockoutRequired: assessment.systemLockoutRequired,
+        trainedWorkforce: assessment.trainedWorkforce,
+        risks: convertApiRisksToLocal(assessment.risks),
+        individuals: assessment.individuals,
+        supervisor: assessment.supervisor,
+        status: assessment.status,
+        location: assessment.location,
+      })
+    }
+  }, [mode, assessment])
 
   // Set current date/time when opening in create mode
   useEffect(() => {
@@ -169,11 +147,6 @@ export default function TaskHazardForm({
     }
   }, [open, mode])
 
-
-
-
-
-
   // Validate form data
   const validateForm = (): { isValid: boolean; errors: Record<string, string> } => {
     const errors: Record<string, string> = {};
@@ -182,10 +155,9 @@ export default function TaskHazardForm({
     if (!formData.time) errors.time = "Time is required";
     if (!formData.scopeOfWork?.trim()) errors.scopeOfWork = "Scope of work is required";
     if (!formData.assetSystem) errors.assetSystem = "Asset system is required";
-    if (!formData.individuals || formData.individuals.length === 0) errors.individuals = "At least one individual/team member is required";
+    if (!formData.individuals) errors.individuals = "Individual is required";
     if (!formData.supervisor) errors.supervisor = "Supervisor is required";
     if (!formData.location?.trim()) errors.location = "Location is required";
-    if (!formData.trainedWorkforce?.trim()) errors.trainedWorkforce = "Trained workforce is required";
     
     // Validate risks
     if (formData.risks.length === 0) {
@@ -207,7 +179,6 @@ export default function TaskHazardForm({
     setValidationErrors(errors);
     return { isValid: Object.keys(errors).length === 0, errors };
   };
-
 
   // Calculate risk score for display
   const calculateRiskScore = (risk: Risk, isAsIs: boolean = true) => {
@@ -238,10 +209,8 @@ export default function TaskHazardForm({
       // Check if any risks require supervisor signature
       const requiresSupervisorApproval = formData.risks.some(risk => risk.requiresSupervisorSignature);
       
-      const { individuals, ...formDataWithoutIndividuals } = formData;
       const formattedData = {
-        ...formDataWithoutIndividuals,
-        individual: individuals.join(', '), // Convert array to comma-separated string for API
+        ...formData,
         risks: formData.risks.map(risk => ({
           id: risk.id || "",
           riskDescription: risk.riskDescription || "",
@@ -259,32 +228,32 @@ export default function TaskHazardForm({
       if (mode === 'create') {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id, ...createData } = formattedData;
-        await taskHazardApi.createTaskHazard(createData);
+        await riskAssessmentApi.createRiskAssessment(createData);
         toast({
           title: "Success",
           description: requiresSupervisorApproval 
-            ? "Task hazard assessment has been created and is pending supervisor approval."
-            : "Task hazard assessment has been created successfully.",
+            ? "Risk assessment has been created and is pending supervisor approval."
+            : "Risk assessment has been created successfully.",
           variant: "default",
         })
       } else {
-        const taskId = formattedData.id;
-        if (!taskId) {
-          throw new Error('Task ID is required for updates');
+        const assessmentId = formattedData.id;
+        if (!assessmentId) {
+          throw new Error('Assessment ID is required for updates');
         }
-        await taskHazardApi.updateTaskHazard(taskId, formattedData);
+        await riskAssessmentApi.updateRiskAssessment(assessmentId, formattedData);
         if (formattedData.status === 'Completed') {
           toast({
             title: "Success",
-            description: "Task hazard assessment has been updated successfully.",
+            description: "Risk assessment has been updated successfully.",
             variant: "default",
           })
         } else {
           toast({
             title: "Success",
             description: requiresSupervisorApproval 
-              ? "Task hazard assessment has been updated and is pending supervisor approval."
-              : "Task hazard assessment has been updated successfully.",
+              ? "Risk assessment has been updated and is pending supervisor approval."
+              : "Risk assessment has been updated successfully.",
             variant: "default",
           })
         }
@@ -293,10 +262,10 @@ export default function TaskHazardForm({
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error(`Error ${mode === 'create' ? 'creating' : 'updating'} task:`, error);
+      console.error(`Error ${mode === 'create' ? 'creating' : 'updating'} risk assessment:`, error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : `Failed to ${mode === 'create' ? 'create' : 'update'} task hazard assessment. Please try again.`,
+        description: error instanceof Error ? error.message : `Failed to ${mode === 'create' ? 'create' : 'update'} risk assessment. Please try again.`,
         variant: "destructive",
       })
     } finally {
@@ -369,11 +338,12 @@ export default function TaskHazardForm({
       <DialogContent className="w-full max-w-4xl mx-auto h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">
-            {mode === 'create' ? 'Add New Task Hazard Assessment' : 'Edit Task Hazard Assessment'}
+            {mode === 'create' ? 'Add New Risk Assessment' : 'Edit Risk Assessment'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
             <div className="space-y-2">
               <Label htmlFor="date" className="text-sm font-medium">Date</Label>
               <Input
@@ -387,6 +357,7 @@ export default function TaskHazardForm({
                 <span className="text-red-500 text-xs">{validationErrors.date}</span>
               )}
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="time" className="text-sm font-medium">Time</Label>
               <Input
@@ -400,19 +371,21 @@ export default function TaskHazardForm({
                 <span className="text-red-500 text-xs">{validationErrors.time}</span>
               )}
             </div>
+
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="scopeOfWork" className="text-sm font-medium">Scope of Work</Label>
-              <Input
+              <Textarea
                 id="scopeOfWork"
                 value={formData.scopeOfWork}
                 onChange={(e) => setFormData(prev => ({...prev, scopeOfWork: e.target.value}))}
                 placeholder="Enter scope of work"
-                className={`h-11 ${validationErrors.scopeOfWork ? "border-red-500" : ""}`}
+                className={`min-h-[100px] ${validationErrors.scopeOfWork ? "border-red-500" : ""}`}
               />
               {validationErrors.scopeOfWork && (
                 <span className="text-red-500 text-xs">{validationErrors.scopeOfWork}</span>
               )}
             </div>
+
             <div className="md:col-span-2">
               <AssetSelector
                 value={formData.assetSystem}
@@ -420,6 +393,7 @@ export default function TaskHazardForm({
                 error={validationErrors.assetSystem}
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="systemLockout" className="text-sm font-medium">System Lockout Required</Label>
               <select
@@ -432,28 +406,33 @@ export default function TaskHazardForm({
                 <option value="false">No</option>
               </select>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="trainedWorkforce" className="text-sm font-medium">Trained Workforce</Label>
-              <Input
+              <select
                 id="trainedWorkforce"
-                value={formData.trainedWorkforce}
-                onChange={(e) => setFormData(prev => ({...prev, trainedWorkforce: e.target.value}))}
-                placeholder="Enter trained workforce"
-                className="h-11"
-              />
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={formData.trainedWorkforce.toString()}
+                onChange={(e) => setFormData(prev => ({...prev, trainedWorkforce: e.target.value === 'true'}))}
+              >
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
             </div>
+
             <div className="space-y-2">
-               <UserSelector
-                 value={formData.individuals}
-                 onChange={handleIndividualsChange}
-                 error={validationErrors.individuals}
-                 label="Individual/Team"
-                 placeholder="Select individuals/team members"
-                 multiple={true}
-               />
-             </div>
+            <UserSelector
+                value={formData.individuals || ""}
+                onChange={handleIndividualChange}
+                error={validationErrors.individuals}
+                label="Individual/Team"
+                placeholder="Select individual/team member"
+                multiple={false}
+            />
+            </div>
+
             <div className="space-y-2">
-              <UserSelector
+            <UserSelector
                 value={formData.supervisor || ""}
                 onChange={handleSupervisorChange}
                 error={validationErrors.supervisor}
@@ -461,33 +440,10 @@ export default function TaskHazardForm({
                 placeholder="Select supervisor"
                 multiple={false}
                 roleFilter={supervisorRoleFilter}
-              />
-            </div>
-            {openGeoFence ? (
-              <GeoFenceSettings
-              open={openGeoFence}
-              onOpenChange={setOpenGeoFence}
-              initialLimit={formData.geoFenceLimit}
-              onSave={setGeoFenceLimit}
             />
-            ) : (
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="geoFence" className="text-sm font-medium">Geo Fence Settings</Label>
-              <div className="flex items-center gap-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full flex justify-between items-center h-11 px-4"
-                  onClick={() => setOpenGeoFence(true)}
-                >
-                  <span className="text-sm">Configure Geo Fence Limit</span>
-                  <span className="text-sm text-gray-500">
-                    Current: {formData.geoFenceLimit || 200} Feet
-                  </span>
-                </Button>
-              </div>
             </div>
-            )}
+
+            
             <div className="md:col-span-2">
               <LocationSelector
                 value={formData.location}
@@ -497,6 +453,7 @@ export default function TaskHazardForm({
                 placeholder="Enter location or click on map"
               />
             </div>
+
             {mode === 'edit' && (
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="status" className="text-sm font-medium">Status</Label>
@@ -514,181 +471,182 @@ export default function TaskHazardForm({
                 </select>
               </div>
             )}
-          </div>
-          
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <div>
-                <Label className="text-sm font-medium">Risks and Controls</Label>
-                {validationErrors.risks && (
-                  <div className="text-red-500 text-xs mt-1">{validationErrors.risks}</div>
-                )}
-              </div>
-              <Button 
-                type="button"
-                onClick={addRisk}
-                className="bg-[#00A3FF] hover:bg-[#00A3FF]/90 h-11 px-4 w-full sm:w-auto"
-              >
-                <Plus className="h-4 w-4 mr-2" /> Add Risk
-              </Button>
-            </div>
-            
-            {formData.risks.map((risk, index) => {
-              const asIsScore = calculateRiskScore(risk, true);
-              const mitigatedScore = calculateRiskScore(risk, false);
-              
-              return (
-                <div key={risk.id} className="border rounded-lg p-4 space-y-4 relative">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-medium text-sm">Risk {index + 1}</h4>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => risk.id && removeRisk(risk.id)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium">Risk Description</Label>
-                      <Input
-                        value={risk.riskDescription || ""}
-                        onChange={(e) => risk.id && updateRisk(risk.id, { riskDescription: e.target.value })}
-                        placeholder="E.g., Risk of pinch point"
-                        className={`h-11 mt-1 ${validationErrors[`risk_${index}_description`] ? "border-red-500" : ""}`}
-                      />
-                      {validationErrors[`risk_${index}_description`] && (
-                        <span className="text-red-500 text-xs">{validationErrors[`risk_${index}_description`]}</span>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium">Risk Type</Label>
-                        <Select
-                          value={risk.riskType || ""}
-                          onValueChange={(value) => risk.id && updateRisk(risk.id, { riskType: value })}
-                        >
-                          <SelectTrigger className={`h-11 mt-1 ${validationErrors[`risk_${index}_type`] ? "border-red-500" : ""}`}>
-                            <SelectValue placeholder="Select risk type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {riskCategories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {validationErrors[`risk_${index}_type`] && (
-                          <span className="text-red-500 text-xs">{validationErrors[`risk_${index}_type`]}</span>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <Label className="text-sm font-medium">Associated Risks</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full h-11 mt-1"
-                          disabled={!risk.riskType}
-                          onClick={() => risk.id && openRiskMatrix(risk.id, true)}
-                        >
-                          {asIsScore !== null ? (
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-1 rounded text-xs ${getRiskColor(asIsScore, risk.riskType || '')}`}>
-                                {risk.asIsLikelihood} x {risk.asIsConsequence}
-                              </span>
-                              <span className="text-gray-500 text-xs">Score {asIsScore}</span>
-                            </div>
-                          ) : (
-                            <div className="text-gray-500 text-xs">
-                              {!risk.riskType ? "Select risk type first" : "Not assessed"}
-                            </div>
-                          )}
-                        </Button>
-                        {!risk.riskType && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Please select a risk type before assessing risks
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label className="text-sm font-medium">Mitigating Action</Label>
-                      <Input
-                        value={risk.mitigatingAction || ""}
-                        onChange={(e) => risk.id && updateRisk(risk.id, { mitigatingAction: e.target.value })}
-                        placeholder="E.g., Wear gloves"
-                        className={`h-11 mt-1 ${validationErrors[`risk_${index}_mitigation`] ? "border-red-500" : ""}`}
-                      />
-                      {validationErrors[`risk_${index}_mitigation`] && (
-                        <span className="text-red-500 text-xs">{validationErrors[`risk_${index}_mitigation`]}</span>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium">Mitigating Action Type</Label>
-                        <Select
-                          value={risk.mitigatingActionType || ""}
-                          onValueChange={(value) => risk.id && updateRisk(risk.id, { mitigatingActionType: value })}
-                        >
-                          <SelectTrigger className="h-11 mt-1">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Elimination">Elimination</SelectItem>
-                            <SelectItem value="Control">Control</SelectItem>
-                            <SelectItem value="Administrative">Administrative</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label className="text-sm font-medium">Post-Mitigation Risk Assessment</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full h-11 mt-1"
-                          disabled={!risk.mitigatingActionType}
-                          onClick={() => risk.id && openRiskMatrix(risk.id, false)}
-                        >
-                          {mitigatedScore !== null ? (
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-1 rounded text-xs ${getRiskColor(mitigatedScore, risk.riskType || '')}`}>
-                                {risk.mitigatedLikelihood} x {risk.mitigatedConsequence}
-                              </span>
-                              <span className="text-gray-500 text-xs">Score {mitigatedScore}</span>
-                            </div>
-                          ) : (
-                            <div className="text-gray-500 text-xs">
-                              {!risk.mitigatingActionType ? "Select mitigating action type first" : "Not assessed"}
-                            </div>
-                          )}
-                        </Button>
-                        {!risk.mitigatingActionType && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Please select a mitigating action type before assessing post-mitigation risks
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {risk.requiresSupervisorSignature && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                        <span className="text-amber-700 text-sm">⚠️ Supervisor signature required - Status will remain pending until approved</span>
-                      </div>
-                    )}
-                  </div>
+
+            <div className="space-y-4 md:col-span-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Risks and Controls</Label>
+                  {validationErrors.risks && (
+                    <div className="text-red-500 text-xs mt-1">{validationErrors.risks}</div>
+                  )}
                 </div>
-              );
-            })}
+                <Button 
+                  type="button"
+                  onClick={addRisk}
+                  className="bg-[#00A3FF] hover:bg-[#00A3FF]/90 h-11 px-4 w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add Risk
+                </Button>
+              </div>
+              
+              {formData.risks.map((risk, index) => {
+                const asIsScore = calculateRiskScore(risk, true);
+                const mitigatedScore = calculateRiskScore(risk, false);
+                
+                return (
+                  <div key={risk.id} className="border rounded-lg p-4 space-y-4 relative">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-medium text-sm">Risk {index + 1}</h4>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => risk.id && removeRisk(risk.id)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium">Risk Description</Label>
+                        <Input
+                          value={risk.riskDescription || ""}
+                          onChange={(e) => risk.id && updateRisk(risk.id, { riskDescription: e.target.value })}
+                          placeholder="E.g., Risk of pinch point"
+                          className={`h-11 mt-1 ${validationErrors[`risk_${index}_description`] ? "border-red-500" : ""}`}
+                        />
+                        {validationErrors[`risk_${index}_description`] && (
+                          <span className="text-red-500 text-xs">{validationErrors[`risk_${index}_description`]}</span>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm font-medium">Risk Type</Label>
+                          <Select
+                            value={risk.riskType || ""}
+                            onValueChange={(value) => risk.id && updateRisk(risk.id, { riskType: value })}
+                          >
+                            <SelectTrigger className={`h-11 mt-1 ${validationErrors[`risk_${index}_type`] ? "border-red-500" : ""}`}>
+                              <SelectValue placeholder="Select risk type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {riskCategories.map((category) => (
+                                <SelectItem key={category.id} value={category.id}>
+                                  {category.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {validationErrors[`risk_${index}_type`] && (
+                            <span className="text-red-500 text-xs">{validationErrors[`risk_${index}_type`]}</span>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <Label className="text-sm font-medium">Associated Risks</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full h-11 mt-1"
+                            disabled={!risk.riskType}
+                            onClick={() => risk.id && openRiskMatrix(risk.id, true)}
+                          >
+                            {asIsScore !== null ? (
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 rounded text-xs ${getRiskColor(asIsScore, risk.riskType || '')}`}>
+                                  {risk.asIsLikelihood} x {risk.asIsConsequence}
+                                </span>
+                                <span className="text-gray-500 text-xs">Score {asIsScore}</span>
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 text-xs">
+                                {!risk.riskType ? "Select risk type first" : "Not assessed"}
+                              </div>
+                            )}
+                          </Button>
+                          {!risk.riskType && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Please select a risk type before assessing risks
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium">Mitigating Action</Label>
+                        <Input
+                          value={risk.mitigatingAction || ""}
+                          onChange={(e) => risk.id && updateRisk(risk.id, { mitigatingAction: e.target.value })}
+                          placeholder="E.g., Wear gloves"
+                          className={`h-11 mt-1 ${validationErrors[`risk_${index}_mitigation`] ? "border-red-500" : ""}`}
+                        />
+                        {validationErrors[`risk_${index}_mitigation`] && (
+                          <span className="text-red-500 text-xs">{validationErrors[`risk_${index}_mitigation`]}</span>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm font-medium">Mitigating Action Type</Label>
+                          <Select
+                            value={risk.mitigatingActionType || ""}
+                            onValueChange={(value) => risk.id && updateRisk(risk.id, { mitigatingActionType: value })}
+                          >
+                            <SelectTrigger className="h-11 mt-1">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Elimination">Elimination</SelectItem>
+                              <SelectItem value="Control">Control</SelectItem>
+                              <SelectItem value="Administrative">Administrative</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-sm font-medium">Post-Mitigation Risk Assessment</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full h-11 mt-1"
+                            disabled={!risk.mitigatingActionType}
+                            onClick={() => risk.id && openRiskMatrix(risk.id, false)}
+                          >
+                            {mitigatedScore !== null ? (
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 rounded text-xs ${getRiskColor(mitigatedScore, risk.riskType || '')}`}>
+                                  {risk.mitigatedLikelihood} x {risk.mitigatedConsequence}
+                                </span>
+                                <span className="text-gray-500 text-xs">Score {mitigatedScore}</span>
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 text-xs">
+                                {!risk.mitigatingActionType ? "Select mitigating action type first" : "Not assessed"}
+                              </div>
+                            )}
+                          </Button>
+                          {!risk.mitigatingActionType && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Please select a mitigating action type before assessing post-mitigation risks
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {risk.requiresSupervisorSignature && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                          <span className="text-amber-700 text-sm">⚠️ Supervisor signature required - Status will remain pending until approved</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
           </div>
 
           <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
@@ -712,7 +670,7 @@ export default function TaskHazardForm({
                   {mode === 'create' ? 'Creating...' : 'Saving...'}
                 </>
               ) : (
-                mode === 'create' ? 'Add Task' : 'Save Changes'
+                mode === 'create' ? 'Create Assessment' : 'Save Changes'
               )}
             </Button>
           </div>

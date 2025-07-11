@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { LogOut, User, Settings, Shield, Users, FileText, Database } from "lucide-react"
@@ -9,9 +9,19 @@ import { getCurrentUser, hasPermission, logout } from "@/utils/auth"
 export function ProfileMenu() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
-  const user = getCurrentUser()
+  const [mounted, setMounted] = useState(false)
+  const [user, setUser] = useState<{
+    email: string;
+    role: string;
+    company?: string | { id?: number; name: string; createdAt?: string; updatedAt?: string; deletedAt?: string | null; };
+  } | null>(null)
 
-  if (!user) return null
+  useEffect(() => {
+    setMounted(true)
+    setUser(getCurrentUser())
+  }, [])
+
+  if (!mounted || !user) return null
 
   const handleLogout = async () => {
     await logout()
@@ -65,7 +75,14 @@ export function ProfileMenu() {
             <p className="text-sm font-medium">{user.email}</p>
             <p className="text-xs text-gray-500 capitalize">{user.role}</p>
             {user.company && (
-              <p className="text-xs text-gray-500">{user.company}</p>
+              <p className="text-xs text-gray-500">
+                {typeof user.company === 'string' 
+                  ? user.company 
+                  : (user.company && typeof user.company === 'object' && 'name' in user.company)
+                    ? user.company.name 
+                    : 'Unknown Company'
+                }
+              </p>
             )}
           </div>
 

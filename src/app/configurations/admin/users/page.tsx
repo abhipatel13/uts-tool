@@ -16,7 +16,11 @@ interface User {
   email: string;
   role: string;
   company: {
+    id?: number;
     name: string;
+    createdAt?: string;
+    updatedAt?: string;
+    deletedAt?: string | null;
   } | string;
 }
 
@@ -74,7 +78,11 @@ export default function UserManagement() {
             email: '', 
             password: '', 
             role: 'user',
-            company: typeof user.company === 'string' ? user.company : user?.company?.name || '' 
+            company: typeof user.company === 'string' 
+              ? user.company 
+              : (user.company && typeof user.company === 'object' && 'name' in user.company)
+                ? user.company.name 
+                : '' 
           });
         }
       } catch (error) {
@@ -92,7 +100,11 @@ export default function UserManagement() {
       // Ensure company is set from current user
       const userToCreate = {
         ...newUser,
-        company: currentUser?.company || ''
+        company: typeof currentUser?.company === 'string' 
+          ? currentUser.company 
+          : (currentUser?.company && typeof currentUser.company === 'object' && 'name' in currentUser.company)
+            ? currentUser.company.name 
+            : ''
       };
 
       const response = await userApi.create(userToCreate);
@@ -106,7 +118,11 @@ export default function UserManagement() {
           email: '', 
           password: '', 
           role: 'user',
-          company: typeof currentUser?.company === 'string' ? currentUser.company : currentUser?.company?.name || '' 
+          company: typeof currentUser?.company === 'string' 
+          ? currentUser.company 
+          : (currentUser?.company && typeof currentUser.company === 'object' && 'name' in currentUser.company)
+            ? currentUser.company.name 
+            : '' 
         });
         // Refresh the users list
         const updatedResponse = await userApi.getAll();
@@ -250,7 +266,12 @@ export default function UserManagement() {
                 </Badge>
               </TableCell>
               <TableCell>
-                {typeof user.company === 'string' ? user.company : user.company.name}
+                {typeof user.company === 'string' 
+                  ? user.company 
+                  : (user.company && typeof user.company === 'object' && 'name' in user.company)
+                    ? user.company.name 
+                    : 'N/A'
+                }
               </TableCell>
               <TableCell>
                 <Button

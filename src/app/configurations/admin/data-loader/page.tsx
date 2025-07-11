@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -38,12 +38,7 @@ export default function DataLoader() {
   const [uploadHistory, setUploadHistory] = useState<UploadStatus[]>([])
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
 
-  // Fetch upload history when component mounts
-  useEffect(() => {
-    fetchUploadHistory()
-  }, [])
-
-  const fetchUploadHistory = async () => {
+  const fetchUploadHistory = useCallback(async () => {
     try {
       setIsLoadingHistory(true)
       const response = await assetHierarchyApi.getUploadHistory()
@@ -63,7 +58,12 @@ export default function DataLoader() {
     } finally {
       setIsLoadingHistory(false)
     }
-  }
+  }, [toast])
+
+  // Fetch upload history when component mounts
+  useEffect(() => {
+    fetchUploadHistory()
+  }, [fetchUploadHistory])
 
   const downloadTemplate = () => {
     const blob = new Blob([sampleCsvContent], { type: 'text/csv' })

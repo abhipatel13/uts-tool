@@ -59,6 +59,33 @@ export const userApi = {
     return data;
   },
 
+  
+  // Gets all users for the current user's company
+  // Restricts user data in the response to only include id, email, role, and name
+  getAllRestricted: async (): Promise<ApiResponse<User[]>> => {
+    console.log('Fetching users...');
+    const token = getAuthToken();
+    console.log("token",token);
+    console.log('Using token:', token);
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/getAllUserRestricted`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('Response status:', response.status);
+    const data = await response.json();
+    console.log('Response data:', data);
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch users');
+    }
+
+    return data;
+  },
+
   // Create new user
   create: async (data: CreateUserRequest): Promise<ApiResponse<User>> => {
     const token = getAuthToken();

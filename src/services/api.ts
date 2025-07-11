@@ -32,6 +32,23 @@ export interface TaskHazard {
   geoFenceLimit?: number;
 }
 
+export interface RiskAssessment {
+  id: string;
+  date: string;
+  time: string;
+  scopeOfWork: string;
+  assetSystem: string;
+  systemLockoutRequired: boolean;
+  trainedWorkforce: boolean;
+  risks: Risk[];
+  individuals: string;
+  supervisor: string;
+  status: string;
+  location: string;
+  createdBy?: string;
+  createdOn?: string;
+}
+
 export interface GeoFenceSettings {
   limit: number;
 }
@@ -54,6 +71,20 @@ export interface Asset {
   level: number;  // Calculated based on hierarchy
   updatedAt: string;
   createdAt: string;
+}
+
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  type?: 'license' | 'payment' | 'system' | 'other' | 'approval' | 'risk' | 'task';
+  isRead: boolean;
+  createdAt: string;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+  };
 }
 
 export enum UserRole {
@@ -153,9 +184,90 @@ export const taskHazardApi = {
     return response;
   },
 
+  // Approve or reject a task hazard assessment
+  approveOrRejectTaskHazard: async (id: string, taskData: Partial<TaskHazard>): Promise<ApiResponse<TaskHazard>> => {
+    const response = await fetchApi<ApiResponse<TaskHazard>>(`/api/task-hazards/approval/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(taskData),
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+
   // Delete a task hazard assessment
   deleteTaskHazard: async (id: string): Promise<ApiResponse<void>> => {
     const response = await fetchApi<ApiResponse<void>>(`/api/task-hazards/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+};
+
+/**
+ * Risk Assessment API functions
+ */
+export const riskAssessmentApi = {
+  // Create a new risk assessment
+  createRiskAssessment: async (assessment: Omit<RiskAssessment, 'id'>): Promise<RiskAssessment> => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/risk-assessments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+      body: JSON.stringify(assessment),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create risk assessment');
+    }
+
+    const result = await response.json();
+    return result;
+  },
+
+  // Get all risk assessments
+  getRiskAssessments: async (): Promise<ApiResponse<RiskAssessment[]>> => {
+    const response = await fetchApi<ApiResponse<RiskAssessment[]>>('/api/risk-assessments', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+
+  // Get a specific risk assessment
+  getRiskAssessment: async (id: string): Promise<ApiResponse<RiskAssessment>> => {
+    const response = await fetchApi<ApiResponse<RiskAssessment>>(`/api/risk-assessments/${id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+
+  // Update a risk assessment
+  updateRiskAssessment: async (id: string, assessmentData: Partial<RiskAssessment>): Promise<ApiResponse<RiskAssessment>> => {
+    const response = await fetchApi<ApiResponse<RiskAssessment>>(`/api/risk-assessments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(assessmentData),
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+
+  // Delete a risk assessment
+  deleteRiskAssessment: async (id: string): Promise<ApiResponse<void>> => {
+    const response = await fetchApi<ApiResponse<void>>(`/api/risk-assessments/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`,
@@ -229,10 +341,37 @@ export const assetHierarchyApi = {
   },
 };
 
-const api = {
-  taskHazardApi,
-  geoFenceApi,
-  assetHierarchyApi,
+/**
+ * Notification API functions
+ */
+export const notificationApi = {
+  // Get user's notifications
+  getMyNotifications: async (): Promise<ApiResponse<Notification[]>> => {
+    return fetchApi<ApiResponse<Notification[]>>('/api/notifications/my-notifications', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+  },
+
+  // Mark notification as read
+  markAsRead: async (notificationId: number): Promise<ApiResponse<void>> => {
+    return fetchApi<ApiResponse<void>>(`/api/notifications/${notificationId}/mark-read`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+  },
 };
 
-export default api; 
+const api = {
+  taskHazardApi,
+  riskAssessmentApi,
+  geoFenceApi,
+  assetHierarchyApi,
+  notificationApi,
+};
+
+export default api;
