@@ -1,3 +1,5 @@
+
+
 // Get the current user from localStorage
 export const getCurrentUser = () => {
   if (typeof window === 'undefined') return null;
@@ -69,6 +71,17 @@ export const isAuthenticated = (): boolean => {
   const user = getCurrentUser();
   const token = getAuthToken();
   return !!user && !!token && !!user.isAuthenticated;
+};
+
+// Check if user has an active license (async function) - Always returns true since license validation is disabled
+export const hasActiveLicense = async (): Promise<boolean> => {
+  return true;
+};
+
+// Check if user is fully authorized (authenticated + has license)
+export const isFullyAuthorized = async (): Promise<boolean> => {
+  if (!isAuthenticated()) return false;
+  return await hasActiveLicense();
 };
 
 // Get auth token for API requests

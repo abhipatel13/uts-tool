@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -11,10 +11,16 @@ import { ProfileMenu } from "./ProfileMenu"
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [user, setUser] = useState<{ role: string } | null>(null)
   const pathname = usePathname()
-  const user = getCurrentUser()
 
-  if (!user) return null
+  useEffect(() => {
+    setMounted(true)
+    setUser(getCurrentUser())
+  }, [])
+
+  if (!mounted || !user) return null
 
   const isActive = (path: string) => pathname === path
 

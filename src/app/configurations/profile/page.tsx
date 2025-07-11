@@ -13,13 +13,14 @@ interface User {
   id: number;
   email: string;
   role: string;
-  company: string;
+  company: string | { id?: number; name: string; createdAt?: string; updatedAt?: string; deletedAt?: string | null; };
 }
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     currentPassword: '',
@@ -29,6 +30,12 @@ export default function ProfilePage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const fetchUserProfile = async () => {
       try {
         const userData = localStorage.getItem('user');
@@ -53,7 +60,7 @@ export default function ProfilePage() {
     };
 
     fetchUserProfile();
-  }, [toast]);
+  }, [toast, mounted]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +110,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) {
+  if (!mounted || loading) {
     return <div>Loading...</div>;
   }
 
@@ -138,7 +145,12 @@ export default function ProfilePage() {
               <label className="block text-sm font-medium mb-1">Company</label>
               <Input
                 type="text"
-                value={user.company}
+                value={typeof user.company === 'string' 
+                  ? user.company 
+                  : (user.company && typeof user.company === 'object' && 'name' in user.company)
+                    ? user.company.name 
+                    : ''
+                }
                 disabled
                 className="bg-gray-100"
               />

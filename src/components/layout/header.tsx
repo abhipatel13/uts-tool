@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -16,8 +18,15 @@ import Link from 'next/link'
 import NotificationBell from "../NotificationBell"
 
 export function Header() {
-  const user = getCurrentUser()
-  const userInitials = user?.email ? user.email.substring(0, 2).toUpperCase() : "U"
+  const [user, setUser] = useState<{ email?: string } | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    setUser(getCurrentUser())
+  }, [])
+
+  const userInitials = mounted && user?.email ? user.email.substring(0, 2).toUpperCase() : "U"
 
   return (
     <header className="h-16 border-b bg-white px-8 flex items-center justify-end">

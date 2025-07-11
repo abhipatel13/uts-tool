@@ -1,30 +1,41 @@
 'use client';
 
-import { createContext, useContext, ReactNode, useState, useRef } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { createContext, useContext, ReactNode, useState, useRef, useEffect } from 'react';
+import { getCurrentUser, logout as authLogout } from '@/utils/auth';
 import React from 'react';
 
 interface AuthUser {
+  id?: string;
   email?: string | null;
   name?: string | null;
-  image?: string | null;
-  accessToken?: string;
   role?: string;
+  company?: string;
+  permissions?: string[];
+  isAuthenticated?: boolean;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   logout: () => Promise<void>;
   isLoggingOut: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { data: session, status } = useSession();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const logoutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastLogoutAttemptRef = useRef<number>(0);
+
+  // Load user from localStorage on mount
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    setIsLoading(false);
+  }, []);
   
   const logout = async () => {
     const now = Date.now();
@@ -44,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(logoutTimeoutRef.current);
       }
 
-      await signOut({ callbackUrl: '/auth/login' });
+      await authLogout();
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
@@ -64,14 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  if (status === 'loading') {
+  if (isLoading) {
     return null;
   }
 
-  const user: AuthUser | null = session?.user ?? null;
-
   return (
-    <AuthContext.Provider value={{ user, logout, isLoggingOut }}>
+    <AuthContext.Provider value={{ user, logout, isLoggingOut, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

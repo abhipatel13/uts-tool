@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { getCurrentUser } from "@/utils/auth"
@@ -7,7 +8,21 @@ import { BackButton } from "@/components/ui/back-button"
 
 export default function Unauthorized() {
   const router = useRouter()
-  const user = getCurrentUser()
+  const [mounted, setMounted] = useState(false)
+  const [user, setUser] = useState<{ role: string } | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+    setUser(getCurrentUser())
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

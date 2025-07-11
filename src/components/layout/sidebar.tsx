@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Menu, X, Settings, CreditCard } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
@@ -75,8 +75,7 @@ const CustomIcons = {
 }
 
 // Define the sidebar navigation items
-const getSidebarNavItems = () => {
-  const user = getCurrentUser();
+const getSidebarNavItems = (user: { role: string } | null) => {
   if (!user) return [];
 
   // Determine which menu items to show based on user role and permissions
@@ -90,8 +89,7 @@ const getSidebarNavItems = () => {
   const showTemplates = user.role === "superuser" || user.role === "admin";
   const showTactics = hasPermission("view_tactics");
   const showApprovalRequests = user.role === "supervisor";
-  // Add payment permissions
-  const showPaymentManagement = user.role === "superuser" || user.role === "admin";
+
 
   // Only show Safety section if user has access to at least one of its sub-items
   const showSafety = showTaskHazard || showRiskAssessment || showApprovalRequests;
@@ -146,7 +144,6 @@ const getSidebarNavItems = () => {
             ...(showUsers ? [{ title: "User Management", href: "/configurations/admin/users", description: "Manage all users including regular users and supervisors" }] : []),
             { title: "Data Loader", href: "/configurations/admin/data-loader" },
             ...(showLicenses ? [{ title: "Licensing", href: "/configurations/admin/licensing" }] : []),
-            ...(showPaymentManagement ? [{ title: "Payment Management", href: "/admin/payments", description: "Process and manage user payments" }] : []),
           ]
         },
         ...(showPreferences ? [{
@@ -177,9 +174,30 @@ export function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>([])
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+  const [user, setUser] = useState(null)
   const router = useRouter()
   const pathname = usePathname()
-  const sidebarNavItems = getSidebarNavItems();
+
+  useEffect(() => {
+    setMounted(true)
+    setUser(getCurrentUser())
+  }, [])
+
+  const sidebarNavItems = getSidebarNavItems(user);
+
+  // Don't render until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="fixed top-0 left-0 bg-[rgb(52,73,94)] h-[100dvh] w-64 hidden lg:block">
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const toggleSubmenu = (href: string) => {
     setExpandedMenus(current => 

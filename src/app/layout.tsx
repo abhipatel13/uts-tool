@@ -8,8 +8,7 @@ import { SubscriptionReminder } from "@/components/layout/SubscriptionReminder"
 import { usePathname } from "next/navigation"
 import { Providers } from "@/app/providers"
 import { Toaster } from "@/components/ui/toaster"
-import { AuthProvider } from '@/providers/AuthProvider'
-import { SessionProvider } from "next-auth/react"
+import { StripeProvider } from '@/providers/StripeProvider'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -47,15 +46,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <SessionProvider>
-          <AuthProvider>
-            <Providers>
-              <RootLayoutContent>
-                {children}
-              </RootLayoutContent>
-            </Providers>
-          </AuthProvider>
-        </SessionProvider>
+        <StripeProvider>
+          <Providers>
+            <RootLayoutContent>
+              {children}
+            </RootLayoutContent>
+          </Providers>
+        </StripeProvider>
         <Toaster />
       </body>
     </html>

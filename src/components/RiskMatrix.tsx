@@ -45,7 +45,7 @@ export function RiskMatrix({
     if (risk) {
       setActiveConsequenceLabels(getConsequenceLabels(risk.riskType));
     }
-  }, [risk?.riskType]);
+  }, [risk]);
 
   const handleRiskMatrixClick = (likelihood: string, consequence: string, score: number) => {
     if (!risk || !riskId) return;
