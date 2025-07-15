@@ -40,9 +40,12 @@ const LicensingAdminPage = () => {
   const [showCreatePoolDialog, setShowCreatePoolDialog] = useState(false);
   const [showAllocateDialog, setShowAllocateDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
   const [isCreatingPool, setIsCreatingPool] = useState(false);
   const [isAllocatingLicense, setIsAllocatingLicense] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isRevokingLicense, setIsRevokingLicense] = useState(false);
+  const [selectedAllocation, setSelectedAllocation] = useState<LicenseAllocation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -62,6 +65,10 @@ const LicensingAdminPage = () => {
     customValidityMonths: '',
     notes: '',
     autoRenew: false
+  });
+
+  const [revokeForm, setRevokeForm] = useState({
+    reason: ''
   });
 
   // Calculate total amount automatically
@@ -190,7 +197,6 @@ const LicensingAdminPage = () => {
         autoRenew: allocationForm.autoRenew
       };
 
-      console.log('Allocating license with payload:', payload);
       
       await LicenseAllocationService.allocateLicense(payload);
       toast({ title: 'Success', description: 'License allocated successfully' });
@@ -204,6 +210,43 @@ const LicensingAdminPage = () => {
     } finally {
       setIsAllocatingLicense(false);
     }
+  };
+
+  const handleRevokeLicense = async () => {
+    if (!selectedAllocation) {
+      toast({ title: 'Error', description: 'No allocation selected', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      setIsRevokingLicense(true);
+      
+      const payload = {
+        reason: revokeForm.reason || 'No reason provided'
+      };
+
+      await LicenseAllocationService.revokeLicense(selectedAllocation.id, payload.reason);
+      
+      toast({ title: 'Success', description: 'License revoked successfully' });
+      setShowRevokeDialog(false);
+      setSelectedAllocation(null);
+      setRevokeForm({ reason: '' });
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await loadData();
+      
+    } catch (error) {
+      console.error('Error revoking license:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to revoke license';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+    } finally {
+      setIsRevokingLicense(false);
+    }
+  };
+
+  const handleRevokeClick = (allocation: LicenseAllocation) => {
+    setSelectedAllocation(allocation);
+    setShowRevokeDialog(true);
   };
 
   if (isLoading) {
@@ -466,6 +509,7 @@ const LicensingAdminPage = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Valid From</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Valid Until</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -477,6 +521,7 @@ const LicensingAdminPage = () => {
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                             a.status === 'active' ? 'bg-green-100 text-green-800' : 
                             a.status === 'expired' ? 'bg-red-100 text-red-800' : 
+                            a.status === 'revoked' ? 'bg-gray-100 text-gray-800' :
                             a.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
@@ -485,11 +530,25 @@ const LicensingAdminPage = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.validFrom ? new Date(a.validFrom).toLocaleDateString() : ''}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.validUntil ? new Date(a.validUntil).toLocaleDateString() : ''}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {a.status === 'active' || a.status === 'allocated' ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRevokeClick(a)}
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                            >
+                              Revoke
+                            </Button>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {allocations.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                        <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
                           No license allocations found. Allocate licenses to users to get started.
                         </td>
                       </tr>
@@ -606,6 +665,71 @@ const LicensingAdminPage = () => {
                         </>
                       ) : (
                         'Allocate'
+                      )}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Revoke License Dialog */}
+              <Dialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Revoke License</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    {selectedAllocation && (
+                      <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                        <h3 className="font-semibold text-red-900">License Details</h3>
+                        <div className="mt-2 space-y-1 text-sm text-red-800">
+                          <p><strong>User:</strong> {selectedAllocation.user?.email || selectedAllocation.userId}</p>
+                          <p><strong>Pool:</strong> {selectedAllocation.licensePool?.poolName || selectedAllocation.licensePoolId}</p>
+                          <p><strong>Status:</strong> {selectedAllocation.status}</p>
+                          <p><strong>Valid Until:</strong> {selectedAllocation.validUntil ? new Date(selectedAllocation.validUntil).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <Label>Reason for Revocation</Label>
+                      <Textarea 
+                        placeholder="Enter reason for revoking this license..." 
+                        value={revokeForm.reason} 
+                        onChange={e => setRevokeForm(f => ({ ...f, reason: e.target.value }))} 
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div className="p-3 bg-yellow-50 rounded-md border border-yellow-200">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Warning:</strong> This action cannot be undone. The user will immediately lose access to the system.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowRevokeDialog(false);
+                        setSelectedAllocation(null);
+                        setRevokeForm({ reason: '' });
+                      }}
+                      disabled={isRevokingLicense}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleRevokeLicense}
+                      disabled={isRevokingLicense}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {isRevokingLicense ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Revoking...
+                        </>
+                      ) : (
+                        'Revoke License'
                       )}
                     </Button>
                   </div>
