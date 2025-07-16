@@ -227,26 +227,26 @@ export function Sidebar() {
         {/* Logo Section */}
         <div className={cn(
           "px-6 py-4 flex items-center border-b border-[#2C3E50] shrink-0 bg-[#2C3E50]",
-          isCollapsed ? "justify-center" : "justify-between"
+          isCollapsed ? "justify-center px-2" : "justify-center"
         )}>
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "bg-white rounded-lg flex items-center justify-center transition-all duration-300",
-              isCollapsed ? "p-1.5" : "p-2"
-            )}>
-              <Image 
-                src="/uts-logo.png" 
-                alt="Logo" 
-                className={cn(
-                  "transition-all duration-300",
-                  isCollapsed ? "w-8 h-8" : "w-15 h-15",
-                  "justify-center"
-                )}
-                width={150}
-                height={48}
-                priority
-              />
-            </div>
+          <div 
+            className={cn(
+              "bg-white rounded-lg flex items-center justify-center transition-all duration-300 cursor-pointer hover:bg-gray-50",
+              isCollapsed ? "p-1.5 w-12 h-12" : "p-2 w-full max-w-[220px] h-20"
+            )}
+            onClick={() => router.push("/")}
+          >
+            <Image 
+              src="/uts-logo.png" 
+              alt="Logo" 
+              className={cn(
+                "transition-all duration-300 object-contain",
+                isCollapsed ? "w-8 h-8" : "w-full h-full",
+              )}
+              width={150}
+              height={48}
+              priority
+            />
           </div>
         </div>
 

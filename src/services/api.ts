@@ -1,6 +1,7 @@
 // API service for handling all API requests
 
 import { getAuthToken } from "@/utils/auth";
+import { logout as authLogout } from '@/utils/auth';
 
 // Define interfaces for API data types
 export interface Risk {
@@ -121,8 +122,12 @@ async function fetchApi<T>(
   const data = await response.json();
 
   if (!response.ok) {
+    if (data.code === "INVALID_TOKEN") {
+      authLogout();
+    }
     throw new Error(data.error || `API request failed with status ${response.status}`);
   }
+
 
   return data;
 }

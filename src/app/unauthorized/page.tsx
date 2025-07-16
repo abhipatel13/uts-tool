@@ -5,15 +5,42 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { getCurrentUser } from "@/utils/auth"
 import { BackButton } from "@/components/ui/back-button"
+import { LicenseAllocationService } from "@/services/licenseService"
+import { Shield, AlertTriangle, Clock, XCircle } from "lucide-react"
 
 export default function Unauthorized() {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
-  const [user, setUser] = useState<{ role: string } | null>(null)
+  const [user, setUser] = useState<{ role: string; id?: number } | null>(null)
+  const [licenseStatus, setLicenseStatus] = useState<{
+    hasActiveLicense: boolean;
+    activeAllocations: any[];
+    expiredAllocations: any[];
+    upcomingAllocations: any[];
+  } | null>(null)
+  const [isLoadingLicense, setIsLoadingLicense] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    setUser(getCurrentUser())
+    const currentUser = getCurrentUser()
+    setUser(currentUser)
+    
+    // Check license status for non-superuser roles
+    if (currentUser && currentUser.role !== 'superuser' && currentUser.id) {
+      setIsLoadingLicense(true)
+      LicenseAllocationService.getUserLicenseStatus(currentUser.id)
+        .then(response => {
+          if (response?.status) {
+            setLicenseStatus(response.data)
+          }
+        })
+        .catch(error => {
+          console.error('Failed to fetch license status:', error)
+        })
+        .finally(() => {
+          setIsLoadingLicense(false)
+        })
+    }
   }, [])
 
   if (!mounted) {
@@ -24,38 +51,76 @@ export default function Unauthorized() {
     )
   }
 
+  const getAccessIssueInfo = () => {
+    if (!user) return { icon: XCircle, title: "Authentication Required", message: "Please log in to access this application." }
+    
+    if (user.role === 'superuser') {
+      return { icon: Shield, title: "Access Denied", message: "You don't have permission to access this specific page." }
+    }
+    
+    if (isLoadingLicense) {
+      return { icon: Clock, title: "Checking License", message: "Validating your license status..." }
+    }
+    
+    if (!licenseStatus) {
+      return { icon: AlertTriangle, title: "License Check Failed", message: "Unable to verify your license status. Please try again or contact support." }
+    }
+    
+    if (!licenseStatus.hasActiveLicense) {
+      if (licenseStatus.expiredAllocations.length > 0) {
+        return { icon: Clock, title: "License Expired", message: "Your license has expired. Please contact your administrator to renew your license." }
+      }
+      
+      if (licenseStatus.upcomingAllocations.length > 0) {
+        return { icon: Clock, title: "License Not Yet Active", message: "Your license is scheduled to become active soon. Please wait or contact your administrator." }
+      }
+      
+      return { icon: XCircle, title: "No Valid License", message: "You don't have an active license. Please contact your administrator to get a license assigned." }
+    }
+    
+    return { icon: Shield, title: "Insufficient Permissions", message: "You don't have the required permissions to access this page." }
+  }
+
+  const { icon: Icon, title, message } = getAccessIssueInfo()
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
+      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg text-center">
         <div className="mb-6">
           <BackButton text="Back" />
         </div>
-        <h1 className="text-2xl font-bold mb-4 text-[rgb(44,62,80)]">Access Denied</h1>
+        <h1 className="text-2xl font-bold mb-4 text-[rgb(44,62,80)]">{title}</h1>
         
         <div className="mb-6">
-          <svg 
-            className="mx-auto h-16 w-16 text-red-500" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
-            />
-          </svg>
+          <Icon className="mx-auto h-16 w-16 text-red-500" />
         </div>
         
-        <p className="text-gray-600 mb-4">
-          You don&apos;t have permission to access this page.
-        </p>
+        <p className="text-gray-600 mb-4">{message}</p>
         
         {user && (
-          <p className="text-sm text-gray-500 mb-6">
-            Your current role: <span className="font-medium">{user.role}</span>
-          </p>
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <p className="text-sm text-gray-500 mb-2">
+              Your current role: <span className="font-medium">{user.role}</span>
+            </p>
+            
+            {licenseStatus && user.role !== 'superuser' && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">
+                  Active licenses: <span className="font-medium">{licenseStatus.activeAllocations.length}</span>
+                </p>
+                {licenseStatus.expiredAllocations.length > 0 && (
+                  <p className="text-sm text-gray-500">
+                    Expired licenses: <span className="font-medium">{licenseStatus.expiredAllocations.length}</span>
+                  </p>
+                )}
+                {licenseStatus.upcomingAllocations.length > 0 && (
+                  <p className="text-sm text-gray-500">
+                    Upcoming licenses: <span className="font-medium">{licenseStatus.upcomingAllocations.length}</span>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         )}
         
         <div className="flex flex-col space-y-3">
@@ -72,6 +137,16 @@ export default function Unauthorized() {
           >
             Switch Account
           </Button>
+          
+          {user && user.role !== 'superuser' && !licenseStatus?.hasActiveLicense && (
+            <Button 
+              onClick={() => router.push("/admin/license-management")}
+              variant="outline"
+              className="text-blue-600 border-blue-600 hover:bg-blue-50"
+            >
+              View License Management
+            </Button>
+          )}
         </div>
       </div>
     </div>

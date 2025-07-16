@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useAuth } from '@/providers/AuthProvider';
-import ProtectedRoute from '../components/ProtectedRoute';
+import LicenseProtectedRoute from '../components/LicenseProtectedRoute';
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
 
@@ -47,7 +47,7 @@ const Dashboard: React.FC = () => {
       </div>
       
       {/* Superuser Section */}
-      <ProtectedRoute requiredRole="superuser">
+      <LicenseProtectedRoute requiredRole="superuser">
         <div className="bg-purple-100 p-4 rounded-lg mb-4">
           <h2 className="text-xl font-semibold mb-2">System Controls</h2>
           <p>You have access to all system features and controls.</p>
@@ -69,10 +69,10 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         </div>
-      </ProtectedRoute>
+      </LicenseProtectedRoute>
 
       {/* Admin Section */}
-      <ProtectedRoute requiredRole="admin">
+      <LicenseProtectedRoute requiredRole="admin">
         <div className="bg-purple-100 p-4 rounded-lg mb-4">
           <h2 className="text-xl font-semibold mb-2">System Controls</h2>
           <p>You have access to all system features and controls.</p>
@@ -94,10 +94,10 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         </div>
-      </ProtectedRoute>
+      </LicenseProtectedRoute>
 
       {/* Supervisor Section */}
-      <ProtectedRoute requiredPermission="risk_assessment">
+      <LicenseProtectedRoute requiredPermission="risk_assessment">
         <div className="bg-green-100 p-4 rounded-lg mb-4">
           <h2 className="text-xl font-semibold mb-2">Risk Assessment</h2>
           <div className="space-y-2">
@@ -109,10 +109,10 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         </div>
-      </ProtectedRoute>
+      </LicenseProtectedRoute>
 
       {/* Regular User Section */}
-      <ProtectedRoute requiredPermission="risk_assessment_creation">
+      <LicenseProtectedRoute requiredPermission="risk_assessment_creation">
         <div className="bg-yellow-100 p-4 rounded-lg mb-4">
           <h2 className="text-xl font-semibold mb-2">Risk Assessment Creation</h2>
           <div className="space-y-2">
@@ -124,7 +124,7 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         </div>
-      </ProtectedRoute>
+      </LicenseProtectedRoute>
 
       {/* User Info */}
       <div className="bg-gray-100 p-4 rounded-lg">
