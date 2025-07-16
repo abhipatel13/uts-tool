@@ -14,9 +14,9 @@ export default function Unauthorized() {
   const [user, setUser] = useState<{ role: string; id?: number } | null>(null)
   const [licenseStatus, setLicenseStatus] = useState<{
     hasActiveLicense: boolean;
-    activeAllocations: any[];
-    expiredAllocations: any[];
-    upcomingAllocations: any[];
+    activeAllocations: Array<{ id: number; status: string; expiry_date: string }>;
+    expiredAllocations: Array<{ id: number; status: string; expiry_date: string }>;
+    upcomingAllocations: Array<{ id: number; status: string; expiry_date: string }>;
   } | null>(null)
   const [isLoadingLicense, setIsLoadingLicense] = useState(false)
 

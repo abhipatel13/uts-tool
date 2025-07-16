@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { isAuthenticated, hasRole, hasPermission, getCurrentUser } from "@/utils/auth"
-import { LicenseAllocationService } from "@/services/licenseService"
 import { Loader2 } from "lucide-react"
 
 interface LicenseProtectedRouteProps {
