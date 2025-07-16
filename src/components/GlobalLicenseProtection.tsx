@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { isAuthenticated, hasRole, hasPermission, getCurrentUser } from "@/utils/auth"
+import { isAuthenticated, getCurrentUser } from "@/utils/auth"
 import { LicenseAllocationService } from "@/services/licenseService"
 import { Loader2 } from "lucide-react"
 
@@ -23,7 +23,7 @@ export default function GlobalLicenseProtection({
       try {
         // Skip license check on auth and unauthorized pages
         const publicPages = ["/auth/login", "/unauthorized"]
-        if (publicPages.includes(pathname)) {
+        if (publicPages.includes(pathname || "")) {
           setIsAuthorized(true)
           setIsLoading(false)
           return
