@@ -82,7 +82,6 @@ const LicenseManagementPage = () => {
       return;
     }
 
-    // Removed setCurrentUser(user);
     loadData();
   }, []);
 
@@ -275,7 +274,12 @@ const LicenseManagementPage = () => {
         <div>
           <BackButton text="Back" />
           <h1 className="text-3xl font-bold text-[rgb(44,62,80)] mt-4">License Management</h1>
-          <p className="text-gray-600 mt-2">Manage license pools and allocations</p>
+          <p className="text-gray-600 mt-2">
+            {(() => {
+              const user = getCurrentUser();
+              return `Manage license pools and allocations for ${user?.company || 'your company'}`;
+            })()}
+          </p>
         </div>
         <div className="flex space-x-2">
           <Dialog open={showCreatePoolDialog} onOpenChange={setShowCreatePoolDialog}>

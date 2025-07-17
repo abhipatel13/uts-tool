@@ -272,6 +272,12 @@ const LicensingAdminPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>License Management</CardTitle>
+          <p className="text-sm text-gray-600">
+            {(() => {
+              const user = getCurrentUser();
+              return `Manage license pools and allocations for ${user?.company || 'your company'}`;
+            })()}
+          </p>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="pools">
