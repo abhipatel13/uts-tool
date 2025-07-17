@@ -5,6 +5,8 @@ export interface User {
   email: string;
   role: string;
   company: string;
+  company_id?: number;
+  name?: string;
 }
 
 interface ApiResponse<T> {
@@ -99,7 +101,74 @@ export const userApi = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to create user');
+      const errorData = await response.json();
+      // Create an error that matches axios error structure
+      const error = new Error(errorData.message || 'Failed to create user') as Error & {
+        response: {
+          data: typeof errorData;
+          status: number;
+          statusText: string;
+        };
+      };
+      error.response = {
+        data: errorData,
+        status: response.status,
+        statusText: response.statusText
+      };
+      throw error;
+    }
+
+    return response.json();
+  },
+
+  // Update user (superuser only)
+  update: async (userId: string, data: Partial<User>): Promise<ApiResponse<User>> => {
+    const token = getAuthToken();
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/editUser/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      // Create an error that matches axios error structure
+      const error = new Error(errorData.message || 'Failed to update user') as Error & {
+        response: {
+          data: typeof errorData;
+          status: number;
+          statusText: string;
+        };
+      };
+      error.response = {
+        data: errorData,
+        status: response.status,
+        statusText: response.statusText
+      };
+      throw error;
+    }
+
+    return response.json();
+  },
+
+  // Reset user password (superuser only)
+  resetPassword: async (userId: string, newPassword: string): Promise<ApiResponse<void>> => {
+    const token = getAuthToken();
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/resetPassword/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ newPassword })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to reset password');
     }
 
     return response.json();
@@ -116,7 +185,8 @@ export const userApi = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to delete user');
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to delete user');
     }
 
     return response.json();

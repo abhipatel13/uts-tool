@@ -43,6 +43,18 @@ export default function UserManagement() {
     company: ''
   });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState({ 
+    email: '', 
+    role: '', 
+    name: '' 
+  });
+  const [passwordFormData, setPasswordFormData] = useState({ 
+    newPassword: '', 
+    confirmPassword: '' 
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -73,6 +85,13 @@ export default function UserManagement() {
         if (userData) {
           const user = JSON.parse(userData);
           setCurrentUser(user);
+          
+          // Only superusers can access user management
+          if (user.role !== 'superuser') {
+            setError('Access denied. Only superusers can manage users.');
+            return;
+          }
+          
           // Set the company in newUser state when current user is loaded
           setNewUser({ 
             email: '', 
@@ -130,12 +149,47 @@ export default function UserManagement() {
           setUsers(updatedResponse.data);
         }
       }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : 'Failed to create user',
-        variant: "destructive",
-      });
+    } catch (error: unknown) {
+      console.error("Error creating user:", error);
+      
+      // Handle validation errors from backend
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { errors?: Array<{ field: string; message: string }>, message?: string } } };
+        
+        if (axiosError.response?.data?.errors) {
+          const validationErrors = axiosError.response.data.errors;
+          const errorMessages = validationErrors.map((err) => {
+            if (err.field === 'email') {
+              return "Please enter a valid email address";
+            }
+            return err.message || "Validation error";
+          });
+          
+          toast({
+            title: "Validation Error",
+            description: errorMessages.join(", "),
+            variant: "destructive",
+          });
+        } else if (axiosError.response?.data?.message) {
+          toast({
+            title: "Error",
+            description: axiosError.response.data.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to create user",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to create user",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -149,10 +203,135 @@ export default function UserManagement() {
           description: "User deleted successfully",
         });
       }
-    } catch {
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete user",
+        description: error instanceof Error ? error.message : "Failed to delete user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setEditFormData({
+      email: user.email,
+      role: user.role,
+      name: ''
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await userApi.update(selectedUser.id.toString(), {
+        email: editFormData.email,
+        role: editFormData.role
+      });
+
+      if (response.status) {
+        // Update the user in the local state
+        setUsers(users.map(user => 
+          user.id === selectedUser.id 
+            ? { ...user, email: editFormData.email, role: editFormData.role }
+            : user
+        ));
+
+        setIsEditDialogOpen(false);
+        setSelectedUser(null);
+        toast({
+          title: "Success",
+          description: "User updated successfully",
+        });
+      }
+    } catch (error: unknown) {
+      console.error("Error updating user:", error);
+      
+      // Handle validation errors from backend
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { errors?: Array<{ field: string; message: string }>, message?: string } } };
+        
+        if (axiosError.response?.data?.errors) {
+          const validationErrors = axiosError.response.data.errors;
+          const errorMessages = validationErrors.map((err) => {
+            if (err.field === 'email') {
+              return "Please enter a valid email address";
+            }
+            return err.message || "Validation error";
+          });
+          
+          toast({
+            title: "Validation Error",
+            description: errorMessages.join(", "),
+            variant: "destructive",
+          });
+        } else if (axiosError.response?.data?.message) {
+          toast({
+            title: "Error",
+            description: axiosError.response.data.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to update user",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to update user",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleResetPassword = (user: User) => {
+    setSelectedUser(user);
+    setPasswordFormData({ newPassword: '', confirmPassword: '' });
+    setIsPasswordDialogOpen(true);
+  };
+
+  const handleSavePassword = async () => {
+    if (!selectedUser) return;
+
+    if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordFormData.newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await userApi.resetPassword(selectedUser.id.toString(), passwordFormData.newPassword);
+      
+      if (response.status) {
+        setIsPasswordDialogOpen(false);
+        setSelectedUser(null);
+        toast({
+          title: "Success",
+          description: "Password reset successfully",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reset password",
         variant: "destructive",
       });
     }
@@ -172,7 +351,17 @@ export default function UserManagement() {
         <BackButton text="Back" />
       </div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">User Management</h1>
+        <div>
+          <h1 className="text-2xl font-bold">User Management</h1>
+          <p className="text-gray-600">
+            {currentUser?.company && typeof currentUser.company === 'object' && 'name' in currentUser.company
+              ? `Manage users for ${currentUser.company.name}`
+              : currentUser?.company && typeof currentUser.company === 'string'
+                ? `Manage users for ${currentUser.company}`
+                : 'Manage users for your company'
+            }
+          </p>
+        </div>
         <div className="flex items-center gap-4">
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
@@ -216,8 +405,10 @@ export default function UserManagement() {
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="superuser">Superuser</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="supervisor">Supervisor</SelectItem>
+                      <SelectItem value="user">User</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -242,6 +433,101 @@ export default function UserManagement() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Edit User Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <Input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Role</label>
+                <Select
+                  value={editFormData.role}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="superuser">Superuser</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveEdit}
+                  className="flex-1 bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reset Password Dialog */}
+        <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reset Password</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">New Password</label>
+                <Input
+                  type="password"
+                  value={passwordFormData.newPassword}
+                  onChange={(e) => setPasswordFormData({ ...passwordFormData, newPassword: e.target.value })}
+                  placeholder="Enter new password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Confirm Password</label>
+                <Input
+                  type="password"
+                  value={passwordFormData.confirmPassword}
+                  onChange={(e) => setPasswordFormData({ ...passwordFormData, confirmPassword: e.target.value })}
+                  placeholder="Confirm new password"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsPasswordDialogOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSavePassword}
+                  className="flex-1 bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]"
+                >
+                  Reset Password
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Table>
@@ -274,14 +560,32 @@ export default function UserManagement() {
                 }
               </TableCell>
               <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDeleteUser(user.id.toString())}
-                  className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white disabled:opacity-50"
-                >
-                  Delete
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditUser(user)}
+                    className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleResetPassword(user)}
+                    className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                  >
+                    Reset Password
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteUser(user.id.toString())}
+                    className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                  >
+                    Delete
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}

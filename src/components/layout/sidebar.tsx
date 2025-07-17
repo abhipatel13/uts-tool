@@ -88,7 +88,7 @@ const getSidebarNavItems = (user: { role: string } | null) => {
   const showPreferences = user.role === "superuser" || user.role === "admin";
   const showTemplates = user.role === "superuser" || user.role === "admin";
   const showTactics = hasPermission("view_tactics");
-  const showApprovalRequests = user.role === "supervisor";
+  const showApprovalRequests = user.role !== "user";
 
 
   // Only show Safety section if user has access to at least one of its sub-items

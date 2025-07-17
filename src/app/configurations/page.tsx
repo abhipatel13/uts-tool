@@ -1,6 +1,7 @@
+'use client';
 import { BackButtonVariants } from '@/components/ui/back-button';
 
-export default function Analytics() {
+export default function Configurations() {
     return (
       <div className="p-8">
         <div className="mb-6">

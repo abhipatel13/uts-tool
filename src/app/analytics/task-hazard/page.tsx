@@ -224,6 +224,7 @@ const ClusteredMap = ({
       }).filter((lng): lng is number => lng !== null && !isNaN(lng));
 
       if (lats.length > 0 && lngs.length > 0) {
+        // Calculate bounds for all hazards
         const minLat = Math.min(...lats);
         const maxLat = Math.max(...lats);
         const minLng = Math.min(...lngs);
@@ -236,17 +237,34 @@ const ClusteredMap = ({
         // Pan to the center of filtered hazards
         map.panTo({ lat: centerLat, lng: centerLng });
 
-        // Adjust zoom to fit all hazards
+        // Calculate appropriate zoom level based on the spread of points
         const latDiff = maxLat - minLat;
         const lngDiff = maxLng - minLng;
         const maxDiff = Math.max(latDiff, lngDiff);
-        
-        let newZoom = 15;
-        if (maxDiff > 1) newZoom = 10;
-        if (maxDiff > 5) newZoom = 8;
-        if (maxDiff > 10) newZoom = 6;
-        if (maxDiff > 20) newZoom = 4;
 
+        // Use more appropriate zoom calculation with better thresholds
+        let newZoom = 8; // Default zoom level
+        if (maxDiff < 0.01) {
+          // Very close points (within ~1km)
+          newZoom = 15;
+        } else if (maxDiff < 0.1) {
+          // Close points (within ~10km)
+          newZoom = 12;
+        } else if (maxDiff < 0.5) {
+          // Medium distance (within ~50km)
+          newZoom = 10;
+        } else if (maxDiff < 2) {
+          // Larger area (within ~200km)
+          newZoom = 8;
+        } else if (maxDiff < 10) {
+          // Large area (within ~1000km)
+          newZoom = 6;
+        } else {
+          // Very large area
+          newZoom = 4;
+        }
+        // Ensure zoom is within reasonable bounds
+        newZoom = Math.max(3, Math.min(15, newZoom));
         map.setZoom(newZoom);
       }
     } else if (map && hazards.length === 0) {

@@ -15,6 +15,7 @@ import { Plus, ChevronRight, ChevronDown, Info } from "lucide-react"
 import { assetHierarchyApi } from "@/services/assetHierarchyApi"
 import { useToast } from "@/components/ui/use-toast"
 import { hasPermission } from "@/utils/auth"
+import { AssetSelector } from "@/components/AssetSelector"
 import {
   Select,
   SelectContent,
@@ -160,13 +161,20 @@ export default function DataLoader() {
     }))
   }
 
+  const handleParentChange = (assetId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      parent: assetId || null
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       const assetToCreate = {
         assets: [{
           ...formData,
-          parent: formData.parent === 'root' ? null : formData.parent,
+          parent: formData.parent === '' ? null : formData.parent,
           name: formData.name.trim(),
           description: formData.description.trim(),
           cmmsInternalId: formData.cmmsInternalId.trim(),
@@ -598,28 +606,12 @@ export default function DataLoader() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Parent</Label>
-                <Select
-                  value={formData.parent || 'root'}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, parent: value === 'root' ? null : value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select parent asset" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="root">No Parent</SelectItem>
-                    {assets
-                      .filter(asset => asset.id && asset.id.trim() !== '')
-                      .map(asset => (
-                        <SelectItem 
-                          key={asset.id} 
-                          value={asset.id}
-                        >
-                          {asset.name} ({asset.id})
-                        </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <AssetSelector
+                  value={formData.parent || ''}
+                  onValueChange={handleParentChange}
+                  title="Parent Asset"
+                  placeholder="Select parent asset"
+                />
               </div>
               <div className="space-y-2">
                 <Label>CMMS System</Label>
