@@ -33,6 +33,57 @@ export interface TaskHazard {
   geoFenceLimit?: number;
 }
 
+export interface Supervisor {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface TaskHazardSnapshot {
+  id: string;
+  date: string;
+  scopeOfWork: string;
+  risks: {
+    id: string;
+    riskDescription: string;
+    riskType?: string;
+    asIsLikelihood?: string;
+    asIsConsequence?: string;
+    mitigatingAction: string;
+    mitigatingActionType?: string;
+    mitigatedLikelihood?: string;
+    mitigatedConsequence?: string;
+    requiresSupervisorSignature?: boolean;
+  }[];
+}
+
+export interface Approval {
+  id: number;
+  status: 'approved' | 'rejected' | 'pending';
+  createdAt: string;
+  processedAt: string | null;
+  comments: string;
+  isInvalidated: boolean;
+  isLatest: boolean;
+  supervisor: Supervisor;
+  taskHazardData: TaskHazardSnapshot;
+}
+
+export interface TaskHazardWithApprovals extends TaskHazard {
+  approvals: Approval[];
+}
+
+export interface ApprovalsResponse {
+  taskHazards: TaskHazardWithApprovals[];
+  totalTasks: number;
+  totalApprovals: number;
+  filters: {
+    status: string;
+    includeInvalidated: boolean;
+  };
+}
+
 export interface RiskAssessment {
   id: string;
   date: string;
@@ -190,10 +241,10 @@ export const taskHazardApi = {
   },
 
   // Approve or reject a task hazard assessment
-  approveOrRejectTaskHazard: async (id: string, taskData: Partial<TaskHazard>): Promise<ApiResponse<TaskHazard>> => {
-    const response = await fetchApi<ApiResponse<TaskHazard>>(`/api/task-hazards/approval/${id}`, {
+  approveOrRejectTaskHazard: async (id: string, status: string, comments = ''): Promise<ApiResponse<TaskHazard>> => {
+    const response = await fetchApi<ApiResponse<TaskHazard>>(`/api/task-hazards/${id}/approval`, {
       method: 'PUT',
-      body: JSON.stringify(taskData),
+      body: JSON.stringify({ id, status, comments }),
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`,
       },
@@ -205,6 +256,33 @@ export const taskHazardApi = {
   deleteTaskHazard: async (id: string): Promise<ApiResponse<void>> => {
     const response = await fetchApi<ApiResponse<void>>(`/api/task-hazards/${id}`, {
       method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+    return response;
+  },
+
+  // Get all approvals with optional filters
+  getApprovals: async (params?: {
+    status?: 'pending' | 'approved' | 'rejected';
+    includeInvalidated?: boolean;
+  }): Promise<ApiResponse<ApprovalsResponse>> => {
+    const searchParams = new URLSearchParams();
+    
+    if (params?.status) {
+      searchParams.append('status', params.status);
+    }
+    
+    if (params?.includeInvalidated) {
+      searchParams.append('includeInvalidated', 'true');
+    }
+    
+    const queryString = searchParams.toString();
+    const endpoint = `/api/task-hazards/approvals${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await fetchApi<ApiResponse<ApprovalsResponse>>(endpoint, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`,
       },
