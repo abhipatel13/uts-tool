@@ -165,6 +165,96 @@ export const getRiskColor = (score: number, riskType: string) => {
   return "bg-[#ED1C24] text-white";
 }
 
+export const getRiskColorPastel = (score: number, riskType: string) => {
+  // For Maintenance Risk
+  if (riskType === "Maintenance") {
+    // Looking at the exact matrix:
+    // Scores: 1, 2 are green
+    if (score <= 2) return "bg-green-50 border-green-200 text-green-800";
+    
+    // Scores: 3, 4, 5, 6, 8, 9 are yellow
+    if (score <= 9) return "bg-yellow-50 border-yellow-200 text-yellow-800";
+    
+    // Scores: 10, 12 are orange
+    if (score <= 12) return "bg-orange-50 border-orange-200 text-orange-800";
+    
+    // Scores: 15 is orange
+    if (score === 15) return "bg-orange-50 border-orange-200 text-orange-800";
+    
+    // Scores: 16, 20, 25 are red
+    return "bg-red-50 border-red-200 text-red-800";
+  }
+
+  if (riskType === "Personnel") {
+    // Scores: 1-2 are green
+    if (score <= 2) return "bg-green-50 border-green-200 text-green-800";
+    
+    // Scores: 3-4 are yellow
+    if (score <= 9) return "bg-yellow-50 border-yellow-200 text-yellow-800";
+
+    // Scores: 5-10 are orange
+    if (score <= 15) return "bg-orange-50 border-orange-200 text-orange-800";
+
+    // Scores: 12-25 are red
+    return "bg-red-50 border-red-200 text-red-800";
+  }
+
+  if (riskType === "Revenue") {
+    // Scores: 1-2 are green
+    if (score <= 2) return "bg-green-50 border-green-200 text-green-800";
+
+    // Scores: 3-6 are yellow
+    if (score <= 9) return "bg-yellow-50 border-yellow-200 text-yellow-800";
+
+    // Scores: 7-8 are orange
+    if (score <= 15) return "bg-orange-50 border-orange-200 text-orange-800";
+
+    // Scores: 12-25 are red
+    return "bg-red-50 border-red-200 text-red-800";
+  }
+
+  if (riskType === "Process") {
+     // Scores: 1-2 are green
+     if (score <= 2) return "bg-green-50 border-green-200 text-green-800";
+
+     // Scores: 3-6 are yellow
+     if (score <= 9) return "bg-yellow-50 border-yellow-200 text-yellow-800";
+ 
+     // Scores: 7-8 are orange
+     if (score <= 15) return "bg-orange-50 border-orange-200 text-orange-800";
+ 
+     // Scores: 12-25 are red
+     return "bg-red-50 border-red-200 text-red-800";
+  }
+
+  if (riskType === "Environmental") {
+   // Scores: 1-2 are green
+   if (score <= 2) return "bg-green-50 border-green-200 text-green-800";
+
+   // Scores: 3-6 are yellow
+   if (score <= 9) return "bg-yellow-50 border-yellow-200 text-yellow-800";
+
+   // Scores: 7-8 are orange
+   if (score <= 15) return "bg-orange-50 border-orange-200 text-orange-800";
+
+   // Scores: 12-25 are red
+   return "bg-red-50 border-red-200 text-red-800";
+  }
+  
+  // For Personnel Risk and other types
+  // Green (1-2)
+  if (score <= 2) return "bg-green-50 border-green-200 text-green-800";
+  
+  // Yellow (3-4)
+  if (score <= 4) return "bg-yellow-50 border-yellow-200 text-yellow-800";
+  
+  // Orange (5-10)
+  if (score <= 10) return "bg-orange-50 border-orange-200 text-orange-800";
+  
+  // Red (12-25)
+  return "bg-red-50 border-red-200 text-red-800";
+}
+
 // Define risk level indicators for each risk type
 export const riskLevelIndicators = {
   Personnel: [
