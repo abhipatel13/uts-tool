@@ -2,17 +2,17 @@
 
 // Main Asset interface (from api.ts)
 export interface Asset {
-  id: string;  // Functional Location
-  internalId: string;  // CMMS Internal ID
-  name: string;  // Functional Location Description
-  description: string;  // Functional Location Long Description
-  parent: string | null;  // Parent
-  maintenancePlant: string;  // Maintenance Plant
-  primaryKey: string;  // Primary Key
-  cmmsSystem: string;  // CMMS System
-  siteReference: string;  // Site Reference Name
+  id: string;
+  name: string;
+  cmmsInternalId: string;
+  functionalLocation: string;
+  functionalLocationDescription: string;
+  functionalLocationLongDescription: string;
+  parent: string | null;  
+  maintenancePlant: string;  
+  cmmsSystem: string;  
   objectType: string;  // Object Type (Taxonomy Mapping Value)
-  systemStatus: string;  // System Status
+  systemStatus: string;  
   make: string;
   manufacturer: string;
   serialNumber: string;

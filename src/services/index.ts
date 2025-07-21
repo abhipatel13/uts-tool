@@ -19,7 +19,7 @@ export { AuthApi } from './authApi';
 export { TaskHazardApi } from './taskHazardApi';
 export { RiskAssessmentApi } from './riskAssessmentApi';
 export { AssetHierarchyApi } from './assetHierarchyApi';
-export { LicensePoolService, LicenseAllocationService, LicenseAdminService, LicenseStatusService } from './licenseService';
+export { LicensePoolService, LicenseAllocationService, LicenseAdminService } from './licenseService';
 export { UserApi } from './userApi';
 export { NotificationApi } from './notificationApi';
 export { TacticsApi } from './tacticsApi';

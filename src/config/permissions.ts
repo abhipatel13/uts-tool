@@ -39,6 +39,7 @@ export const Permissions = {
 
   // Tactics permissions
   TACTICS: "tactics",
+  CREATE_TACTICS: "create_tactics",
 } as const;
 
 // Simple role-based permission mapping - direct assignment

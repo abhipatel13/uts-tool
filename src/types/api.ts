@@ -12,6 +12,7 @@ export interface ApiError {
   code?: string;
   message: string;
   status?: number;
+  error?: string;
 }
 
 // Pagination interface for list responses

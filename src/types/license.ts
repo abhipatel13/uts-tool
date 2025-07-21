@@ -93,8 +93,8 @@ export interface LicenseAnalytics {
 // User license status response interface
 export interface UserLicenseStatus {
   hasActiveLicense: boolean;
-  activeAllocations: number;
-  expiredAllocations: number;
-  upcomingAllocations: number;
+  activeAllocations: LicenseAllocation[];
+  expiredAllocations: LicenseAllocation[];
+  upcomingAllocations: LicenseAllocation[];
   totalAllocations: number;
 }

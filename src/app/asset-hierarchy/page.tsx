@@ -37,15 +37,14 @@ export default function DataLoader() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState<CreateAssetRequest>({
-    internalId: '',
+    cmmsInternalId: '',
     name: '',
-    description: '',
-    level: 0,
+    functionalLocation: '',
+    functionalLocationDescription: '',
+    functionalLocationLongDescription: '',
     parent: null,
     maintenancePlant: '',
-    primaryKey: '',
     cmmsSystem: '',
-    siteReference: '',
     objectType: '',
     systemStatus: 'Active',
     make: '',
@@ -117,12 +116,12 @@ export default function DataLoader() {
           ...formData,
           parent: formData.parent === '' ? null : formData.parent,
           name: formData.name.trim(),
-          description: formData.description.trim(),
-          internalId: formData.internalId.trim(),
-          primaryKey: formData.primaryKey.trim(),
+          functionalLocation: formData.functionalLocation?.trim() || '',
+          functionalLocationDesc: formData.functionalLocationDescription?.trim() || '',
+          functionalLocationLongDesc: formData.functionalLocationLongDescription?.trim() || '',
+          cmmsInternalId: formData.cmmsInternalId.trim(),
           maintenancePlant: formData.maintenancePlant?.trim() || '',
           cmmsSystem: formData.cmmsSystem?.trim() || '',
-          siteReference: formData.siteReference?.trim() || '',
           objectType: formData.objectType?.trim() || '',
           systemStatus: formData.systemStatus || 'Active',
           make: formData.make?.trim() || '',
@@ -140,15 +139,14 @@ export default function DataLoader() {
       })
       // Reset form
       setFormData({
-        internalId: '',
+        cmmsInternalId: '',
         name: '',
-        description: '',
-        level: 0,
+        functionalLocation: '',
+        functionalLocationDescription: '',
+        functionalLocationLongDescription: '',
         parent: null,
         maintenancePlant: '',
-        primaryKey: '',
         cmmsSystem: '',
-        siteReference: '',
         objectType: '',
         systemStatus: 'Active',
         make: '',
@@ -187,15 +185,14 @@ export default function DataLoader() {
     if (!open) {
       // Reset form when dialog closes
       setFormData({
-        internalId: '',
+        cmmsInternalId: '',
         name: '',
-        description: '',
-        level: 0,
+        functionalLocation: '',
+        functionalLocationDescription: '',
+        functionalLocationLongDescription: '',
         parent: null,
         maintenancePlant: '',
-        primaryKey: '',
         cmmsSystem: '',
-        siteReference: '',
         objectType: '',
         systemStatus: 'Active',
         make: '',
@@ -392,8 +389,12 @@ export default function DataLoader() {
                 <p className="text-sm">{selectedAsset.name}</p>
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
-                <p className="text-sm">{selectedAsset.description}</p>
+              <div className="space-y-2">
+                <Label>Functional Location</Label>
+                <p className="text-sm">{selectedAsset.functionalLocation || '-'}</p>
+              </div>
+                <Label>Functional Location Description</Label>
+                <p className="text-sm">{selectedAsset.functionalLocationDescription}</p>
               </div>
               <div className="space-y-2">
                 <Label>Maintenance Plant</Label>
@@ -401,11 +402,7 @@ export default function DataLoader() {
               </div>
               <div className="space-y-2">
                 <Label>CMMS Internal ID</Label>
-                <p className="text-sm">{selectedAsset.internalId || '-'}</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Primary Key</Label>
-                <p className="text-sm">{selectedAsset.primaryKey || '-'}</p>
+                <p className="text-sm">{selectedAsset.cmmsInternalId || '-'}</p>
               </div>
               <div className="space-y-2">
                 <Label>Parent</Label>
@@ -414,10 +411,6 @@ export default function DataLoader() {
               <div className="space-y-2">
                 <Label>CMMS System</Label>
                 <p className="text-sm">{selectedAsset.cmmsSystem || '-'}</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Site Reference</Label>
-                <p className="text-sm">{selectedAsset.siteReference || '-'}</p>
               </div>
               <div className="space-y-2">
                 <Label>Object Type</Label>
@@ -454,7 +447,7 @@ export default function DataLoader() {
             <DialogTitle>Add New Asset</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto pr-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 p-2">
               <div className="space-y-2">
                 <Label>Name</Label>
                 <Input
@@ -466,10 +459,19 @@ export default function DataLoader() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label>Functional Location</Label>
                 <Input
-                  name="description"
-                  value={formData.description}
+                  name="functionalLocation"
+                  value={formData.functionalLocation}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Main Pump"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Functional Location Description</Label>
+                <Input
+                  name="functionalLocationDescription"
+                  value={formData.functionalLocationDescription}
                   onChange={handleInputChange}
                   placeholder="e.g., Primary water pump"
                   required
@@ -487,29 +489,11 @@ export default function DataLoader() {
               <div className="space-y-2">
                 <Label>CMMS Internal ID</Label>
                 <Input
-                  name="internalId"
-                  value={formData.internalId}
+                  name="cmmsInternalId"
+                  value={formData.cmmsInternalId}
                   onChange={handleInputChange}
                   placeholder="e.g., IID001"
                   required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Primary Key</Label>
-                <Input
-                  name="primaryKey"
-                  value={formData.primaryKey}
-                  onChange={handleInputChange}
-                  placeholder="e.g., PK001"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <AssetSelector
-                  value={formData.parent || ''}
-                  onValueChange={handleParentChange}
-                  title="Parent Asset"
-                  placeholder="Select parent asset"
                 />
               </div>
               <div className="space-y-2">
@@ -522,12 +506,11 @@ export default function DataLoader() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Site Reference</Label>
-                <Input
-                  name="siteReference"
-                  value={formData.siteReference}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Salt Lake City, UT"
+                <AssetSelector
+                  value={formData.parent || ''}
+                  onValueChange={handleParentChange}
+                  title="Parent Asset"
+                  placeholder="Select parent asset"
                 />
               </div>
               <div className="space-y-2">

@@ -31,7 +31,7 @@ export default function Login() {
     setIsLoading(true)
 
     // Basic validation
-    if (!formData.email || !formData.password || !formData.company) {
+    if (!formData.email || !formData.password) {
       setError("Please fill in all fields")
       setIsLoading(false)
       return
@@ -124,7 +124,6 @@ export default function Login() {
               type="text"
               value={formData.company}
               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              required
               placeholder="Enter your company name"
               className="w-full"
               disabled={isLoading}

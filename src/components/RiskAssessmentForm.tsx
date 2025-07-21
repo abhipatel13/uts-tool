@@ -62,8 +62,8 @@ export default function RiskAssessmentForm({
   const supervisorRoleFilter = useMemo(() => ['supervisor'], [])
 
   // Memoize the onChange callbacks to prevent unnecessary re-renders
-  const handleIndividualChange = useCallback((individual: string | string[]) => {
-    setFormData(prev => ({...prev, individuals: individual as string}))
+  const handleIndividualsChange = useCallback((individuals: string | string[]) => {
+    setFormData(prev => ({...prev, individuals: individuals as string[]}))
   }, [])
 
   const handleSupervisorChange = useCallback((supervisor: string | string[]) => {
@@ -107,7 +107,9 @@ export default function RiskAssessmentForm({
         systemLockoutRequired: assessment.systemLockoutRequired,
         trainedWorkforce: assessment.trainedWorkforce,
         risks: convertApiRisksToLocal(assessment.risks),
-        individuals: assessment.individuals,
+        individuals: Array.isArray(assessment.individuals) 
+          ? assessment.individuals 
+          : assessment.individuals ? assessment.individuals.split(',').map(email => email.trim()).filter(Boolean) : [],
         supervisor: assessment.supervisor,
         status: assessment.status,
         location: assessment.location,
@@ -121,7 +123,7 @@ export default function RiskAssessmentForm({
       systemLockoutRequired: false,
       trainedWorkforce: false,
       risks: [] as FormRisk[],
-      individuals: "",
+      individuals: [] as string[],
       supervisor: "",
       status: "Active",
       location: "",
@@ -140,7 +142,9 @@ export default function RiskAssessmentForm({
         systemLockoutRequired: assessment.systemLockoutRequired,
         trainedWorkforce: assessment.trainedWorkforce,
         risks: convertApiRisksToLocal(assessment.risks),
-        individuals: assessment.individuals,
+        individuals: Array.isArray(assessment.individuals) 
+          ? assessment.individuals 
+          : assessment.individuals ? assessment.individuals.split(',').map(email => email.trim()).filter(Boolean) : [],
         supervisor: assessment.supervisor,
         status: assessment.status,
         location: assessment.location,
@@ -227,6 +231,7 @@ export default function RiskAssessmentForm({
       // Convert FormRisk to Risk for API submission
       const formattedData = {
         ...formData,
+        individuals: formData.individuals.join(','),
         risks: formData.risks.map(risk => ({
           id: risk.id || "",
           riskDescription: risk.riskDescription || "",
@@ -438,12 +443,12 @@ export default function RiskAssessmentForm({
 
             <div className="space-y-2">
             <UserSelector
-                value={formData.individuals || ""}
-                onChange={handleIndividualChange}
+                value={formData.individuals || []}
+                onChange={handleIndividualsChange}
                 error={validationErrors.individuals}
                 label="Individual/Team"
                 placeholder="Select individual/team member"
-                multiple={false}
+                multiple={true}
             />
             </div>
 
@@ -651,12 +656,6 @@ export default function RiskAssessmentForm({
                           )}
                         </div>
                       </div>
-                      
-                      {risk.requiresSupervisorSignature && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                          <span className="text-amber-700 text-sm">⚠️ Supervisor signature required - Status will remain pending until approved</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );

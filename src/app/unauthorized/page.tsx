@@ -27,7 +27,14 @@ export default function Unauthorized() {
       LicenseAllocationService.getUserLicenseStatus(currentUser.id)
         .then(response => {
           if (response?.status) {
-            setLicenseAllocation(response.data)
+            const licenseAllocation = response.data.activeAllocations.length > 0 
+            ? response.data.activeAllocations[0] 
+            : response.data.expiredAllocations.length > 0
+            ? response.data.expiredAllocations[0]
+            : response.data.upcomingAllocations.length > 0
+            ? response.data.upcomingAllocations[0]
+            : null
+            setLicenseAllocation(licenseAllocation)
           }
         })
         .catch(error => {

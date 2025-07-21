@@ -89,7 +89,7 @@ export async function apiClient<T>(
     // Handle HTTP errors
     if (!response.ok) {
       // Handle authentication errors
-      if (response.status === 401 || data?.code === "INVALID_TOKEN") {
+      if (data?.code === "INVALID_TOKEN") {
         await logout();
         throw new ApiError(
           "Authentication expired. Please login again.",

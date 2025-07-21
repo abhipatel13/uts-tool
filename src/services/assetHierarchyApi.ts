@@ -2,7 +2,7 @@ import { api } from '@/lib/api-client';
 import { ApiResponse, Asset, UploadStatus } from '@/types';
 
 // Type for creating assets (excludes server-generated fields)
-export type CreateAssetRequest = Omit<Asset, 'id' | 'updatedAt' | 'createdAt'>;
+export type CreateAssetRequest = Omit<Asset, 'id' | 'updatedAt' | 'createdAt' | 'level'>;
 
 export const AssetHierarchyApi = {
   // Create new asset
