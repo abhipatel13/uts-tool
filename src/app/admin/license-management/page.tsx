@@ -24,13 +24,11 @@ import { getCurrentUser } from "@/utils/auth";
 import { 
   LicensePoolService, 
   LicenseAllocationService, 
-  LicenseAdminService,
-  LicensePool, 
-  LicenseAllocation, 
-  LicenseAnalytics
-} from "@/services/licenseService";
-import { userApi } from "@/services/userApi";
-import type { User as ApiUser } from "@/services/userApi";
+  LicenseAdminService
+} from "@/services";
+import type { LicensePool, LicenseAllocation, LicenseAnalytics } from "@/types";
+import { UserApi } from "@/services";
+import type { User as ApiUser } from "@/types";
 import { 
   Shield, 
   Users, 
@@ -98,13 +96,14 @@ const LicenseManagementPage = () => {
         LicensePoolService.getAllLicensePools(),
         LicenseAllocationService.getAllAllocations(),
         LicenseAdminService.getLicenseAnalytics(),
-        userApi.getAll()
+        UserApi.getAll()
       ]);
 
-      setLicensePools(poolsResponse.data || []);
-      setAllocations(allocationsResponse.data || []);
-      setAnalytics(analyticsResponse.data || null);
-      setUsers(usersResponse.data || []);
+      // Handle both ApiResponse format and direct data format
+      setLicensePools(poolsResponse?.data || poolsResponse || []);
+      setAllocations(allocationsResponse?.data || allocationsResponse || []);
+      setAnalytics(analyticsResponse?.data || analyticsResponse || null);
+      setUsers(usersResponse?.data || usersResponse || []);
 
     } catch (error: unknown) {
       console.error('Error loading data:', error);

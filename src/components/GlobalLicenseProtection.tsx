@@ -71,7 +71,7 @@ export default function GlobalLicenseProtection({
           try {
             const licenseResponse = await Promise.race([
               LicenseAllocationService.getUserLicenseStatus(userId),
-              new Promise((_, reject) => 
+              new Promise<never>((_, reject) => 
                 setTimeout(() => reject(new Error('License check timeout')), 10000)
               )
             ]);

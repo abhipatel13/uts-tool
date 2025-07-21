@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,7 +14,8 @@ import {
 import { Loader2, Plus, ChevronDown, Save } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { hasPermission } from "@/utils/auth"
-import { tacticsApi, Tactic } from "@/services/tacticsApi"
+import { TacticsApi } from "@/services"
+import type { Tactic } from "@/types"
 
 interface AssetRow {
   assetNumber: string;
@@ -164,7 +165,7 @@ export default function TacticsPage() {
 
   const fetchTactics = async () => {
     try {
-      const response = await tacticsApi.getAll();
+      const response = await TacticsApi.getAll();
       setTactics(response.data);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An error occurred';
@@ -179,8 +180,6 @@ export default function TacticsPage() {
     }
   };
 
-  console.log("formData",formData)
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -192,7 +191,7 @@ export default function TacticsPage() {
         throw new Error('User company information not found');
       }
 
-      const response = await tacticsApi.create({
+      const response = await TacticsApi.create({
         analysis_name: formData.analysis_name,
         location: formData.location,
         status: formData.status,

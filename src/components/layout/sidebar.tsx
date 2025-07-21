@@ -1,21 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Menu, X, Settings, CreditCard } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Image from 'next/image'
-import { getCurrentUser, hasPermission } from "@/utils/auth"
-
-interface NavItem {
-  title: string;
-  href: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  subItems?: NavItem[];
-  iconBg?: string;
-  description?: string;
-}
+import { getCurrentUser } from "@/utils/auth"
+import { Permissions, getPermissionsForRole } from "@/config/permissions"
+import { NavItem } from "@/types"
 
 const CustomIcons = {
   AssetHierarchy: ({ className }: { className?: string }) => (
@@ -74,41 +67,46 @@ const CustomIcons = {
   ),
 }
 
-// Define the sidebar navigation items
+// Define the sidebar navigation items using centralized permissions
 const getSidebarNavItems = (user: { role: string } | null) => {
   if (!user) return [];
 
-  // Determine which menu items to show based on user role and permissions
-  const showUsers = user.role === "superuser" || user.role === "admin";
-  const showLicenses = user.role === "superuser" || user.role === "admin";
-  const showAssets = hasPermission("view_asset_hierarchy") || hasPermission("asset_hierarchy");
-  const showTaskHazard = user.role === "superuser" || user.role === "admin" || user.role === "supervisor";
-  const showRiskAssessment = user.role === "superuser" || user.role === "admin" || user.role === "supervisor" || user.role === "user";
-  const showConfigurations = user.role === "superuser" || user.role === "admin";
-  const showPreferences = user.role === "superuser" || user.role === "admin";
-  const showTemplates = user.role === "superuser" || user.role === "admin";
-  const showTactics = hasPermission("view_tactics");
-  const showApprovalRequests = user.role !== "user";
+  // Get user permissions once - PERFORMANCE OPTIMIZATION
+  const userPermissions = getPermissionsForRole(user.role);
+  const hasPermissionFast = (permission: string) => userPermissions.includes(permission);
 
+  // Determine which menu items to show based on centralized permissions
+  const showUsers = hasPermissionFast(Permissions.USER_MANAGEMENT);
+  const showLicenses = hasPermissionFast(Permissions.LICENSING_MANAGEMENT);
+  const showAssets = hasPermissionFast(Permissions.VIEW_ASSET_HIERARCHY) || hasPermissionFast(Permissions.CREATE_ASSET_HIERARCHY);
+  const showTaskHazard = hasPermissionFast(Permissions.TASK_HAZARD);
+  const showRiskAssessment = hasPermissionFast(Permissions.RISK_ASSESSMENT);
+  const showConfigurations = hasPermissionFast(Permissions.CONFIGURATION_MANAGEMENT);
+  const showPreferences = hasPermissionFast(Permissions.PREFERENCE_MANAGEMENT);
+  const showTemplates = hasPermissionFast(Permissions.TEMPLATE_MANAGEMENT);
+  const showTactics = hasPermissionFast(Permissions.TACTICS);
+  const showApprovalRequests = hasPermissionFast(Permissions.SUPERVISOR_APPROVAL);
 
   // Only show Safety section if user has access to at least one of its sub-items
   const showSafety = showTaskHazard || showRiskAssessment || showApprovalRequests;
   
   // Only show Analytics section if user has access to at least one of its sub-items
-  const showAnalyticsSection = showTaskHazard || showRiskAssessment;
+  const showAnalyticsSection = hasPermissionFast(Permissions.VIEW_ANALYTICS);
 
   const items: NavItem[] = [
     ...(showAssets ? [{
       title: "Asset Hierarchy",
       href: "/asset-hierarchy",
       icon: CustomIcons.AssetHierarchy,
-      iconBg: "bg-[#3498DB]", 
+      iconBg: "bg-[#3498DB]",
+      requiredPermission: Permissions.VIEW_ASSET_HIERARCHY
     }] : []),
     ...(showTactics ? [{
       title: "Tactics",
       href: "/tactics",
       icon: CustomIcons.Tactics,
       iconBg: "bg-[#2ECC71]",
+      requiredPermission: Permissions.TACTICS
     }] : []),
     ...(showSafety ? [{
       title: "Safety",
@@ -116,9 +114,21 @@ const getSidebarNavItems = (user: { role: string } | null) => {
       icon: CustomIcons.Safety,
       iconBg: "bg-[#2ECC71]",
       subItems: [
-        ...(showTaskHazard ? [{ title: "Task Hazard", href: "/safety/task-hazard" }] : []),
-        ...(showRiskAssessment ? [{ title: "Risk Assessment", href: "/safety/risk-assessment" }] : []),
-        ...(showApprovalRequests ? [{ title: "Approval Requests", href: "/safety/supervisor-dashboard" }] : []),
+        ...(showTaskHazard ? [{ 
+          title: "Task Hazard", 
+          href: "/safety/task-hazard",
+          requiredPermission: Permissions.TASK_HAZARD
+        }] : []),
+        ...(showRiskAssessment ? [{ 
+          title: "Risk Assessment", 
+          href: "/safety/risk-assessment",
+          requiredPermission: Permissions.RISK_ASSESSMENT
+        }] : []),
+        ...(showApprovalRequests ? [{ 
+          title: "Approval Requests", 
+          href: "/safety/supervisor-dashboard",
+          requiredPermission: Permissions.SUPERVISOR_APPROVAL
+        }] : []),
       ],
     }] : []),
     ...(showAnalyticsSection ? [{
@@ -126,40 +136,82 @@ const getSidebarNavItems = (user: { role: string } | null) => {
       href: "/analytics",
       icon: CustomIcons.Analytics,
       iconBg: "bg-[#E67E22]",
+      requiredPermission: Permissions.VIEW_ANALYTICS,
       subItems: [
-        ...(showTaskHazard ? [{ title: "Task Hazard", href: "/analytics/task-hazard" }] : []),
-        ...(showRiskAssessment ? [{ title: "Risk Assessment", href: "/analytics/risk-assessment" }] : []),
+        ...(showTaskHazard ? [{ 
+          title: "Task Hazard", 
+          href: "/analytics/task-hazard",
+          requiredPermission: Permissions.VIEW_ANALYTICS
+        }] : []),
+        ...(showRiskAssessment ? [{ 
+          title: "Risk Assessment", 
+          href: "/analytics/risk-assessment",
+          requiredPermission: Permissions.VIEW_ANALYTICS
+        }] : []),
       ],
     }] : []),
     ...(showConfigurations ? [{
       title: "Configurations",
       href: "/configurations",
       icon: CustomIcons.Configurations,
-      iconBg: "bg-[#E74C3C]", 
+      iconBg: "bg-[#E74C3C]",
+      requiredPermission: Permissions.CONFIGURATION_MANAGEMENT,
       subItems: [
         {
           title: "Admin",
           href: "/configurations/admin",
+          requiredPermission: Permissions.CONFIGURATION_MANAGEMENT,
           subItems: [
-            ...(showUsers ? [{ title: "User Management", href: "/configurations/admin/users", description: "Manage all users including regular users and supervisors" }] : []),
-            { title: "Data Loader", href: "/configurations/admin/data-loader" },
-            ...(showLicenses ? [{ title: "Licensing", href: "/configurations/admin/licensing" }] : []),
+            ...(showUsers ? [{ 
+              title: "User Management", 
+              href: "/configurations/admin/users", 
+              description: "Manage all users including regular users and supervisors",
+              requiredPermission: Permissions.USER_MANAGEMENT
+            }] : []),
+            { 
+              title: "Data Loader", 
+              href: "/configurations/admin/data-loader",
+              requiredPermission: Permissions.ASSET_BULK_UPLOAD
+            },
+            ...(showLicenses ? [{ 
+              title: "Licensing", 
+              href: "/configurations/admin/licensing",
+              requiredPermission: Permissions.LICENSING_MANAGEMENT
+            }] : []),
           ]
         },
         ...(showPreferences ? [{
           title: "Preferences",
           href: "/configurations/preferences",
+          requiredPermission: Permissions.PREFERENCE_MANAGEMENT,
           subItems: [
-            { title: "Mitigating Action Trigger", href: "/configurations/preferences/mitigating-action-trigger" },
+            { 
+              title: "Mitigating Action Trigger", 
+              href: "/configurations/preferences/mitigating-action-trigger",
+              requiredPermission: Permissions.PREFERENCE_MANAGEMENT
+            },
           ]
         }] : []),
         ...(showTemplates ? [{
           title: "Templates",
           href: "/configurations/templates",
+          requiredPermission: Permissions.TEMPLATE_MANAGEMENT,
           subItems: [
-            { title: "Risk Matrix", href: "/configurations/template/risk-matrix" },
-            { title: "Mitigating Action Type", href: "/configurations/template/mitigating-action-type" },
-            { title: "General Risks", href: "/configurations/template/general-risks" },
+            { 
+              title: "Risk Matrix", 
+              href: "/configurations/template/risk-matrix",
+              requiredPermission: Permissions.TEMPLATE_MANAGEMENT
+            },
+            { 
+              title: "Mitigating Action Type", 
+              href: "/configurations/template/mitigating-action-type",
+              requiredPermission: Permissions.TEMPLATE_MANAGEMENT
+            },
+            { 
+              title: "General Risks", 
+              href: "/configurations/template/general-risks",
+              requiredPermission: Permissions.TEMPLATE_MANAGEMENT
+            },
           ]
         }] : []),
       ],
@@ -184,7 +236,10 @@ export function Sidebar() {
     setUser(getCurrentUser())
   }, [])
 
-  const sidebarNavItems = getSidebarNavItems(user);
+  // Memoized sidebar navigation items - only recalculates when user role changes
+  const sidebarNavItems = useMemo(() => {
+    return getSidebarNavItems(user);
+  }, [user]);
 
   // Don't render until mounted to prevent hydration mismatch
   if (!mounted) {

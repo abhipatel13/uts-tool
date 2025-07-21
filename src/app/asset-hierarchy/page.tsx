@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Plus, ChevronRight, ChevronDown, Info } from "lucide-react"
-import { assetHierarchyApi } from "@/services/assetHierarchyApi"
+import { AssetHierarchyApi } from "@/services"
 import { useToast } from "@/components/ui/use-toast"
 import { hasPermission } from "@/utils/auth"
 import { AssetSelector } from "@/components/AssetSelector"
@@ -23,36 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
-interface Asset {
-  id: string;
-  name: string;
-  description: string;
-  level: number;
-  fmea: string;
-  actions: string;
-  criticalityAssessment: string;
-  inspectionPoints: string;
-  maintenancePlant: string;
-  cmmsInternalId: string;
-  functionalLocation: string;
-  parent: string | null;
-  cmmsSystem: string;
-  siteReferenceName: string;
-  functionalLocationDesc: string;
-  functionalLocationLongDesc: string;
-  objectType?: string;
-  systemStatus: string;
-  make?: string;
-  manufacturer?: string;
-  serialNumber?: string;
-}
-
-type ApiAsset = Asset & {
-  id?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { Asset } from "@/types"
+import { CreateAssetRequest } from "@/services/assetHierarchyApi"
 
 export default function DataLoader() {
   const { toast } = useToast()
@@ -64,23 +36,16 @@ export default function DataLoader() {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [showDetailsDialog, setShowDetailsDialog] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [formData, setFormData] = useState<Asset>({
-    id: '',
+  const [formData, setFormData] = useState<CreateAssetRequest>({
+    internalId: '',
     name: '',
     description: '',
     level: 0,
-    fmea: '',
-    actions: '',
-    criticalityAssessment: '',
-    inspectionPoints: '',
-    maintenancePlant: '',
-    cmmsInternalId: '',
-    functionalLocation: '',
     parent: null,
+    maintenancePlant: '',
+    primaryKey: '',
     cmmsSystem: '',
-    siteReferenceName: '',
-    functionalLocationDesc: '',
-    functionalLocationLongDesc: '',
+    siteReference: '',
     objectType: '',
     systemStatus: 'Active',
     make: '',
@@ -89,7 +54,7 @@ export default function DataLoader() {
   })
 
   // Check if user has permission to create assets
-  const canCreateAssets = hasPermission("asset_hierarchy");
+  const canCreateAssets = hasPermission("create_asset_hierarchy");
   const canViewAssets = hasPermission("view_asset_hierarchy") || canCreateAssets;
 
   // Handle client-side mounting
@@ -103,43 +68,19 @@ export default function DataLoader() {
     try {
       setIsLoading(true)
       setError(null)
-      const response = await assetHierarchyApi.getAll()
-      const apiAssets = (response.data as unknown) as ApiAsset[]
+      const response = await AssetHierarchyApi.getAll()
+      const apiAssets = response.data as Asset[]
       
       if (!Array.isArray(apiAssets)) {
         throw new Error('Invalid response format from server')
       }
 
-      const transformedAssets: Asset[] = apiAssets.map(asset => ({
-        id: asset.id || '',
-        name: asset.name || '',
-        description: asset.description || '',
-        level: asset.level || 0,
-        fmea: asset.fmea || '',
-        actions: asset.actions || '',
-        criticalityAssessment: asset.criticalityAssessment || '',
-        inspectionPoints: asset.inspectionPoints || '',
-        maintenancePlant: asset.maintenancePlant || '',
-        cmmsInternalId: asset.cmmsInternalId || '',
-        functionalLocation: asset.functionalLocation || '',
-        parent: asset.parent || null,
-        cmmsSystem: asset.cmmsSystem || '',
-        siteReferenceName: asset.siteReferenceName || '',
-        functionalLocationDesc: asset.functionalLocationDesc || '',
-        functionalLocationLongDesc: asset.functionalLocationLongDesc || '',
-        objectType: asset.objectType || '',
-        systemStatus: asset.systemStatus || 'Active',
-        make: asset.make || '',
-        manufacturer: asset.manufacturer || '',
-        serialNumber: asset.serialNumber || ''
-      }))
-
-      setAssets(transformedAssets)
+      setAssets(apiAssets)
       
       // Set expanded assets only after mounting
       if (mounted) {
         const rootAssets = new Set(
-          transformedAssets
+          apiAssets
             .filter(asset => !asset.parent)
             .map(asset => asset.id)
         )
@@ -177,13 +118,11 @@ export default function DataLoader() {
           parent: formData.parent === '' ? null : formData.parent,
           name: formData.name.trim(),
           description: formData.description.trim(),
-          cmmsInternalId: formData.cmmsInternalId.trim(),
-          functionalLocation: formData.functionalLocation.trim(),
-          functionalLocationDesc: formData.functionalLocationDesc.trim(),
-          functionalLocationLongDesc: formData.functionalLocationLongDesc.trim(),
+          internalId: formData.internalId.trim(),
+          primaryKey: formData.primaryKey.trim(),
           maintenancePlant: formData.maintenancePlant?.trim() || '',
           cmmsSystem: formData.cmmsSystem?.trim() || '',
-          siteReferenceName: formData.siteReferenceName?.trim() || '',
+          siteReference: formData.siteReference?.trim() || '',
           objectType: formData.objectType?.trim() || '',
           systemStatus: formData.systemStatus || 'Active',
           make: formData.make?.trim() || '',
@@ -191,8 +130,7 @@ export default function DataLoader() {
           serialNumber: formData.serialNumber?.trim() || ''
         }]
       }
-      console.log("assetToCreate", assetToCreate);
-      await assetHierarchyApi.create(assetToCreate)
+      await AssetHierarchyApi.create(assetToCreate)
       setShowAddDialog(false)
       fetchAssets() // Refresh the asset list
       toast({
@@ -202,22 +140,15 @@ export default function DataLoader() {
       })
       // Reset form
       setFormData({
-        id: '',
+        internalId: '',
         name: '',
         description: '',
         level: 0,
-        fmea: '',
-        actions: '',
-        criticalityAssessment: '',
-        inspectionPoints: '',
-        maintenancePlant: '',
-        cmmsInternalId: '',
-        functionalLocation: '',
         parent: null,
+        maintenancePlant: '',
+        primaryKey: '',
         cmmsSystem: '',
-        siteReferenceName: '',
-        functionalLocationDesc: '',
-        functionalLocationLongDesc: '',
+        siteReference: '',
         objectType: '',
         systemStatus: 'Active',
         make: '',
@@ -256,22 +187,15 @@ export default function DataLoader() {
     if (!open) {
       // Reset form when dialog closes
       setFormData({
-        id: '',
+        internalId: '',
         name: '',
         description: '',
         level: 0,
-        fmea: '',
-        actions: '',
-        criticalityAssessment: '',
-        inspectionPoints: '',
-        maintenancePlant: '',
-        cmmsInternalId: '',
-        functionalLocation: '',
         parent: null,
+        maintenancePlant: '',
+        primaryKey: '',
         cmmsSystem: '',
-        siteReferenceName: '',
-        functionalLocationDesc: '',
-        functionalLocationLongDesc: '',
+        siteReference: '',
         objectType: '',
         systemStatus: 'Active',
         make: '',
@@ -477,7 +401,11 @@ export default function DataLoader() {
               </div>
               <div className="space-y-2">
                 <Label>CMMS Internal ID</Label>
-                <p className="text-sm">{selectedAsset.cmmsInternalId || '-'}</p>
+                <p className="text-sm">{selectedAsset.internalId || '-'}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Primary Key</Label>
+                <p className="text-sm">{selectedAsset.primaryKey || '-'}</p>
               </div>
               <div className="space-y-2">
                 <Label>Parent</Label>
@@ -488,20 +416,8 @@ export default function DataLoader() {
                 <p className="text-sm">{selectedAsset.cmmsSystem || '-'}</p>
               </div>
               <div className="space-y-2">
-                <Label>Site Reference Name</Label>
-                <p className="text-sm">{selectedAsset.siteReferenceName || '-'}</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Functional Location </Label>
-                <p className="text-sm">{selectedAsset.functionalLocation || '-'}</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Functional Location Description</Label>
-                <p className="text-sm">{selectedAsset.functionalLocationDesc || '-'}</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Functional Location Long Description</Label>
-                <p className="text-sm">{selectedAsset.functionalLocationLongDesc || '-'}</p>
+                <Label>Site Reference</Label>
+                <p className="text-sm">{selectedAsset.siteReference || '-'}</p>
               </div>
               <div className="space-y-2">
                 <Label>Object Type</Label>
@@ -569,39 +485,22 @@ export default function DataLoader() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Functional Location</Label>
-                <Input
-                  name="functionalLocation"
-                  value={formData.functionalLocation}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Off-Site Support"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Functional Location Description</Label>
-                <Input
-                  name="functionalLocationDesc"
-                  value={formData.functionalLocationDesc}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Off-Site Support"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Functional Location Long Description</Label>
-                <Input
-                  name="functionalLocationLongDesc"
-                  value={formData.functionalLocationLongDesc}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Off-Site Support"
-                />
-              </div>
-              <div className="space-y-2">
                 <Label>CMMS Internal ID</Label>
                 <Input
-                  name="cmmsInternalId"
-                  value={formData.cmmsInternalId}
+                  name="internalId"
+                  value={formData.internalId}
                   onChange={handleInputChange}
                   placeholder="e.g., IID001"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Primary Key</Label>
+                <Input
+                  name="primaryKey"
+                  value={formData.primaryKey}
+                  onChange={handleInputChange}
+                  placeholder="e.g., PK001"
                   required
                 />
               </div>
@@ -623,10 +522,10 @@ export default function DataLoader() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Site Reference Name</Label>
+                <Label>Site Reference</Label>
                 <Input
-                  name="siteReferenceName"
-                  value={formData.siteReferenceName}
+                  name="siteReference"
+                  value={formData.siteReference}
                   onChange={handleInputChange}
                   placeholder="e.g., Salt Lake City, UT"
                 />

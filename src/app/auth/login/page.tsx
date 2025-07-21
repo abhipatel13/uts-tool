@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { setAuthToken, setUserData } from "@/utils/auth"
-import { authApi } from "@/services/authApi"
+import { AuthApi } from "@/services"
 
 export default function Login() {
   const router = useRouter()
@@ -47,7 +47,7 @@ export default function Login() {
 
     try {
       // Authenticate with backend API
-      const response = await authApi.login({
+      const response = await AuthApi.login({
         email: formData.email,
         password: formData.password,
         company: formData.company

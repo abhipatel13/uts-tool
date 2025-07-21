@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getCurrentUser } from "@/utils/auth"
-import { getDashboardItems, getRoleColorScheme, getRoleTitle } from "@/utils/roleBasedUI"
+import { getDashboardItems, getRoleColorScheme, getRoleTitle, getQuickActions } from "@/utils/roleBasedUI"
 import { Users, Shield, Database, FileText, Settings } from "lucide-react"
 import LicenseProtectedRoute from "@/components/LicenseProtectedRoute"
 
@@ -44,6 +44,7 @@ function DashboardContent() {
   }
 
   const dashboardItems = getDashboardItems()
+  const quickActions = getQuickActions()
   const { primary } = getRoleColorScheme()
   const roleTitle = getRoleTitle()
 
@@ -155,43 +156,24 @@ function DashboardContent() {
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button
-            onClick={() => router.push("/safety/task-hazard")}
-            className="p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors text-left"
-          >
-            <h3 className="font-medium text-orange-900">Create Task Hazard</h3>
-            <p className="text-sm text-orange-700 mt-1">Start a new assessment</p>
-          </button>
-          
-          <button
-            onClick={() => router.push("/safety/risk-assessment")}
-            className="p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-left"
-          >
-            <h3 className="font-medium text-blue-900">Risk Assessment</h3>
-            <p className="text-sm text-blue-700 mt-1">Evaluate risks</p>
-          </button>
-          
-          <button
-            onClick={() => router.push("/asset-hierarchy")}
-            className="p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-left"
-          >
-            <h3 className="font-medium text-green-900">View Assets</h3>
-            <p className="text-sm text-green-700 mt-1">Browse hierarchy</p>
-          </button>
-          
-          <button
-            onClick={() => router.push("/analytics")}
-            className="p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors text-left"
-          >
-            <h3 className="font-medium text-purple-900">Analytics</h3>
-            <p className="text-sm text-purple-700 mt-1">View reports</p>
-          </button>
+      {/* Quick Actions - Permission Based */}
+      {quickActions.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {quickActions.map((action, index) => (
+              <button
+                key={index}
+                onClick={() => router.push(action.href)}
+                className={`p-4 ${action.bgColor} border ${action.borderColor} rounded-lg hover:opacity-80 transition-colors text-left`}
+              >
+                <h3 className={`font-medium ${action.textColor}`}>{action.title}</h3>
+                <p className={`text-sm ${action.descriptionColor} mt-1`}>{action.description}</p>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -3,7 +3,6 @@ import type { Config } from "tailwindcss";
 export default {
     darkMode: ["class"],
     content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
@@ -15,6 +14,23 @@ export default {
     'bg-[#ED1C24]',
     'text-black',
     'text-white',
+    // Quick action background colors
+    'bg-orange-50',
+    'bg-purple-50',
+    'bg-blue-50',
+    'bg-green-50',
+    'border-orange-200',
+    'border-purple-200',
+    'border-blue-200',
+    'border-green-200',
+    'text-orange-900',
+    'text-purple-900',
+    'text-blue-900',
+    'text-green-900',
+    'text-orange-700',
+    'text-purple-700',
+    'text-blue-700',
+    'text-green-700',
   ],
   theme: {
   	extend: {

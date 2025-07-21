@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,7 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { notificationApi, type Notification } from '../services/api';
+import { NotificationApi } from '@/services';
+import { Notification } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 
@@ -20,7 +21,7 @@ const NotificationBell: React.FC = () => {
 
   const fetchNotifications = async () => {
     try {
-      const response = await notificationApi.getMyNotifications();
+      const response = await NotificationApi.getMyNotifications();
       const unreadNotifications = response.data.filter(n => !n.isRead);
       setNotifications(unreadNotifications);
     } catch (error) {
@@ -38,7 +39,7 @@ const NotificationBell: React.FC = () => {
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
       try {
-        await notificationApi.markAsRead(notification.id);
+        await NotificationApi.markAsRead(notification.id);
         fetchNotifications(); // Refresh notifications
       } catch (error) {
         console.error('Error marking notification as read:', error);

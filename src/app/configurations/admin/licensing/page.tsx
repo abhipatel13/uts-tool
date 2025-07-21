@@ -26,11 +26,10 @@ import { getCurrentUser } from "@/utils/auth";
 import {
   LicensePoolService,
   LicenseAllocationService,
-  LicensePool,
-  LicenseAllocation
-} from "@/services/licenseService";
-import { userApi } from "@/services/userApi";
-import type { User as ApiUser } from "@/services/userApi";
+  UserApi
+} from "@/services";
+import type { LicensePool, LicenseAllocation } from "@/types";
+import type { User as ApiUser } from "@/types";
 import PaymentForm from "@/components/stripe/PaymentForm";
 
 const LicensingAdminPage = () => {
@@ -95,11 +94,12 @@ const LicensingAdminPage = () => {
       const [poolsRes, allocsRes, usersRes] = await Promise.all([
         LicensePoolService.getAllLicensePools(),
         LicenseAllocationService.getAllAllocations(),
-        userApi.getAll()
+        UserApi.getAll()
       ]);
-      setLicensePools(poolsRes.data || []);
-      setAllocations(allocsRes.data || []);
-      setUsers(usersRes.data || []);
+      // Handle both ApiResponse format and direct data format
+      setLicensePools(poolsRes?.data || poolsRes || []);
+      setAllocations(allocsRes?.data || allocsRes || []);
+      setUsers(usersRes?.data || usersRes || []);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({ title: 'Error', description: 'Failed to load data', variant: 'destructive' });

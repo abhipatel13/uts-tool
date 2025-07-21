@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
 import { BackButton } from "@/components/ui/back-button"
@@ -12,8 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { taskHazardApi } from "@/services/api"
-import type { TaskHazard } from "@/services/api"
+import { TaskHazardApi } from "@/services"
+import type { TaskHazard } from "@/types"
 import TaskHazardForm from "@/components/TaskHazardForm"
 import {
   getRiskScore,
@@ -42,7 +42,7 @@ export default function TaskHazard() {
   const fetchTasks = async () => {
     try {
       setIsLoading(true)
-      const response = await taskHazardApi.getTaskHazards()
+      const response = await TaskHazardApi.getTaskHazards()
       
       // Check if response has the expected structure with data property
       if (response && response.status && Array.isArray(response.data)) {
@@ -86,7 +86,7 @@ export default function TaskHazard() {
     if (!deleteTaskId) return
 
     try {
-      await taskHazardApi.deleteTaskHazard(deleteTaskId)
+      await TaskHazardApi.deleteTaskHazard(deleteTaskId)
       
       toast({
         title: "Success",

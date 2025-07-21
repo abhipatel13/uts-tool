@@ -7,22 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { userApi } from "@/services/userApi";
+import { UserApi } from "@/services";
 import { Badge } from "@/components/ui/badge";
 import { BackButton } from "@/components/ui/back-button";
-
-interface User {
-  id: number;
-  email: string;
-  role: string;
-  company: {
-    id?: number;
-    name: string;
-    createdAt?: string;
-    updatedAt?: string;
-    deletedAt?: string | null;
-  } | string;
-}
+import { User } from '@/types/user';
 
 interface NewUser {
   email: string;
@@ -60,9 +48,7 @@ export default function UserManagement() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        console.log('Starting to fetch users...');
-        const response = await userApi.getAll();
-        console.log('Users fetched:', response);
+        const response = await UserApi.getAll();
         if (response.status) {
           setUsers(response.data);
         }
@@ -126,7 +112,7 @@ export default function UserManagement() {
             : ''
       };
 
-      const response = await userApi.create(userToCreate);
+      const response = await UserApi.create(userToCreate);
       if (response.status) {
         toast({
           title: "Success",
@@ -144,7 +130,7 @@ export default function UserManagement() {
             : '' 
         });
         // Refresh the users list
-        const updatedResponse = await userApi.getAll();
+        const updatedResponse = await UserApi.getAll();
         if (updatedResponse.status) {
           setUsers(updatedResponse.data);
         }
@@ -195,7 +181,7 @@ export default function UserManagement() {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      const response = await userApi.delete(userId);
+      const response = await UserApi.delete(userId);
       if (response.status) {
         setUsers(users.filter(user => user.id.toString() !== userId));
         toast({
@@ -226,7 +212,7 @@ export default function UserManagement() {
     if (!selectedUser) return;
 
     try {
-      const response = await userApi.update(selectedUser.id.toString(), {
+      const response = await UserApi.update(selectedUser.id.toString(), {
         email: editFormData.email,
         role: editFormData.role
       });
@@ -318,7 +304,7 @@ export default function UserManagement() {
     }
 
     try {
-      const response = await userApi.resetPassword(selectedUser.id.toString(), passwordFormData.newPassword);
+      const response = await UserApi.resetPassword(selectedUser.id.toString(), passwordFormData.newPassword);
       
       if (response.status) {
         setIsPasswordDialogOpen(false);

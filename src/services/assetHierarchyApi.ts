@@ -1,205 +1,39 @@
-export interface Asset {
-  id: string;
-  name: string;
-  description: string;
-  level: number;
-  fmea: string;
-  actions: string;
-  criticalityAssessment: string;
-  inspectionPoints: string;
-  maintenancePlant: string;
-  cmmsInternalId: string;
-  functionalLocation: string;
-  parent: string | null;
-  cmmsSystem: string;
-  siteReferenceName: string;
-  functionalLocationDesc: string;
-  functionalLocationLongDesc: string;
-  objectType?: string;
-  systemStatus: string;
-  make?: string;
-  manufacturer?: string;
-  serialNumber?: string;
-  primaryKey?: string;
-}
+import { api } from '@/lib/api-client';
+import { ApiResponse, Asset, UploadStatus } from '@/types';
 
-interface ApiResponse<T> {
-  status: boolean;
-  data: T;
-  message?: string;
-}
+// Type for creating assets (excludes server-generated fields)
+export type CreateAssetRequest = Omit<Asset, 'id' | 'updatedAt' | 'createdAt'>;
 
-interface CreateAssetRequest {
-  assets: Asset[];
-}
-
-interface FileUpload {
-  id: string;
-  fileName: string;
-  originalName: string;
-  fileType: string;
-  fileSize: number;
-  uploadedBy: string;
-  status: 'uploading' | 'completed' | 'error';
-  company: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface AssetHierarchyUploadResponse {
-  success: boolean;
-  message: string;
-  data: Asset[];
-  fileUpload: FileUpload;
-}
-
-const getAuthToken = () => localStorage.getItem('token');
-
-const handleAuthError = (status: number) => {
-  if (status === 401) {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-    throw new Error('Authentication expired. Please login again.');
-  }
-};
-
-export const assetHierarchyApi = {
+export const AssetHierarchyApi = {
   // Create new asset
-  create: async (data: CreateAssetRequest): Promise<ApiResponse<Asset[]>> => {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/asset-hierarchy`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (response.status === 401) {
-      handleAuthError(response.status);
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to create asset');
-    }
-
-    return response.json();
-  },
-
-  // Upload CSV file
-  uploadCSV: async (file: File): Promise<AssetHierarchyUploadResponse> => {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/asset-hierarchy/upload-csv`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    if (response.status === 401) {
-      handleAuthError(response.status);
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to upload file');
-    }
-
-    return response.json();
+  create: async (data: { assets: CreateAssetRequest[] }): Promise<ApiResponse<Asset[]>> => {
+    return api.post<ApiResponse<Asset[]>>('/api/asset-hierarchy', data);
   },
 
   // Get all assets
   getAll: async (): Promise<ApiResponse<Asset[]>> => {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/asset-hierarchy`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
-    });
-
-    if (response.status === 401) {
-      handleAuthError(response.status);
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to fetch assets');
-    }
-
-    return response.json();
+    return api.get<ApiResponse<Asset[]>>('/api/asset-hierarchy');
   },
 
-  // Get single asset
+  // Get a specific asset
   getOne: async (id: string): Promise<ApiResponse<Asset>> => {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
+    return api.get<ApiResponse<Asset>>(`/api/asset-hierarchy/${id}`);
+  },
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/asset-hierarchy/${id}`, {
-      method: 'GET',
+  // Upload CSV file
+  uploadCSV: async (file: File): Promise<ApiResponse<UploadStatus>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return api.post<ApiResponse<UploadStatus>>('/api/asset-hierarchy/upload-csv', formData, {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
+        'Content-Type': 'multipart/form-data',
+      },
     });
-
-    if (response.status === 401) {
-      handleAuthError(response.status);
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to fetch asset');
-    }
-
-    return response.json();
   },
 
   // Get upload history
-  getUploadHistory: async (): Promise<ApiResponse<FileUpload[]>> => {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/asset-hierarchy/upload-history`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
-    });
-
-    if (response.status === 401) {
-      handleAuthError(response.status);
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to fetch upload history');
-    }
-
-    return response.json();
+  getUploadHistory: async (): Promise<ApiResponse<UploadStatus[]>> => {
+    return api.get<ApiResponse<UploadStatus[]>>('/api/asset-hierarchy/upload-history');
   },
 }; 

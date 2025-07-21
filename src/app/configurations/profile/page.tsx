@@ -6,15 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { userApi } from "@/services/userApi";
+import { UserApi } from "@/services";
 import { BackButton } from '@/components/ui/back-button';
-
-interface User {
-  id: number;
-  email: string;
-  role: string;
-  company: string | { id?: number; name: string; createdAt?: string; updatedAt?: string; deletedAt?: string | null; };
-}
+import { User } from '@/types/user';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -75,7 +69,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const response = await userApi.updateProfile({
+      const response = await UserApi.updateProfile({
         email: formData.email,
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,

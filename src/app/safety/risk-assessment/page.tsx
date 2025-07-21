@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
 import { BackButton } from "@/components/ui/back-button"
@@ -12,7 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { riskAssessmentApi, type RiskAssessment } from "@/services/api"
+import { RiskAssessmentApi } from "@/services"
+import type { RiskAssessment } from "@/types"
 import RiskAssessmentForm from "@/components/RiskAssessmentForm"
 
 // Define interface for assessment data
@@ -36,7 +37,7 @@ export default function RiskAssessment() {
   const fetchAssessments = async () => {
     try {
       setIsLoading(true)
-      const response = await riskAssessmentApi.getRiskAssessments()
+      const response = await RiskAssessmentApi.getRiskAssessments()
       
       // Check if response has the expected structure with data property
       if (response && response.status && Array.isArray(response.data)) {
@@ -80,7 +81,7 @@ export default function RiskAssessment() {
     if (!deleteAssessmentId) return
 
     try {
-      await riskAssessmentApi.deleteRiskAssessment(deleteAssessmentId)
+      await RiskAssessmentApi.deleteRiskAssessment(deleteAssessmentId)
       
       toast({
         title: "Success",

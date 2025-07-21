@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { taskHazardApi } from "@/services/api"
-import type { TaskHazard } from "@/services/api"
+import { TaskHazardApi } from "@/services"
+import type { TaskHazard, Risk } from "@/types"
 import TaskHazardForm from "@/components/TaskHazardForm"
 import { MapInfoDialog } from "@/components/analytics/MapInfoDialog"
 import { AnalyticsPageWrapper } from "@/components/analytics/AnalyticsPageWrapper"
@@ -22,7 +22,7 @@ export default function TaskHazardAnalytics() {
 
   // Consolidated fetchTaskHazards function
   const fetchTaskHazards = async () => {
-    const response = await taskHazardApi.getTaskHazards()
+    const response = await TaskHazardApi.getTaskHazards()
     if (response && response.status && Array.isArray(response.data)) {
       setTaskHazards(response.data)
     } else {
@@ -53,7 +53,7 @@ export default function TaskHazardAnalytics() {
             (hazard.supervisor && hazard.supervisor.toLowerCase().includes(query)) ||
             (hazard.location && hazard.location.toLowerCase().includes(query)) ||
             (hazard.status && hazard.status.toLowerCase().includes(query)) ||
-            (hazard.risks && hazard.risks.some(risk => 
+            (hazard.risks && hazard.risks.some((risk: Risk) => 
               (risk.riskDescription && risk.riskDescription.toLowerCase().includes(query)) ||
               (risk.riskType && risk.riskType.toLowerCase().includes(query))
             ))

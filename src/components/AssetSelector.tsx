@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { assetHierarchyApi, type Asset } from "@/services/api"
+import { AssetHierarchyApi } from "@/services"
+import type { Asset } from "@/types"
 
 interface AssetSelectorProps {
   value: string;
@@ -15,7 +16,7 @@ interface AssetSelectorProps {
 
 export function AssetSelector({ value, onValueChange, error, title, placeholder }: AssetSelectorProps) {
   const [assetDropdownOpen, setAssetDropdownOpen] = useState(false)
-  const assetDropdownRef = React.useRef<HTMLDivElement>(null)
+  const assetDropdownRef = useRef<HTMLDivElement>(null)
   const [searchAsset, setSearchAsset] = useState("")
   const [expandedAssets, setExpandedAssets] = useState<string[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
@@ -151,7 +152,7 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
     try {
       setIsLoadingAssets(true)
       setAssetError(null)
-      const response = await assetHierarchyApi.getAll()
+      const response = await AssetHierarchyApi.getAll()
       
       if (!Array.isArray(response.data)) {
         throw new Error('Invalid response format from server')
@@ -205,7 +206,7 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
   }, [value, assets]);
 
   // Expand parent assets that have matching children when searching
-  React.useEffect(() => {
+  useEffect(() => {
     if (searchAsset.trim() !== "" && assets.length > 0) {
       // Find all matching assets
       const matchingAssets = assets.filter(asset => 
@@ -243,7 +244,7 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
   }, [searchAsset, assets]);
 
   // Close dropdown when clicking outside
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (assetDropdownRef.current && !assetDropdownRef.current.contains(event.target as Node)) {
         setAssetDropdownOpen(false);

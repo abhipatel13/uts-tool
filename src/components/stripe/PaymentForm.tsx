@@ -36,7 +36,6 @@ export default function PaymentForm({
   setIsProcessing
 }: PaymentFormProps) {
   const stripe = useStripe();
-  console.log("stripe",stripe);
   const elements = useElements();
   const [cardError, setCardError] = useState<string | null>(null);
 
@@ -83,7 +82,7 @@ export default function PaymentForm({
         onSuccess();
       }
     } catch (error) {
-      console.log("error",error);
+      console.error('Payment processing error:', error);
       setCardError('An error occurred while processing your payment');
       onError('Payment failed');
     } finally {

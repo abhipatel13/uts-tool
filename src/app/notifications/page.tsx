@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { notificationApi, type Notification } from '../../services/api';
+import { NotificationApi } from '@/services';
+import { Notification } from '@/types';
 import { BackButtonVariants } from '@/components/ui/back-button';
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +16,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await notificationApi.getMyNotifications();
+        const response = await NotificationApi.getMyNotifications();
         setNotifications(response.data);
       } catch (error) {
         console.error('Error fetching notifications:', error);
@@ -30,7 +31,7 @@ export default function NotificationsPage() {
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
       try {
-        await notificationApi.markAsRead(notification.id);
+        await NotificationApi.markAsRead(notification.id);
         setNotifications(notifications.map(n => 
           n.id === notification.id ? { ...n, isRead: true } : n
         ));

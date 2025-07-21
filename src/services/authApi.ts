@@ -1,50 +1,14 @@
-import axios from 'axios';
+import { api } from '@/lib/api-client';
+import { LoginRequest, LoginResponse } from '@/types/user';
 
-interface LoginResponse {
-  status: boolean;
-  data: {
-    user: {
-      _id: string;
-      email: string;
-      role: string;
-      company: string;
-    };
-    token: string;
-  };
-  message: string;
-}
-
-interface LoginRequest {
-  email: string;
-  password: string;
-  company: string;
-}
-
-export const authApi = {
+export const AuthApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
-    try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, data);
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.message || 'Login failed');
-      }
-      throw error;
-    }
+    return api.post<LoginResponse>('/api/auth/login', data, { requireAuth: false });
   },
 
   logout: async (token: string): Promise<void> => {
-    try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, null, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.message || 'Logout failed');
-      }
-      throw error;
-    }
+    return api.post<void>('/api/auth/logout', null, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
   }
 }; 

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,17 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { assetHierarchyApi } from "@/services/assetHierarchyApi"
+import { AssetHierarchyApi } from "@/services"
 import { useToast } from "@/components/ui/use-toast"
-
-interface UploadStatus {
-  id?: string;
-  fileName: string;
-  status: 'uploading' | 'completed' | 'error';
-  uploadedBy?: string;
-  uploadedAt?: string;
-  fileSize?: number;
-}
+import { UploadStatus } from '@/types'
 
 const sampleCsvContent = `Maintenance Plant,Primary Key,CMMS Internal ID,Functional Location,Parent,CMMS System,Site Reference Name,Functional Location Description,Functional Location Long Description,Object Type (Taxonomy Mapping Value),System Status,Make,Manufacturer,Serial Number,Asset Description
 AH_FLOC_MAINT_PLNT_C,AH_FLOC_PKEY,AH_FLOC_INTERNAL_ID_C,AH_FLOC_FNC_LOC_C,AH_FLOC_PARENT,AH_FLOC_SAP_SYSTEM_C,MI_SITE_NAME,AH_FLOC_FNC_LOC_DESC_C,AH_FLOC_FNC_LOC_LNG_DESC_C,AH_FLOC_OBJ_TYP_C,AH_FLOC_SYS_STATUS_C,,,,Description Field
@@ -41,8 +33,7 @@ export default function DataLoader() {
   const fetchUploadHistory = useCallback(async () => {
     try {
       setIsLoadingHistory(true)
-      const response = await assetHierarchyApi.getUploadHistory()
-      console.log("response",response)
+      const response = await AssetHierarchyApi.getUploadHistory()
       if (response.status) {
         setUploadHistory(response.data)
       } else {
@@ -89,17 +80,17 @@ export default function DataLoader() {
     setUploadHistory(prev => [newUploadStatus, ...prev])
 
     try {
-      const response = await assetHierarchyApi.uploadCSV(file)
+      const response = await AssetHierarchyApi.uploadCSV(file)
       
-      if (!response.data || !response.fileUpload) {
+      if (!response.data || !response.data.fileName) {
         throw new Error('Invalid response format from server')
       }
 
       const updatedStatus = {
-        id: response.fileUpload.id,
-        fileName: response.fileUpload.originalName,
-        status: response.fileUpload.status,
-        uploadedBy: response.fileUpload.uploadedBy
+        id: response.data.id,
+        fileName: response.data.fileName,
+        status: response.data.status,
+        uploadedBy: response.data.uploadedBy
       }
       setUploadHistory(prev => [updatedStatus, ...prev.slice(1)])
       setShowUploadDialog(false)
