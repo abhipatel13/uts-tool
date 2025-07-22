@@ -28,9 +28,6 @@ export default function GeneralRisk() {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <BackButton text="Back" />
-      </div>
       <h1 className="text-2xl font-bold mb-6">General Risks</h1>
       
       <div className="bg-white rounded-lg shadow-sm border p-6">

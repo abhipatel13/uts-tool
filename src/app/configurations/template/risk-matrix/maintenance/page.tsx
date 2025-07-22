@@ -38,9 +38,6 @@ const MaintenanceRiskMatrix = () => {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <BackButton text="Back" />
-      </div>
       <Card className="bg-white">
         <CardContent className="pt-6">
           <div className="mb-6 flex items-center gap-4">

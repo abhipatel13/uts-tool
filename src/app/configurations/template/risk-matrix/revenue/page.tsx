@@ -29,9 +29,6 @@ const RevenueRiskMatrix = () => {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <BackButton text="Back" />
-      </div>
       <Card>
         <CardHeader>
           <CardTitle>Revenue Risk Matrix</CardTitle>

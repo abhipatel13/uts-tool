@@ -347,9 +347,6 @@ export default function UserManagement() {
 
   return (
     <div className="container mx-auto py-10">
-      <div className="mb-6">
-        <BackButton text="Back" />
-      </div>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">User Management</h1>

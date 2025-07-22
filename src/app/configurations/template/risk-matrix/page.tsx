@@ -113,9 +113,6 @@ const RiskMatrix = () => {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <BackButton text="Back" />
-      </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[#2C3E50]">Risk Matrix Configuration</h1>
       </div>

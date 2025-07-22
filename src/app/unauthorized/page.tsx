@@ -86,9 +86,6 @@ export default function Unauthorized() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg text-center">
-        <div className="mb-6">
-          <BackButton text="Back" />
-        </div>
         <h1 className="text-2xl font-bold mb-4 text-[rgb(44,62,80)]">{title}</h1>
         
         <div className="mb-6">
