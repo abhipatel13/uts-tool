@@ -1,10 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { CommonButton } from "@/components/ui/common-button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { BackButton } from "@/components/ui/back-button"
 
 export default function MitigatingActionType() {
   const [types, setTypes] = useState<string[]>([])
@@ -58,21 +57,18 @@ export default function MitigatingActionType() {
               }
             }}
           />
-          <Button 
+          <CommonButton 
             onClick={handleAddType}
             size="icon"
-            className="bg-[#00A6ED] hover:bg-[#0094d4] rounded-full h-8 w-8"
           >
             +
-          </Button>
+          </CommonButton>
         </div>
 
         <div className="flex justify-end mt-4">
-          <Button 
-            className="bg-[#00A6ED] hover:bg-[#0094d4]"
-          >
+          <CommonButton>
             Save
-          </Button>
+          </CommonButton>
         </div>
       </div>
     </div>

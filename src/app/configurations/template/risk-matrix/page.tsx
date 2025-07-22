@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react'
 import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { BackButton } from "@/components/ui/back-button"
+import { CommonButton } from "@/components/ui/common-button"
 
 const RiskMatrix = () => {
   const [selectedType, setSelectedType] = useState('personnel')
@@ -123,18 +122,13 @@ const RiskMatrix = () => {
             <h2 className="text-lg font-medium mb-4">Risk Categories</h2>
             <div className="flex gap-2">
               {riskTypes.map((type) => (
-                <Button
+                <CommonButton
                   key={type.id}
                   variant={selectedType === type.id ? "default" : "outline"}
-                  className={`px-6 ${
-                    selectedType === type.id 
-                      ? "bg-[#00A3FF] hover:bg-[#00A3FF]/90 text-white" 
-                      : "border-[#00A3FF] text-[#00A3FF] hover:bg-[#00A3FF] hover:text-white"
-                  }`}
                   onClick={() => setSelectedType(type.id)}
                 >
                   {type.label}
-                </Button>
+                </CommonButton>
               ))}
             </div>
           </div>

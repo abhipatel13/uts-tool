@@ -15,6 +15,7 @@ import { Loader2, Plus, ChevronDown, Save } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { hasPermission } from "@/utils/auth"
 import { tacticsApi, Tactic } from "@/services/tacticsApi"
+import { CommonButton } from "@/components/ui/common-button"
 
 interface AssetRow {
   assetNumber: string;
@@ -346,13 +347,12 @@ export default function TacticsPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[rgb(44,62,80)]">Tactics</h1>
         {canCreateTactics && (
-          <Button 
+          <CommonButton 
             onClick={() => setShowAddDialog(true)}
-            className="bg-[rgb(44,62,80)] hover:bg-[rgb(44,62,80)]/90"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Analysis
-          </Button>
+          </CommonButton>
         )}
       </div>
 

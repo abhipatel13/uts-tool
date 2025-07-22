@@ -1,15 +1,14 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CommonButton } from "@/components/ui/common-button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState, useEffect } from "react"
+import { userApi } from "@/services/userApi"
 import { useToast } from "@/components/ui/use-toast";
-import { userApi } from "@/services/userApi";
-import { Badge } from "@/components/ui/badge";
-import { BackButton } from "@/components/ui/back-button";
 
 interface User {
   id: number;
@@ -362,12 +361,9 @@ export default function UserManagement() {
         <div className="flex items-center gap-4">
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button 
-                variant="default"
-                className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]"
-              >
+              <CommonButton>
                 Create New User
-              </Button>
+              </CommonButton>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -419,24 +415,21 @@ export default function UserManagement() {
                   />
                   <p className="text-xs text-gray-500 mt-1">Company is automatically set to your company</p>
                 </div>
-                <Button 
-                  type="submit" 
-                  variant="outline"
-                  className="w-full border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white"
-                >
+                <CommonButton type="submit">
                   Create User
-                </Button>
+                </CommonButton>
               </form>
             </DialogContent>
           </Dialog>
         </div>
+      </div>
 
-        {/* Edit User Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-            </DialogHeader>
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
@@ -464,19 +457,19 @@ export default function UserManagement() {
                 </Select>
               </div>
               <div className="flex gap-2">
-                <Button 
+                <CommonButton 
                   variant="outline"
                   onClick={() => setIsEditDialogOpen(false)}
-                  className="flex-1"
+                  className="w-full"
                 >
                   Cancel
-                </Button>
-                <Button 
+                </CommonButton>
+                <CommonButton 
                   onClick={handleSaveEdit}
-                  className="flex-1 bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]"
+                  className="w-full"
                 >
                   Save Changes
-                </Button>
+                </CommonButton>
               </div>
             </div>
           </DialogContent>
@@ -508,86 +501,84 @@ export default function UserManagement() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button 
+                <CommonButton 
                   variant="outline"
                   onClick={() => setIsPasswordDialogOpen(false)}
                   className="flex-1"
                 >
                   Cancel
-                </Button>
-                <Button 
+                </CommonButton>
+                <CommonButton 
                   onClick={handleSavePassword}
-                  className="flex-1 bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]"
+                  className="flex-1"
                 >
                   Reset Password
-                </Button>
+                </CommonButton>
               </div>
             </div>
           </DialogContent>
         </Dialog>
-      </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Company</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>
-                <Badge 
-                  variant="outline"
-                  className="border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)]"
-                >
-                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {typeof user.company === 'string' 
-                  ? user.company 
-                  : (user.company && typeof user.company === 'object' && 'name' in user.company)
-                    ? user.company.name 
-                    : 'N/A'
-                }
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditUser(user)}
-                    className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleResetPassword(user)}
-                    className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
-                  >
-                    Reset Password
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteUser(user.id.toString())}
-                    className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </TableCell>
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Company</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {users.map((user) => (
+              <TableRow key={user.id}>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Badge 
+                    variant="outline"
+                    className="border-[#34495E] text-[#34495E]"
+                  >
+                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {typeof user.company === 'string' 
+                    ? user.company 
+                    : (user.company && typeof user.company === 'object' && 'name' in user.company)
+                      ? user.company.name 
+                      : 'N/A'
+                  }
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <CommonButton
+                      variant="info"
+                      size="sm"
+                      onClick={() => handleEditUser(user)}
+                    >
+                      Edit
+                    </CommonButton>
+                    <CommonButton
+                      variant="warning"
+                      size="sm"
+                      onClick={() => handleResetPassword(user)}
+                    >
+                      Reset Password
+                    </CommonButton>
+                    <CommonButton
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteUser(user.id.toString())}
+                    >
+                      Delete
+                    </CommonButton>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 } 

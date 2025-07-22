@@ -1,6 +1,16 @@
 'use client';
-import Link from 'next/link';
-import { Users, FileText, User, Settings } from 'lucide-react';
+import { CommonButton } from "@/components/ui/common-button"
+import Link from "next/link"
+import { 
+  Users, 
+  Settings, 
+  FileText, 
+  Shield, 
+  Database, 
+  Palette,
+  Bell,
+  MapPin
+} from "lucide-react"
 
 export default function Configurations() {
   const configurationItems = [
@@ -35,7 +45,7 @@ export default function Configurations() {
       case "FileText":
         return <FileText className="h-6 w-6" />
       case "User":
-        return <User className="h-6 w-6" />
+        return <Shield className="h-6 w-6" />
       default:
         return <Settings className="h-6 w-6" />
     }
