@@ -82,6 +82,8 @@ export function Header() {
             <DropdownMenuItem asChild>
               <Link href="/configurations/profile">Profile</Link>
             </DropdownMenuItem>
+            {/* <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem>Help</DropdownMenuItem> */}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-red-600 cursor-pointer">
               <LogoutButton />
