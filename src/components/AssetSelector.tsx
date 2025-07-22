@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { assetHierarchyApi, type Asset } from "@/services/api"
+import { assetHierarchyApi } from "@/services/assetHierarchyApi"
+import { type Asset } from "@/services/api"
 
 interface AssetSelectorProps {
   value: string;

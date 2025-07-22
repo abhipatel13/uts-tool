@@ -15,6 +15,11 @@ export default {
     'bg-[#ED1C24]',
     'text-black',
     'text-white',
+    // Button color
+    'bg-[#34495E]',
+    'hover:bg-[#34495E]/90',
+    'border-[#34495E]',
+    'text-[#34495E]',
   ],
   theme: {
   	extend: {
@@ -58,7 +63,9 @@ export default {
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
-  			}
+  			},
+  			// Custom button color
+  			'button-primary': '#34495E',
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

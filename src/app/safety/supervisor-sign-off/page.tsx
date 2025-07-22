@@ -143,9 +143,6 @@ function SupervisorSignOffContent() {
   
   return (
     <div className="container mx-auto py-8">
-      <div className="mb-6">
-        <BackButton text="Back" />
-      </div>
       
       {/* Approval Requests Section */}
       <div className="bg-white rounded-lg shadow-sm border p-6 max-w-4xl mx-auto mb-8">

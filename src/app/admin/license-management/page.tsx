@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CommonButton } from "@/components/ui/common-button"
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/ui/back-button";
+
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -272,7 +273,7 @@ const LicenseManagementPage = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <BackButton text="Back" />
+  
           <h1 className="text-3xl font-bold text-[rgb(44,62,80)] mt-4">License Management</h1>
           <p className="text-gray-600 mt-2">
             {(() => {
@@ -284,10 +285,10 @@ const LicenseManagementPage = () => {
         <div className="flex space-x-2">
           <Dialog open={showCreatePoolDialog} onOpenChange={setShowCreatePoolDialog}>
             <DialogTrigger asChild>
-              <Button className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]">
+              <CommonButton>
                 <Package className="w-4 h-4 mr-2" />
                 Create License Pool
-              </Button>
+              </CommonButton>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
@@ -574,10 +575,10 @@ const LicenseManagementPage = () => {
         <TabsContent value="pools" className="space-y-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold">License Pools</h2>
-            <Button className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]" onClick={() => setShowCreatePoolDialog(true)}>
+            <CommonButton onClick={() => setShowCreatePoolDialog(true)}>
               <Package className="w-4 h-4 mr-2" />
               Create License Pool
-            </Button>
+            </CommonButton>
           </div>
           <div className="bg-white rounded-lg shadow">
             <table className="min-w-full divide-y divide-gray-200">
@@ -658,13 +659,13 @@ const LicenseManagementPage = () => {
                           <td className="px-6 py-4">
                             <div className="flex space-x-2">
                               {allocation.status === 'active' && (
-                                <Button
-                                  variant="outline"
+                                <CommonButton
+                                  variant="destructive"
                                   size="sm"
                                   onClick={() => handleRevokeLicense(allocation.id, 'Revoked by admin')}
                                 >
                                   <Trash2 className="w-4 h-4" />
-                                </Button>
+                                </CommonButton>
                               )}
                             </div>
                           </td>

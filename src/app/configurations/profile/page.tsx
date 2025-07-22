@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CommonButton } from "@/components/ui/common-button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { userApi } from "@/services/userApi"
+import { getCurrentUser } from "@/utils/auth"
+import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/components/ui/use-toast";
-import { userApi } from "@/services/userApi";
-import { BackButton } from '@/components/ui/back-button';
+
 
 interface User {
   id: number;
@@ -120,7 +122,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto py-10">
-      <BackButton className="mb-6" />
+      
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -201,20 +203,17 @@ export default function ProfilePage() {
 
             <div className="flex justify-end gap-4">
               {!isEditing ? (
-                <Button 
+                <CommonButton 
                   type="button" 
                   onClick={() => setIsEditing(true)}
-                  variant="outline"
-                  className="hover:bg-primary hover:text-primary-foreground"
                 >
                   Edit Profile
-                </Button>
+                </CommonButton>
               ) : (
                 <>
-                  <Button 
+                  <CommonButton 
                     type="button" 
                     variant="outline"
-                    className="hover:bg-primary hover:text-primary-foreground"
                     onClick={() => {
                       setIsEditing(false);
                       setFormData(prev => ({
@@ -226,13 +225,12 @@ export default function ProfilePage() {
                     }}
                   >
                     Cancel
-                  </Button>
-                  <Button 
+                  </CommonButton>
+                  <CommonButton 
                     type="submit"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     Save Changes
-                  </Button>
+                  </CommonButton>
                 </>
               )}
             </div>

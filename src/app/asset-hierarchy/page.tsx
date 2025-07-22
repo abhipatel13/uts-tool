@@ -1,10 +1,9 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { Button } from "@/components/ui/button"
+import { CommonButton } from "@/components/ui/common-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { BackButton } from "@/components/ui/back-button"
 import {
   Dialog,
   DialogContent,
@@ -13,8 +12,8 @@ import {
 } from "@/components/ui/dialog"
 import { Plus, ChevronRight, ChevronDown, Info } from "lucide-react"
 import { assetHierarchyApi } from "@/services/assetHierarchyApi"
-import { useToast } from "@/components/ui/use-toast"
 import { hasPermission } from "@/utils/auth"
+import { useToast } from "@/components/ui/use-toast"
 import { AssetSelector } from "@/components/AssetSelector"
 import {
   Select,
@@ -389,18 +388,17 @@ export default function DataLoader() {
   return (
     <div className="container mx-auto py-10">
       <div className="mb-6">
-        <BackButton text="Back" />
+
       </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Asset Hierarchy</h1>
         {canCreateAssets && (
-          <Button
+          <CommonButton
             onClick={() => setShowAddDialog(true)}
-            className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Asset
-          </Button>
+          </CommonButton>
         )}
       </div>
 
@@ -685,22 +683,20 @@ export default function DataLoader() {
             </div>
           </form>
           <div className="flex justify-end gap-4 mt-4 pt-4 border-t">
-            <Button 
+            <CommonButton 
               type="button" 
               variant="outline" 
               onClick={() => handleDialogChange(false)}
-              className="border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white"
             >
               Cancel
-            </Button>
-            <Button 
+            </CommonButton>
+            <CommonButton 
               type="submit"
               form="add-asset-form"
-              className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_0.8)]"
               onClick={handleSubmit}
             >
               Add Asset
-            </Button>
+            </CommonButton>
           </div>
         </DialogContent>
       </Dialog>

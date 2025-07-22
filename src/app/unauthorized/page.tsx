@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { CommonButton } from "@/components/ui/common-button"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { getCurrentUser } from "@/utils/auth"
-import { BackButton } from "@/components/ui/back-button"
 import { LicenseAllocationService } from "@/services/licenseService"
 import { Shield, AlertTriangle, Clock, XCircle } from "lucide-react"
 
@@ -86,9 +85,6 @@ export default function Unauthorized() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg text-center">
-        <div className="mb-6">
-          <BackButton text="Back" />
-        </div>
         <h1 className="text-2xl font-bold mb-4 text-[rgb(44,62,80)]">{title}</h1>
         
         <div className="mb-6">
@@ -124,28 +120,26 @@ export default function Unauthorized() {
         )}
         
         <div className="flex flex-col space-y-3">
-          <Button 
+          <CommonButton 
             onClick={() => router.push("/")}
-            className="bg-[rgb(44,62,80)] hover:bg-[rgb(44,62,80)]/90"
           >
             Go to Home
-          </Button>
+          </CommonButton>
           
-          <Button 
+          <CommonButton 
             onClick={() => router.push("/auth/login")}
             variant="outline"
           >
             Switch Account
-          </Button>
+          </CommonButton>
           
           {user && user.role !== 'superuser' && !licenseStatus?.hasActiveLicense && (
-            <Button 
+            <CommonButton 
               onClick={() => router.push("/admin/license-management")}
-              variant="outline"
-              className="text-blue-600 border-blue-600 hover:bg-blue-50"
+              variant="info"
             >
               View License Management
-            </Button>
+            </CommonButton>
           )}
         </div>
       </div>

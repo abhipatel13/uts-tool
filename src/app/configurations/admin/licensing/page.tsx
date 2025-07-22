@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { CommonButton } from "@/components/ui/common-button"
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
@@ -288,13 +288,12 @@ const LicensingAdminPage = () => {
             
             <TabsContent value="pools">
               <div className="flex justify-end mb-4">
-                <Button 
+                <CommonButton 
                   onClick={() => setShowCreatePoolDialog(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
                 >
                   <CreditCard className="mr-2 h-4 w-4" />
                   Create License Pool
-                </Button>
+                </CommonButton>
               </div>
               
               {/* License Pools Table */}
@@ -427,19 +426,19 @@ const LicensingAdminPage = () => {
                     </div>
                   </div>
                   <div className="flex justify-end gap-2 mt-4">
-                    <Button 
+                    <CommonButton 
                       variant="outline" 
                       onClick={() => setShowCreatePoolDialog(false)}
                     >
                       Cancel
-                    </Button>
-                    <Button 
+                    </CommonButton>
+                    <CommonButton 
                       onClick={handleCreatePoolRequest}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
                       Proceed to Payment
-                    </Button>
+                    </CommonButton>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -481,7 +480,7 @@ const LicensingAdminPage = () => {
                     )}
                   </div>
                   <div className="flex justify-start gap-2 mt-4">
-                    <Button 
+                    <CommonButton 
                       variant="outline" 
                       onClick={() => {
                         setShowPaymentDialog(false);
@@ -490,7 +489,7 @@ const LicensingAdminPage = () => {
                       disabled={isProcessingPayment || isCreatingPool}
                     >
                       Back to Form
-                    </Button>
+                    </CommonButton>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -498,11 +497,11 @@ const LicensingAdminPage = () => {
 
             <TabsContent value="allocations">
               <div className="flex justify-end mb-4">
-                <Button 
+                <CommonButton 
                   onClick={() => setShowAllocateDialog(true)}
                 >
                   + Allocate License
-                </Button>
+                </CommonButton>
               </div>
               
               {/* Allocations Table */}
@@ -538,14 +537,14 @@ const LicensingAdminPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.validUntil ? new Date(a.validUntil).toLocaleDateString() : ''}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {a.status === 'active' || a.status === 'allocated' ? (
-                            <Button
+                            <CommonButton
                               variant="outline"
                               size="sm"
                               onClick={() => handleRevokeClick(a)}
                               className="text-red-600 hover:text-red-800 hover:bg-red-50"
                             >
                               Revoke
-                            </Button>
+                            </CommonButton>
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}
@@ -653,14 +652,14 @@ const LicensingAdminPage = () => {
                     </div>
                   </div>
                   <div className="flex justify-end gap-2 mt-4">
-                    <Button 
+                    <CommonButton 
                       variant="outline" 
                       onClick={() => setShowAllocateDialog(false)}
                       disabled={isAllocatingLicense}
                     >
                       Cancel
-                    </Button>
-                    <Button 
+                    </CommonButton>
+                    <CommonButton 
                       onClick={handleAllocateLicense}
                       disabled={isAllocatingLicense}
                     >
@@ -672,7 +671,7 @@ const LicensingAdminPage = () => {
                       ) : (
                         'Allocate'
                       )}
-                    </Button>
+                    </CommonButton>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -713,7 +712,7 @@ const LicensingAdminPage = () => {
                     </div>
                   </div>
                   <div className="flex justify-end gap-2 mt-4">
-                    <Button 
+                    <CommonButton 
                       variant="outline" 
                       onClick={() => {
                         setShowRevokeDialog(false);
@@ -723,8 +722,8 @@ const LicensingAdminPage = () => {
                       disabled={isRevokingLicense}
                     >
                       Cancel
-                    </Button>
-                    <Button 
+                    </CommonButton>
+                    <CommonButton 
                       onClick={handleRevokeLicense}
                       disabled={isRevokingLicense}
                       className="bg-red-600 hover:bg-red-700"
@@ -737,7 +736,7 @@ const LicensingAdminPage = () => {
                       ) : (
                         'Revoke License'
                       )}
-                    </Button>
+                    </CommonButton>
                   </div>
                 </DialogContent>
               </Dialog>

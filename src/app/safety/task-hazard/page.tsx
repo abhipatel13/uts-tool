@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
-import { BackButton } from "@/components/ui/back-button"
+
 import { useToast } from "@/components/ui/use-toast"
 import {
   Dialog,
@@ -20,6 +20,7 @@ import {
   getRiskColor,
   getConsequenceLabels
 } from "@/lib/risk-utils"
+import { CommonButton } from "@/components/ui/common-button"
 
 // Define interface for task data
 type TaskHazardData = TaskHazard;
@@ -112,7 +113,7 @@ export default function TaskHazard() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-4 sm:mb-6">
-        <BackButton text="Back" />
+
       </div>
       
       {/* Responsive header section */}
@@ -130,12 +131,12 @@ export default function TaskHazard() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button 
-              className="bg-[#00A3FF] hover:bg-[#00A3FF]/90 gap-2 w-full sm:w-auto sm:flex-shrink-0 order-1 sm:order-2" 
+            <CommonButton 
+              className="gap-2 w-full sm:w-auto sm:flex-shrink-0 order-1 sm:order-2" 
               onClick={() => setOpen(true)}
             >
               <Plus className="h-4 w-4" /> ADD NEW
-            </Button>
+            </CommonButton>
           </div>
         </div>
       </div>
@@ -149,16 +150,16 @@ export default function TaskHazard() {
             <p>Are you sure you want to delete this task hazard assessment? This action cannot be undone.</p>
           </div>
           <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="w-full sm:w-auto">
+            <CommonButton variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="w-full sm:w-auto">
               Cancel
-            </Button>
-            <Button 
+            </CommonButton>
+            <CommonButton 
               variant="destructive" 
               onClick={handleDeleteTask}
-              className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
+              className="w-full sm:w-auto"
             >
               Delete
-            </Button>
+            </CommonButton>
           </div>
         </DialogContent>
       </Dialog>
@@ -265,7 +266,7 @@ export default function TaskHazard() {
                         </td>
                         <td className="p-3 sm:p-4">
                           <div className="flex gap-1 sm:gap-2">
-                            <Button
+                            <CommonButton
                               variant="ghost"
                               size="icon"
                               className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 sm:h-9 sm:w-9"
@@ -277,7 +278,7 @@ export default function TaskHazard() {
                               title="Delete"
                             >
                               <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                            </Button>
+                            </CommonButton>
                           </div>
                         </td>
                       </tr>
@@ -309,14 +310,14 @@ export default function TaskHazard() {
                     <div className="flex flex-col items-center gap-2">
                       <div className="text-lg">Error loading tasks</div>
                       <div className="text-sm">{error}</div>
-                      <Button 
+                      <CommonButton 
                         variant="outline" 
                         size="sm" 
                         onClick={fetchTasks}
                         className="mt-2"
                       >
                         Try Again
-                      </Button>
+                      </CommonButton>
                     </div>
                   </td>
                 </tr>
@@ -342,14 +343,14 @@ export default function TaskHazard() {
             <div className="flex flex-col items-center gap-2">
               <div className="text-lg">Error loading tasks</div>
               <div className="text-sm">{error}</div>
-              <Button 
+              <CommonButton 
                 variant="outline" 
                 size="sm" 
                 onClick={fetchTasks}
                 className="mt-2"
               >
                 Try Again
-              </Button>
+              </CommonButton>
             </div>
           </div>
         )}

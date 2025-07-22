@@ -1,46 +1,22 @@
 'use client';
 
+import React from 'react';
+import { Button } from './button';
 import { ChevronLeft, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-interface BackButtonProps extends Omit<ButtonProps, 'onClick' | 'children'> {
-  /**
-   * Custom text to display. Defaults to "Back"
-   */
+export interface BackButtonProps {
   text?: string;
-  
-  /**
-   * Custom href to navigate to instead of using router.back()
-   */
   href?: string;
-  
-  /**
-   * Custom onClick handler. If provided, will override default navigation
-   */
   onClick?: () => void;
-  
-  /**
-   * Icon variant to use
-   */
   icon?: 'chevron' | 'arrow' | 'none' | React.ReactNode;
-  
-  /**
-   * Whether to show icon on the left or right of text
-   */
   iconPosition?: 'left' | 'right';
-  
-  /**
-   * Custom className for styling
-   */
   className?: string;
-  
-  /**
-   * Whether to use browser back functionality (default: true)
-   */
   useBrowserBack?: boolean;
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  size?: "default" | "sm" | "lg" | "icon";
 }
 
 export function BackButton({ 
@@ -98,7 +74,7 @@ export function BackButton({
           variant={variant}
           size={size}
           className={cn(
-            "border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white",
+            "border-[#34495E] text-[#34495E] hover:bg-[#34495E] hover:text-white",
             className
           )}
           {...props}
@@ -116,7 +92,7 @@ export function BackButton({
       size={size}
       onClick={handleClick}
       className={cn(
-        "border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white",
+        "border-[#34495E] text-[#34495E] hover:bg-[#34495E] hover:text-white",
         className
       )}
       {...props}

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getCurrentUser } from "@/utils/auth"
 import { getDashboardItems, getRoleColorScheme, getRoleTitle } from "@/utils/roleBasedUI"
-import { Users, Shield, Database, FileText, Settings } from "lucide-react"
+import { Users, Shield, Database, FileText, Settings, Building2, AlertTriangle, BarChart3, Target, Bell } from "lucide-react"
 import LicenseProtectedRoute from "@/components/LicenseProtectedRoute"
 
 function DashboardContent() {
@@ -58,6 +58,16 @@ function DashboardContent() {
         return <Database className="h-6 w-6" />
       case "file-text":
         return <FileText className="h-6 w-6" />
+      case "Building2":
+        return <Building2 className="h-6 w-6" />
+      case "AlertTriangle":
+        return <AlertTriangle className="h-6 w-6" />
+      case "BarChart3":
+        return <BarChart3 className="h-6 w-6" />
+      case "Target":
+        return <Target className="h-6 w-6" />
+      case "Bell":
+        return <Bell className="h-6 w-6" />
       default:
         return <Settings className="h-6 w-6" />
     }
@@ -76,7 +86,7 @@ function DashboardContent() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center">
             <div className={`p-3 rounded-full mr-4`} style={{ backgroundColor: primary }}>
@@ -101,17 +111,7 @@ function DashboardContent() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-blue-500 mr-4">
-              <Database className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Available Features</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardItems.length}</p>
-            </div>
-          </div>
-        </div>
+
 
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center">
@@ -155,43 +155,7 @@ function DashboardContent() {
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button
-            onClick={() => router.push("/safety/task-hazard")}
-            className="p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors text-left"
-          >
-            <h3 className="font-medium text-orange-900">Create Task Hazard</h3>
-            <p className="text-sm text-orange-700 mt-1">Start a new assessment</p>
-          </button>
-          
-          <button
-            onClick={() => router.push("/safety/risk-assessment")}
-            className="p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-left"
-          >
-            <h3 className="font-medium text-blue-900">Risk Assessment</h3>
-            <p className="text-sm text-blue-700 mt-1">Evaluate risks</p>
-          </button>
-          
-          <button
-            onClick={() => router.push("/asset-hierarchy")}
-            className="p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-left"
-          >
-            <h3 className="font-medium text-green-900">View Assets</h3>
-            <p className="text-sm text-green-700 mt-1">Browse hierarchy</p>
-          </button>
-          
-          <button
-            onClick={() => router.push("/analytics")}
-            className="p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors text-left"
-          >
-            <h3 className="font-medium text-purple-900">Analytics</h3>
-            <p className="text-sm text-purple-700 mt-1">View reports</p>
-          </button>
-        </div>
-      </div>
+
     </div>
   )
 }
