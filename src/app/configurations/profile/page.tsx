@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { userApi } from "@/services/userApi";
-import { BackButton } from '@/components/ui/back-button';
+
 
 interface User {
   id: number;
@@ -120,7 +120,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto py-10">
-      <BackButton className="mb-6" />
+      
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
           <div className="flex justify-between items-center">

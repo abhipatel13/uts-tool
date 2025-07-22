@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { BackButton } from "@/components/ui/back-button"
+
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { APIProvider, Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps';
@@ -294,9 +294,7 @@ export function AnalyticsPageWrapper<T extends { id?: string | number; location?
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-4 sm:mb-6">
-        <BackButton text="Back" />
-      </div>
+
       
       <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""} onLoad={() => console.log('Maps API has loaded.')}>
         {/* Responsive header section */}

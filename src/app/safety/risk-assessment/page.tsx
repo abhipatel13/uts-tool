@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
-import { BackButton } from "@/components/ui/back-button"
+
 import { useToast } from "@/components/ui/use-toast"
 import {
   Dialog,
@@ -106,7 +106,7 @@ export default function RiskAssessment() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-4 sm:mb-6">
-        <BackButton text="Back" />
+
       </div>
       
       {/* Responsive header section */}

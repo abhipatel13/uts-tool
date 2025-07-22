@@ -1,5 +1,4 @@
 'use client';
-import { BackButtonVariants } from '@/components/ui/back-button';
 import Link from 'next/link';
 import { Users, FileText, User, Settings } from 'lucide-react';
 
@@ -44,9 +43,6 @@ export default function Configurations() {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <BackButtonVariants.Dashboard />
-      </div>
       <h1 className="text-2xl font-bold mb-6">Configurations</h1>
       
       {/* Configuration Cards */}

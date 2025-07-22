@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/ui/back-button";
+
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -272,7 +272,7 @@ const LicenseManagementPage = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <BackButton text="Back" />
+  
           <h1 className="text-3xl font-bold text-[rgb(44,62,80)] mt-4">License Management</h1>
           <p className="text-gray-600 mt-2">
             {(() => {

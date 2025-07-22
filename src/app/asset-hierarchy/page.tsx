@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { BackButton } from "@/components/ui/back-button"
+
 import {
   Dialog,
   DialogContent,
@@ -389,7 +389,7 @@ export default function DataLoader() {
   return (
     <div className="container mx-auto py-10">
       <div className="mb-6">
-        <BackButton text="Back" />
+
       </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Asset Hierarchy</h1>

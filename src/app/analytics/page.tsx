@@ -1,6 +1,5 @@
 "use client";
 
-import { BackButton } from '@/components/ui/back-button';
 import Link from 'next/link';
 import { BarChart3, AlertTriangle } from 'lucide-react';
 
@@ -36,9 +35,6 @@ export default function Analytics() {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <BackButton text="Back" />
-      </div>
       <h1 className="text-2xl font-bold mb-6">Analytics & Reporting</h1>
       
       {/* Analytics Cards */}
