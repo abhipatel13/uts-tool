@@ -380,15 +380,25 @@ export function Sidebar() {
         </div>
 
         {/* Collapse Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute -right-3 top-6 h-6 w-6 rounded-full border bg-[#1B2631] text-white hover:bg-[#2C3E50] z-20"
-          onClick={() => setIsCollapsed(!isCollapsed)}
+        <div 
+          className="absolute top-1/2 -translate-y-1/2 -right-4 z-[9999] bg-white rounded-full p-1 shadow-xl" 
         >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full border-2 border-black bg-black text-white hover:bg-gray-800 transition-all duration-200"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
+
+
 
       {/* Main Content */}
       <div className={cn("min-h-[100dvh] transition-all duration-300 bg-gray-50", isCollapsed ? "lg:pl-16" : "lg:pl-64")}>

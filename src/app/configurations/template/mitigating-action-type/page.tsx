@@ -1,10 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { CommonButton } from "@/components/ui/common-button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { BackButton } from "@/components/ui/back-button"
 
 export default function MitigatingActionType() {
   const [types, setTypes] = useState<string[]>([])
@@ -28,9 +27,6 @@ export default function MitigatingActionType() {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <BackButton text="Back" />
-      </div>
       <h1 className="text-2xl font-bold mb-6">Mitigating Action Type</h1>
       
       <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -61,21 +57,18 @@ export default function MitigatingActionType() {
               }
             }}
           />
-          <Button 
+          <CommonButton 
             onClick={handleAddType}
             size="icon"
-            className="bg-[#00A6ED] hover:bg-[#0094d4] rounded-full h-8 w-8"
           >
             +
-          </Button>
+          </CommonButton>
         </div>
 
         <div className="flex justify-end mt-4">
-          <Button 
-            className="bg-[#00A6ED] hover:bg-[#0094d4]"
-          >
+          <CommonButton>
             Save
-          </Button>
+          </CommonButton>
         </div>
       </div>
     </div>

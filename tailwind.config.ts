@@ -8,12 +8,17 @@ export default {
   ],
   safelist: [
     // Risk matrix colors - ensure these are always included in the build
-    'bg-[#8DC63F]',
-    'bg-[#FFFF00]',
-    'bg-[#F7941D]',
-    'bg-[#ED1C24]',
+    'bg-[#8DC63F]', // Green
+    'bg-[#FFFF00]', // Yellow
+    'bg-[#F7941D]', // Orange
+    'bg-[#ED1C24]', // Red
     'text-black',
     'text-white',
+    // Button color
+    'bg-[#34495E]',
+    'hover:bg-[#34495E]/90',
+    'border-[#34495E]',
+    'text-[#34495E]',
     // Quick action background colors
     'bg-orange-50',
     'bg-purple-50',
@@ -74,7 +79,9 @@ export default {
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
-  			}
+  			},
+  			// Custom button color
+  			'button-primary': '#34495E',
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

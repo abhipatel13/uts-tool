@@ -21,9 +21,6 @@ export const hasRole = (role: string): boolean => {
   const user = getCurrentUser();
   if (!user) return false;
 
-  // Superuser has all roles
-  if (user.role === "superuser") return true;
-
   return user.role === role;
 };
 

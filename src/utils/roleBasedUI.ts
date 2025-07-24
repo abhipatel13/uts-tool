@@ -41,6 +41,13 @@ export function getDashboardItems(): DashboardItem[] {
       permission: Permissions.VIEW_ASSET_HIERARCHY,
     },
     {
+      title: "Tactics",
+      description: "Manage and configure tactics",
+      icon: "Target",
+      href: "/tactics",
+      permission: Permissions.TACTICS,
+    },
+    {
       title: "Task Hazard",
       description: "Create and manage task hazard assessments",
       icon: "AlertTriangle",
@@ -67,13 +74,6 @@ export function getDashboardItems(): DashboardItem[] {
       icon: "Settings",
       href: "/configurations",
       permission: Permissions.CONFIGURATION_MANAGEMENT,
-    },
-    {
-      title: "Tactics",
-      description: "Manage maintenance tactics",
-      icon: "FileText",
-      href: "/tactics",
-      permission: Permissions.TACTICS,
     },
   ];
 

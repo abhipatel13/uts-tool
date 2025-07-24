@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { CommonButton } from "@/components/ui/common-button"
 import { Input } from "@/components/ui/input"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { setAuthToken, setUserData } from "@/utils/auth"
 import { AuthApi } from "@/services"
@@ -60,17 +60,17 @@ export default function Login() {
       
       const { user, token } = response.data
 
-      // Store user data and token
       setUserData({
         id: user._id,
         email: user.email,
+        name: (user as { _id: string; email: string; name?: string; role: string; company: string }).name,
         role: user.role,
         company: user.company,
         isAuthenticated: true
       })
-
-      setAuthToken(token)
       
+      setAuthToken(token)
+
       router.push("/")
     } catch (apiError: unknown) {
       console.error("API login error:", apiError)
@@ -130,13 +130,12 @@ export default function Login() {
             />
           </div>
 
-          <Button
+          <CommonButton
             type="submit"
-            className="w-full bg-[rgb(44,62,80)] hover:bg-[rgb(44,62,80)]/90"
             disabled={isLoading}
           >
             {isLoading ? "Logging in..." : "Login"}
-          </Button>
+          </CommonButton>
         </form>
       </div>
     </div>

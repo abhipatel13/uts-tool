@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CommonButton } from "@/components/ui/common-button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { UserApi } from "@/services/userApi"
+import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/components/ui/use-toast";
-import { UserApi } from "@/services";
-import { BackButton } from '@/components/ui/back-button';
-import { User } from '@/types/user';
+import { User } from "@/types/user";
+import { getCurrentUser } from "@/utils/auth"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -32,13 +32,12 @@ export default function ProfilePage() {
 
     const fetchUserProfile = async () => {
       try {
-        const userData = localStorage.getItem('user');
+        const userData = getCurrentUser()
         if (userData) {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
+          setUser(userData);
           setFormData(prev => ({
             ...prev,
-            email: parsedUser.email
+            email: userData.email
           }));
         }
       } catch (error) {
@@ -114,7 +113,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto py-10">
-      <BackButton className="mb-6" />
+      
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -195,20 +194,17 @@ export default function ProfilePage() {
 
             <div className="flex justify-end gap-4">
               {!isEditing ? (
-                <Button 
+                <CommonButton 
                   type="button" 
                   onClick={() => setIsEditing(true)}
-                  variant="outline"
-                  className="hover:bg-primary hover:text-primary-foreground"
                 >
                   Edit Profile
-                </Button>
+                </CommonButton>
               ) : (
                 <>
-                  <Button 
+                  <CommonButton 
                     type="button" 
                     variant="outline"
-                    className="hover:bg-primary hover:text-primary-foreground"
                     onClick={() => {
                       setIsEditing(false);
                       setFormData(prev => ({
@@ -220,13 +216,12 @@ export default function ProfilePage() {
                     }}
                   >
                     Cancel
-                  </Button>
-                  <Button 
+                  </CommonButton>
+                  <CommonButton 
                     type="submit"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     Save Changes
-                  </Button>
+                  </CommonButton>
                 </>
               )}
             </div>

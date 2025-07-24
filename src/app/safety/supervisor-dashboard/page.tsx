@@ -464,9 +464,6 @@ export default function SupervisorDashboard() {
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
-            <BackButton text="Back" />
-          </div>
           <h1 className="text-2xl font-bold mb-6">
             {isAdminOrSuperUser ? 'Task Management Dashboard' : 'Supervisor Dashboard'} - {currentView === 'dashboard'
               ? isAdminOrSuperUser ? 'All Tasks' : 'My Tasks'

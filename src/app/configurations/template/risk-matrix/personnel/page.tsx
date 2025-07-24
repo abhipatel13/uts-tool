@@ -29,9 +29,6 @@ const PersonnelRiskMatrix = () => {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <BackButton text="Back" />
-      </div>
       <Card>
         <CardHeader>
           <CardTitle>Personnel Risk Matrix</CardTitle>

@@ -1,10 +1,9 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { Button } from "@/components/ui/button"
+import { CommonButton } from "@/components/ui/common-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { BackButton } from "@/components/ui/back-button"
 import {
   Dialog,
   DialogContent,
@@ -13,8 +12,8 @@ import {
 } from "@/components/ui/dialog"
 import { Plus, ChevronRight, ChevronDown, Info } from "lucide-react"
 import { AssetHierarchyApi } from "@/services"
-import { useToast } from "@/components/ui/use-toast"
 import { hasPermission } from "@/utils/auth"
+import { useToast } from "@/components/ui/use-toast"
 import { AssetSelector } from "@/components/AssetSelector"
 import {
   Select,
@@ -39,6 +38,7 @@ export default function DataLoader() {
   const [formData, setFormData] = useState<CreateAssetRequest>({
     cmmsInternalId: '',
     name: '',
+    description: '',
     functionalLocation: '',
     functionalLocationDescription: '',
     functionalLocationLongDescription: '',
@@ -116,6 +116,7 @@ export default function DataLoader() {
           ...formData,
           parent: formData.parent === '' ? null : formData.parent,
           name: formData.name.trim(),
+          description: formData.description.trim(),
           functionalLocation: formData.functionalLocation?.trim() || '',
           functionalLocationDesc: formData.functionalLocationDescription?.trim() || '',
           functionalLocationLongDesc: formData.functionalLocationLongDescription?.trim() || '',
@@ -141,6 +142,7 @@ export default function DataLoader() {
       setFormData({
         cmmsInternalId: '',
         name: '',
+        description: '',
         functionalLocation: '',
         functionalLocationDescription: '',
         functionalLocationLongDescription: '',
@@ -187,6 +189,7 @@ export default function DataLoader() {
       setFormData({
         cmmsInternalId: '',
         name: '',
+        description: '',
         functionalLocation: '',
         functionalLocationDescription: '',
         functionalLocationLongDescription: '',
@@ -310,18 +313,17 @@ export default function DataLoader() {
   return (
     <div className="container mx-auto py-10">
       <div className="mb-6">
-        <BackButton text="Back" />
+
       </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Asset Hierarchy</h1>
         {canCreateAssets && (
-          <Button
+          <CommonButton
             onClick={() => setShowAddDialog(true)}
-            className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Asset
-          </Button>
+          </CommonButton>
         )}
       </div>
 
@@ -389,10 +391,14 @@ export default function DataLoader() {
                 <p className="text-sm">{selectedAsset.name}</p>
               </div>
               <div className="space-y-2">
+              <Label>Description</Label>
+                <p className="text-sm">{selectedAsset.description}</p>
+              </div>
               <div className="space-y-2">
                 <Label>Functional Location</Label>
                 <p className="text-sm">{selectedAsset.functionalLocation || '-'}</p>
               </div>
+              <div className="space-y-2">
                 <Label>Functional Location Description</Label>
                 <p className="text-sm">{selectedAsset.functionalLocationDescription}</p>
               </div>
@@ -455,6 +461,16 @@ export default function DataLoader() {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="e.g., Main Pump"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Input
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Primary water pump"
                   required
                 />
               </div>
@@ -567,22 +583,20 @@ export default function DataLoader() {
             </div>
           </form>
           <div className="flex justify-end gap-4 mt-4 pt-4 border-t">
-            <Button 
+            <CommonButton 
               type="button" 
               variant="outline" 
               onClick={() => handleDialogChange(false)}
-              className="border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white"
             >
               Cancel
-            </Button>
-            <Button 
+            </CommonButton>
+            <CommonButton 
               type="submit"
               form="add-asset-form"
-              className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_0.8)]"
               onClick={handleSubmit}
             >
               Add Asset
-            </Button>
+            </CommonButton>
           </div>
         </DialogContent>
       </Dialog>

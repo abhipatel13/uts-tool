@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getCurrentUser } from "@/utils/auth"
 import { getDashboardItems, getRoleColorScheme, getRoleTitle, getQuickActions } from "@/utils/roleBasedUI"
-import { Users, Shield, Database, FileText, Settings } from "lucide-react"
+import { Users, Shield, Database, FileText, Settings, Building2, AlertTriangle, BarChart3, Target, Bell } from "lucide-react"
 import LicenseProtectedRoute from "@/components/LicenseProtectedRoute"
 
 function DashboardContent() {
@@ -59,6 +59,16 @@ function DashboardContent() {
         return <Database className="h-6 w-6" />
       case "file-text":
         return <FileText className="h-6 w-6" />
+      case "Building2":
+        return <Building2 className="h-6 w-6" />
+      case "AlertTriangle":
+        return <AlertTriangle className="h-6 w-6" />
+      case "BarChart3":
+        return <BarChart3 className="h-6 w-6" />
+      case "Target":
+        return <Target className="h-6 w-6" />
+      case "Bell":
+        return <Bell className="h-6 w-6" />
       default:
         return <Settings className="h-6 w-6" />
     }
@@ -77,7 +87,7 @@ function DashboardContent() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center">
             <div className={`p-3 rounded-full mr-4`} style={{ backgroundColor: primary }}>
@@ -102,17 +112,7 @@ function DashboardContent() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-blue-500 mr-4">
-              <Database className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Available Features</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardItems.length}</p>
-            </div>
-          </div>
-        </div>
+
 
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center">

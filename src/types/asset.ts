@@ -4,6 +4,7 @@
 export interface Asset {
   id: string;
   name: string;
+  description: string;
   cmmsInternalId: string;
   functionalLocation: string;
   functionalLocationDescription: string;
