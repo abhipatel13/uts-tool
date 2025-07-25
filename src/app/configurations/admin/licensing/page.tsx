@@ -275,7 +275,7 @@ const LicensingAdminPage = () => {
           <p className="text-sm text-gray-600">
             {(() => {
               const user = getCurrentUser();
-              return `Manage license pools and allocations for ${user?.company || 'your company'}`;
+              return `Manage license pools and allocations for ${user?.company?.name || 'your company'}`;
             })()}
           </p>
         </CardHeader>

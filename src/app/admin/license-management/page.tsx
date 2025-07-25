@@ -277,7 +277,7 @@ const LicenseManagementPage = () => {
           <p className="text-gray-600 mt-2">
             {(() => {
               const user = getCurrentUser();
-              return `Manage license pools and allocations for ${user?.company || 'your company'}`;
+              return `Manage license pools and allocations for ${user?.company?.name || 'your company'}`;
             })()}
           </p>
         </div>

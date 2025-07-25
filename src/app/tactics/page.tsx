@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Button } from "@/components/ui/button"
+import { CommonButton } from "@/components/ui/common-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -409,7 +409,7 @@ export default function TacticsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Asset Details</Label>
-                  <Button 
+                  <CommonButton 
                     type="button"
                     variant="outline"
                     className="w-full flex justify-between items-center"
@@ -417,11 +417,11 @@ export default function TacticsPage() {
                   >
                     {formData.assetRows.length > 1 ? `${formData.assetRows.length} Assets Added` : 'Add Asset Details'}
                     <ChevronDown className="h-4 w-4" />
-                  </Button>
+                  </CommonButton>
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button type="submit">Add Analysis</Button>
+                <CommonButton type="submit">Add Analysis</CommonButton>
               </div>
             </div>
           </form>
@@ -436,15 +436,15 @@ export default function TacticsPage() {
           
           <div className="flex-1 overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-4">
-              <Button onClick={handleAddRow} variant="outline">
+              <CommonButton onClick={handleAddRow} variant="outline">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Row
-              </Button>
+              </CommonButton>
               <div className="flex gap-2">
-                <Button onClick={handleAssetSave} variant="outline">
+                <CommonButton onClick={handleAssetSave} variant="outline">
                   <Save className="h-4 w-4 mr-2" />
                   Save Changes
-                </Button>
+                </CommonButton>
               </div>
             </div>
             
@@ -536,7 +536,7 @@ export default function TacticsPage() {
               <div className="bg-gray-50 rounded-lg p-6">
                 <h3 className="text-xl font-semibold text-[rgb(44,62,80)] mb-4">Asset Details</h3>
                 <div className="grid grid-cols-2 gap-6">
-                  {Object.entries(selectedTactic.asset_details).map(([key, value]) => (
+                  {selectedTactic.asset_details && Object.entries(selectedTactic.asset_details).map(([key, value]) => (
                     <div key={key} className="bg-white rounded-lg p-4 shadow-sm">
                       <div className="text-sm text-gray-500 mb-1">
                         {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}

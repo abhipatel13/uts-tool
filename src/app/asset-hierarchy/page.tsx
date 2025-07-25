@@ -116,7 +116,7 @@ export default function DataLoader() {
           ...formData,
           parent: formData.parent === '' ? null : formData.parent,
           name: formData.name.trim(),
-          description: formData.description.trim(),
+          description: formData.description.trim() || '',
           functionalLocation: formData.functionalLocation?.trim() || '',
           functionalLocationDesc: formData.functionalLocationDescription?.trim() || '',
           functionalLocationLongDesc: formData.functionalLocationLongDescription?.trim() || '',
