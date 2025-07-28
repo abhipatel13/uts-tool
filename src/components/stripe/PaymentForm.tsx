@@ -51,7 +51,7 @@ export default function PaymentForm({
 
     try {
       // Create payment intent
-      const response = await fetch('/api/payments/create-payment-intent', {
+      const response = await fetch('/api/payment/create-payment-intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

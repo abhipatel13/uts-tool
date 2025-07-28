@@ -7,8 +7,8 @@ export interface Asset {
   description: string;
   cmmsInternalId: string;
   functionalLocation: string;
-  functionalLocationDescription: string;
-  functionalLocationLongDescription: string;
+  functionalLocationDesc: string;
+  functionalLocationLongDesc: string;
   parent: string | null;  
   maintenancePlant: string;  
   cmmsSystem: string;  

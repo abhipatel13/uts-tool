@@ -40,8 +40,8 @@ export default function DataLoader() {
     name: '',
     description: '',
     functionalLocation: '',
-    functionalLocationDescription: '',
-    functionalLocationLongDescription: '',
+    functionalLocationDesc: '',
+    functionalLocationLongDesc: '',
     parent: null,
     maintenancePlant: '',
     cmmsSystem: '',
@@ -118,8 +118,8 @@ export default function DataLoader() {
           name: formData.name.trim(),
           description: formData.description.trim() || '',
           functionalLocation: formData.functionalLocation?.trim() || '',
-          functionalLocationDesc: formData.functionalLocationDescription?.trim() || '',
-          functionalLocationLongDesc: formData.functionalLocationLongDescription?.trim() || '',
+          functionalLocationDesc: formData.functionalLocationDesc?.trim() || '',
+          functionalLocationLongDesc: formData.functionalLocationLongDesc?.trim() || '',
           cmmsInternalId: formData.cmmsInternalId.trim(),
           maintenancePlant: formData.maintenancePlant?.trim() || '',
           cmmsSystem: formData.cmmsSystem?.trim() || '',
@@ -144,8 +144,8 @@ export default function DataLoader() {
         name: '',
         description: '',
         functionalLocation: '',
-        functionalLocationDescription: '',
-        functionalLocationLongDescription: '',
+        functionalLocationDesc: '',
+        functionalLocationLongDesc: '',
         parent: null,
         maintenancePlant: '',
         cmmsSystem: '',
@@ -191,8 +191,8 @@ export default function DataLoader() {
         name: '',
         description: '',
         functionalLocation: '',
-        functionalLocationDescription: '',
-        functionalLocationLongDescription: '',
+        functionalLocationDesc: '',
+        functionalLocationLongDesc: '',
         parent: null,
         maintenancePlant: '',
         cmmsSystem: '',
@@ -400,7 +400,7 @@ export default function DataLoader() {
               </div>
               <div className="space-y-2">
                 <Label>Functional Location Description</Label>
-                <p className="text-sm">{selectedAsset.functionalLocationDescription}</p>
+                <p className="text-sm">{selectedAsset.functionalLocationDesc}</p>
               </div>
               <div className="space-y-2">
                 <Label>Maintenance Plant</Label>
@@ -486,8 +486,8 @@ export default function DataLoader() {
               <div className="space-y-2">
                 <Label>Functional Location Description</Label>
                 <Input
-                  name="functionalLocationDescription"
-                  value={formData.functionalLocationDescription}
+                  name="functionalLocationDesc"
+                  value={formData.functionalLocationDesc}
                   onChange={handleInputChange}
                   placeholder="e.g., Primary water pump"
                   required

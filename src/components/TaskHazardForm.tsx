@@ -168,7 +168,7 @@ export default function TaskHazardForm({
     if (open && mode === 'create') {
       const now = new Date()
       const currentDate = now.toISOString().split('T')[0]
-      const currentTime = now.toTimeString().slice(0, 5)
+      const currentTime = now.toTimeString().slice(0, 8)
       setFormData(prev => ({
         ...prev,
         date: currentDate,
