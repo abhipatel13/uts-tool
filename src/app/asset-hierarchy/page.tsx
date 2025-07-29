@@ -76,8 +76,8 @@ export default function DataLoader() {
 
       setAssets(apiAssets)
       
-      // Set expanded assets only after mounting
-      if (mounted) {
+      // Set expanded assets only on initial load, not on refresh
+      if (mounted && expandedAssets.size === 0) {
         const rootAssets = new Set(
           apiAssets
             .filter(asset => !asset.parent)
@@ -85,6 +85,29 @@ export default function DataLoader() {
         )
         setExpandedAssets(rootAssets)
       }
+    } catch (err) {
+      console.error('Error fetching assets:', err)
+      setError('Failed to load assets. Please try again later.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchAssetsWithPreservedState = async (preservedExpanded: Set<string>) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await AssetHierarchyApi.getAll()
+      const apiAssets = response.data as Asset[]
+      
+      if (!Array.isArray(apiAssets)) {
+        throw new Error('Invalid response format from server')
+      }
+
+      setAssets(apiAssets)
+      
+      // Preserve the provided expansion state
+      setExpandedAssets(preservedExpanded)
     } catch (err) {
       console.error('Error fetching assets:', err)
       setError('Failed to load assets. Please try again later.')
@@ -132,7 +155,16 @@ export default function DataLoader() {
       }
       await AssetHierarchyApi.create(assetToCreate)
       setShowAddDialog(false)
-      fetchAssets() // Refresh the asset list
+      
+      // Preserve current expansion state and only expand parent if needed
+      const currentExpanded = new Set(expandedAssets)
+      if (formData.parent) {
+        currentExpanded.add(formData.parent)
+      }
+      
+      // Fetch assets and preserve expansion state
+      await fetchAssetsWithPreservedState(currentExpanded)
+      
       toast({
         title: "Success!",
         description: "Asset added successfully.",
