@@ -126,7 +126,7 @@ export default function RiskAssessment() {
               />
             </div>
             <CommonButton 
-              className="bg-[#00A3FF] hover:bg-[#00A3FF]/90 gap-2 w-full sm:w-auto sm:flex-shrink-0 order-1 sm:order-2" 
+              className="gap-2 w-full sm:w-auto sm:flex-shrink-0 order-1 sm:order-2" 
               onClick={() => setOpen(true)}
             >
               <Plus className="h-4 w-4" /> ADD NEW
