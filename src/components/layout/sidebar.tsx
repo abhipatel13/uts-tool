@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Menu, X, Settings, CreditCard } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, X, Settings, CreditCard, Crown } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -34,6 +34,11 @@ const Icons = {
       <CreditCard className="w-6 h-6 text-white" />
     </div>
   ),
+  UniversalDashboard: () => (
+    <div className="p-2 rounded-full flex items-center justify-center bg-[#E74C3C]">
+      <Crown className="w-6 h-6 text-white" />
+    </div>
+  ),
 };
 
 export function Sidebar() {
@@ -55,6 +60,16 @@ export function Sidebar() {
     const hasPermission = (permission: string) => permissions.includes(permission);
     
     const items: NavItem[] = [];
+
+    // Universal Portal (only for universal users - show ONLY this)
+    if (user.role === 'universal_user') {
+      items.push({
+        title: "Universal Portal",
+        href: "/universal-portal",
+        icon: Icons.UniversalDashboard,
+      });
+      return items; // Return early - no other items for universal users
+    }
 
     // Asset Hierarchy
     if (hasPermission(Permissions.VIEW_ASSET_HIERARCHY) || hasPermission(Permissions.CREATE_ASSET_HIERARCHY)) {

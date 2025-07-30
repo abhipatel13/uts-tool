@@ -77,7 +77,6 @@ export default function GlobalLicenseProtection({
             ]);
             
             if (!licenseResponse?.status) {
-              console.log("License API returned error status");
               router.push("/unauthorized")
               return
             }
@@ -85,14 +84,12 @@ export default function GlobalLicenseProtection({
             const hasActiveLicense = licenseResponse.data?.hasActiveLicense;
             
             if (!hasActiveLicense) {
-              console.log("No active license found - redirecting to unauthorized");
               router.push("/unauthorized")
               return
             }
             
           } catch (licenseError) {
             console.error("License check failed:", licenseError);
-            console.log("License check error - redirecting to unauthorized");
             router.push("/unauthorized")
             return
           }

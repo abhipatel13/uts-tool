@@ -5,6 +5,7 @@
 
 // User roles enum
 export enum UserRole {
+  UNIVERSAL_USER = "universal_user",
   SUPER_USER = "superuser",
   ADMIN = "admin",
   SUPERVISOR = "supervisor",
@@ -40,10 +41,18 @@ export const Permissions = {
   // Tactics permissions
   TACTICS: "tactics",
   CREATE_TACTICS: "create_tactics",
+
+  // Universal user permissions
+  UNIVERSAL_MANAGEMENT: "universal_management",
+  CREATE_SUPERUSERS: "create_superusers",
+  MANAGE_ALL_COMPANIES: "manage_all_companies",
+  SYSTEM_ADMINISTRATION: "system_administration",
 } as const;
 
 // Simple role-based permission mapping - direct assignment
 export const RolePermissions: Record<string, string[]> = {
+  [UserRole.UNIVERSAL_USER]: Object.values(Permissions), // Universal user has all permissions
+
   [UserRole.SUPER_USER]: Object.values(Permissions), // Superuser has all permissions
 
   [UserRole.ADMIN]: Object.values(Permissions), // Admin has all permissions
@@ -90,6 +99,8 @@ export function getRoleColorScheme(role: string): {
   secondary: string;
 } {
   switch (role) {
+    case UserRole.UNIVERSAL_USER:
+      return { primary: "red", secondary: "red" };
     case UserRole.SUPER_USER:
       return { primary: "purple", secondary: "purple" };
     case UserRole.ADMIN:
@@ -105,6 +116,8 @@ export function getRoleColorScheme(role: string): {
 // Helper function to get role icon
 export function getRoleIcon(role: string): string {
   switch (role) {
+    case UserRole.UNIVERSAL_USER:
+      return "crown";
     case UserRole.SUPER_USER:
       return "shield";
     case UserRole.ADMIN:
@@ -120,6 +133,8 @@ export function getRoleIcon(role: string): string {
 // Helper function to get display title for a role
 export function getRoleTitle(role: string): string {
   switch (role) {
+    case UserRole.UNIVERSAL_USER:
+      return "Universal User";
     case UserRole.SUPER_USER:
       return "Superuser";
     case UserRole.ADMIN:

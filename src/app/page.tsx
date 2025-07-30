@@ -23,7 +23,12 @@ function DashboardContent() {
     setMounted(true)
     const currentUser = getCurrentUser()
     setUser(currentUser)
-  }, [])
+    
+    // Redirect universal users directly to Universal Portal
+    if (currentUser && currentUser.role === 'universal_user') {
+      router.push('/universal-portal')
+    }
+  }, [router])
 
   // Don't render anything until mounted to prevent hydration mismatch
   if (!mounted) {
