@@ -10,10 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { AssetHierarchyApi } from "@/services"
 import { useToast } from "@/components/ui/use-toast"
 import { UploadStatus } from '@/types'
-import { Info } from 'lucide-react'
+import { Info, Download, FileDown, Database } from 'lucide-react'
 
 const sampleCsvContent = `id,name,cmms_internal_id,functional_location,functional_location_desc,functional_location_long_desc,parent_id,maintenance_plant,cmms_system,object_type,system_status,make,manufacturer,serial_number
 SAP001-1751172747697,Conveyor System,SAP001,Mine 2,Gold mine in Arizona,Large gold mining operation in Arizona,,Maintenance plant 1,SAP,Heavy machinery,Active,Conveyor System Model 4464,Fenner Dunlop,JKCFQSHEAQZD
@@ -179,16 +185,121 @@ export default function DataLoader() {
     }
   }, [])
 
-  const downloadTemplate = () => {
+  const downloadSampleTemplate = () => {
     const blob = new Blob([sampleCsvContent], { type: 'text/csv' })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'asset-hierarchy-template.csv'
+    link.download = 'asset-hierarchy-sample-template.csv'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
+  }
+
+  const downloadEmptyTemplate = () => {
+    const headers = 'id,name,cmms_internal_id,functional_location,functional_location_desc,functional_location_long_desc,parent_id,maintenance_plant,cmms_system,object_type,system_status,make,manufacturer,serial_number'
+    const blob = new Blob([headers], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'asset-hierarchy-empty-template.csv'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  }
+
+  const downloadCurrentAssets = async () => {
+    try {
+      const response = await AssetHierarchyApi.getAll()
+      if (!response.status || !response.data) {
+        throw new Error(response.message || 'Failed to fetch current assets')
+      }
+
+      const assets = response.data
+      if (assets.length === 0) {
+        toast({
+          title: "No Assets Found",
+          description: "There are no assets in your company's hierarchy to export.",
+          variant: "default",
+        })
+        return
+      }
+
+      // Convert assets to CSV format
+      const headers = 'id,name,cmms_internal_id,functional_location,functional_location_desc,functional_location_long_desc,parent_id,maintenance_plant,cmms_system,object_type,system_status,make,manufacturer,serial_number'
+      
+      const csvRows = assets.map(asset => {
+        // Escape values that contain commas or quotes
+        const escapeValue = (value: unknown) => {
+          if (value === null || value === undefined) return ''
+          const str = String(value)
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`
+          }
+          return str
+        }
+
+        return [
+          escapeValue(asset.id),
+          escapeValue(asset.name),
+          escapeValue(asset.cmmsInternalId),
+          escapeValue(asset.functionalLocation),
+          escapeValue(asset.functionalLocationDesc),
+          escapeValue(asset.functionalLocationLongDesc),
+          escapeValue(asset.parent),
+          escapeValue(asset.maintenancePlant),
+          escapeValue(asset.cmmsSystem),
+          escapeValue(asset.objectType),
+          escapeValue(asset.systemStatus),
+          escapeValue(asset.make),
+          escapeValue(asset.manufacturer),
+          escapeValue(asset.serialNumber)
+        ].join(',')
+      })
+
+      const csvContent = [headers, ...csvRows].join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')
+      link.download = `asset-hierarchy-backup-${timestamp}.csv`
+      
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${assets.length} assets to CSV file.`,
+        variant: "default",
+      })
+
+    } catch (error) {
+      console.error('Error downloading current assets:', error)
+      
+      let errorMessage = 'Failed to export current assets.'
+      if (error instanceof Error) {
+        if (error.message.includes('404') || error.message.includes('Not Found')) {
+          errorMessage = 'Asset hierarchy API not available. Please contact your administrator.'
+        } else if (error.message.includes('Network error')) {
+          errorMessage = 'Network error. Please check your internet connection.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      toast({
+        title: "Export Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    }
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -298,13 +409,36 @@ export default function DataLoader() {
             <Info className="w-4 h-4 mr-2" />
             Upload Requirements
           </Button>
-          <Button 
-            onClick={downloadTemplate}
-            variant="outline" 
-            className="border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white"
-          >
-            Download Template
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="border-[rgb(52_73_94_/_1)] text-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)] hover:text-white"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Options
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={downloadSampleTemplate}>
+                <FileDown className="w-4 h-4 mr-2" />
+                Sample Template
+                <span className="ml-auto text-xs text-gray-500">With data</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadEmptyTemplate}>
+                <FileDown className="w-4 h-4 mr-2" />
+                Empty Template
+                <span className="ml-auto text-xs text-gray-500">Headers only</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadCurrentAssets}>
+                <Database className="w-4 h-4 mr-2" />
+                Current Assets
+                <span className="ml-auto text-xs text-gray-500">Backup</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
           <Button 
             onClick={() => setShowUploadDialog(true)}
             className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]"
@@ -396,7 +530,7 @@ export default function DataLoader() {
             )}
             <div className="text-sm text-gray-500">
               <p>Please ensure your CSV file follows the required format.</p>
-              <p>You can download the template for reference.</p>
+              <p>Use the &ldquo;Download Options&rdquo; button to get templates or backup your current data.</p>
             </div>
           </div>
         </DialogContent>
@@ -546,6 +680,40 @@ export default function DataLoader() {
                     <li>Parent reference &ldquo;Building B&rdquo; when no asset named &ldquo;Building B&rdquo; exists in CSV</li>
                     <li>Circular relationship: Asset A → Asset B → Asset C → Asset A</li>
                   </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Download Options */}
+            <div>
+              <h3 className="text-lg font-semibold text-[#2C3E50] mb-3">📥 Download Options</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-800 mb-2 flex items-center">
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Sample Template
+                  </h4>
+                  <p className="text-blue-700 text-sm">
+                    Download a CSV file with sample data to see the correct format and structure.
+                  </p>
+                </div>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-medium text-green-800 mb-2 flex items-center">
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Empty Template
+                  </h4>
+                  <p className="text-green-700 text-sm">
+                    Download a CSV file with just the column headers, ready for you to add your data.
+                  </p>
+                </div>
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <h4 className="font-medium text-orange-800 mb-2 flex items-center">
+                    <Database className="w-4 h-4 mr-2" />
+                    Current Assets
+                  </h4>
+                  <p className="text-orange-700 text-sm">
+                    Export your company&rsquo;s current asset hierarchy as a CSV backup file.
+                  </p>
                 </div>
               </div>
             </div>
