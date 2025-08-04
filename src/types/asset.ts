@@ -62,9 +62,13 @@ export interface AssetDetails {
 // Asset Data Loader Upload Status
 export interface UploadStatus {
   id?: string;
+  uploadId?: string;
   fileName: string;
-  status: 'uploading' | 'completed' | 'error';
+  status: 'uploading' | 'processing' | 'completed' | 'error';
+  message?: string;
+  errorMessage?: string;
   uploadedBy?: string;
   uploadedAt?: string;
+  updatedAt?: string;
   fileSize?: number;
 }

@@ -25,11 +25,14 @@ export const AssetHierarchyApi = {
     const formData = new FormData();
     formData.append('file', file);
     
-    return api.post<ApiResponse<UploadStatus>>('/api/asset-hierarchy/upload-csv', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    
+    // Don't manually set Content-Type for FormData - let browser set it with proper boundary
+    return api.post<ApiResponse<UploadStatus>>('/api/asset-hierarchy/upload-csv', formData);
+  },
+
+  // Get upload status by ID
+  getUploadStatus: async (uploadId: string): Promise<ApiResponse<UploadStatus>> => {
+    return api.get<ApiResponse<UploadStatus>>(`/api/asset-hierarchy/upload-status/${uploadId}`);
   },
 
   // Get upload history
