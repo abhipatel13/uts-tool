@@ -7,10 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Edit2, Trash2, Plus, Users, Building2, Shield, Crown, UserCheck, LogOut } from "lucide-react"
+import { Edit2, Trash2, Plus, Users, Building2, Shield, Crown, UserCheck } from "lucide-react"
 import { UniversalUserApi } from "@/services/universalUserApi"
 
 interface User {
@@ -106,35 +106,12 @@ export default function UniversalPortal() {
     description: ''
   });
   
+  // Company filter state for the prominent filter
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('all');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  
   const { toast } = useToast();
   const router = useRouter();
-
-  useEffect(() => {
-    const checkAuth = () => {
-      const userData = localStorage.getItem('user');
-      if (!userData) {
-        // For direct access, show login form inline instead of redirecting
-        setLoading(false);
-        return false;
-      }
-      
-      const user = JSON.parse(userData);
-      if (user.role !== 'universal_user') {
-        // For direct access, show unauthorized message inline
-        setLoading(false);
-        return false;
-      }
-      
-      setCurrentUser(user);
-      return true;
-    };
-
-    if (checkAuth()) {
-      fetchData();
-    } else {
-      setLoading(false);
-    }
-  }, [router]);
 
   // Reset edit form when dialog opens/closes
   useEffect(() => {
@@ -144,11 +121,18 @@ export default function UniversalPortal() {
     }
   }, [isEditDialogOpen]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      const params: { company_id?: number } = {};
+      
+      // Apply company filter
+      if (selectedCompanyFilter !== 'all') {
+        params.company_id = parseInt(selectedCompanyFilter);
+      }
+      
       const [usersResponse, companiesResponse] = await Promise.all([
-        UniversalUserApi.getAllUsers(),
+        UniversalUserApi.getAllUsers(params),
         UniversalUserApi.getAllCompanies()
       ]);
       
@@ -170,11 +154,18 @@ export default function UniversalPortal() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCompanyFilter, toast]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
-      const response = await UniversalUserApi.getAllUsers();
+      const params: { company_id?: number } = {};
+      
+      // Apply company filter
+      if (selectedCompanyFilter !== 'all') {
+        params.company_id = parseInt(selectedCompanyFilter);
+      }
+      
+      const response = await UniversalUserApi.getAllUsers(params);
       if (response.status && response.data.users) {
         const usersData = response.data.users;
         setUsers(usersData);
@@ -183,7 +174,7 @@ export default function UniversalPortal() {
     } catch (error) {
       console.error('Error fetching users:', error);
     }
-  };
+  }, [selectedCompanyFilter, companies]);
 
   const fetchCompanies = async () => {
     try {
@@ -197,6 +188,40 @@ export default function UniversalPortal() {
       console.error('Error fetching companies:', error);
     }
   };
+
+  // Authentication and initial data loading
+  useEffect(() => {
+    const checkAuth = () => {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        setLoading(false);
+        return false;
+      }
+      
+      const user = JSON.parse(userData);
+      if (user.role !== 'universal_user') {
+        setLoading(false);
+        return false;
+      }
+      
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      return true;
+    };
+
+    if (checkAuth()) {
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, [router, fetchData]);
+
+  // Fetch users when company filter changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUsers();
+    }
+  }, [selectedCompanyFilter, isAuthenticated, fetchUsers]);
 
   const calculateStats = (usersList: User[], companiesList: Company[]) => {
     
@@ -445,16 +470,7 @@ export default function UniversalPortal() {
     setIsEditCompanyDialogOpen(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    // Clear cookies
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    
-    router.push('/auth/login');
-  };
+
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -612,6 +628,86 @@ export default function UniversalPortal() {
   return (
     <div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Company Filter - Prominent Section */}
+        <Card className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl text-blue-900 flex items-center gap-3">
+              <Building2 className="w-6 h-6" />
+              Company Filter
+            </CardTitle>
+            <CardDescription className="text-blue-700">
+              Select a company to view its data across all modules, or choose &quot;All Companies&quot; for universal access
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-end">
+              <div className="lg:col-span-2">
+                <label className="block text-lg font-semibold text-blue-900 mb-3">
+                  Select Company
+                </label>
+                <Select 
+                  value={selectedCompanyFilter} 
+                  onValueChange={setSelectedCompanyFilter}
+                >
+                  <SelectTrigger className="h-14 text-lg border-2 border-blue-300 bg-white hover:border-blue-400 focus:border-blue-500">
+                    <SelectValue placeholder="Choose a company..." className="text-lg" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-80">
+                    <SelectItem value="all" className="text-lg py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span className="font-semibold">All Companies</span>
+                        <span className="text-sm text-gray-500">(Universal Access)</span>
+                      </div>
+                    </SelectItem>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id.toString()} className="text-lg py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                          <span>{company.name}</span>
+                          <span className="text-sm text-gray-500">ID: {company.id}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex flex-col space-y-3">
+                <div className="text-sm text-blue-700 font-medium">
+                  Currently Viewing:
+                </div>
+                <div className="p-4 bg-white rounded-lg border-2 border-blue-200">
+                  {selectedCompanyFilter === 'all' ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span className="font-bold text-green-700">All Companies</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                      <span className="font-bold text-blue-700">
+                        {companies.find(c => c.id.toString() === selectedCompanyFilter)?.name || 'Select Company'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {selectedCompanyFilter !== 'all' && (
+              <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2 text-blue-800">
+                  <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                  <span className="text-sm font-medium">
+                    All data shown below is filtered for: {companies.find(c => c.id.toString() === selectedCompanyFilter)?.name}
+                  </span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
