@@ -60,17 +60,20 @@ export default function Login() {
       
       const { user, token } = response.data
 
+      console.log(user)
+
       setUserData({
         id: user._id,
         email: user.email,
-        name: (user as { _id: string; email: string; name?: string; role: string; company: string }).name,
+        name: user.name || "",
         role: user.role,
         company: user.company,
+        site: user.site || undefined,
         isAuthenticated: true
       })
       
       setAuthToken(token)
-
+      
       router.push("/")
     } catch (apiError: unknown) {
       console.error("API login error:", apiError)

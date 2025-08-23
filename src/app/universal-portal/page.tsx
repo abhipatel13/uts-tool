@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { CreateSiteDialog } from "@/components/universal/CreateSiteDialog"
+import { CreateUserDialog } from "@/components/universal/CreateUserDialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Edit2, Trash2, Plus, Users, Building2, Shield, Crown, UserCheck } from "lucide-react"
+import { Edit2, Trash2, Users, Building2, Shield, Crown, UserCheck } from "lucide-react"
 import { UniversalUserApi } from "@/services/universalUserApi"
 
 interface User {
@@ -37,16 +39,7 @@ interface Company {
   updatedAt?: string;
 }
 
-interface NewUser {
-  email: string;
-  password: string;
-  role: string;
-  company_id?: number;
-  name?: string;
-  department?: string;
-  business_unit?: string;
-  plant?: string;
-}
+// NewUser type moved into CreateUserDialog component
 
 interface NewCompany {
   name: string;
@@ -80,6 +73,7 @@ export default function UniversalPortal() {
   
   const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
   const [isCreateCompanyDialogOpen, setIsCreateCompanyDialogOpen] = useState(false);
+  const [isCreateSiteDialogOpen, setIsCreateSiteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isEditCompanyDialogOpen, setIsEditCompanyDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -91,20 +85,13 @@ export default function UniversalPortal() {
   const [editFormData, setEditFormData] = useState<Partial<User>>({});
   const [editCompanyFormData, setEditCompanyFormData] = useState<Partial<Company>>({});
   
-  const [newUser, setNewUser] = useState<NewUser>({ 
-    email: '', 
-    password: '', 
-    role: 'user',
-    name: '',
-    department: '',
-    business_unit: '',
-    plant: ''
-  });
+  // create user state managed inside CreateUserDialog
   
   const [newCompany, setNewCompany] = useState<NewCompany>({
     name: '',
     description: ''
   });
+
   
   // Company filter state for the prominent filter
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('all');
@@ -238,42 +225,7 @@ export default function UniversalPortal() {
     setStats(newStats);
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await UniversalUserApi.createUser(newUser);
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: "User created successfully",
-        });
-        setIsCreateUserDialogOpen(false);
-        setNewUser({ 
-          email: '', 
-          password: '', 
-          role: 'user',
-          name: '',
-          department: '',
-          business_unit: '',
-          plant: ''
-        });
-        fetchUsers();
-      } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to create user",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error creating user:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create user",
-        variant: "destructive",
-      });
-    }
-  };
+  // create user handled by CreateUserDialog
 
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,6 +258,8 @@ export default function UniversalPortal() {
       });
     }
   };
+
+  // create site handled by CreateSiteDialog
 
   const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -839,121 +793,24 @@ export default function UniversalPortal() {
               </DialogContent>
             </Dialog>
 
-            <Dialog open={isCreateUserDialogOpen} onOpenChange={setIsCreateUserDialogOpen}>
-              <DialogTrigger asChild>
-                <CommonButton className="bg-[#34495E] hover:bg-[#34495E]/90">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create User
-                </CommonButton>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                  <DialogTitle>Create New User</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleCreateUser} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Email *</label>
-                      <Input
-                        type="email"
-                        value={newUser.email}
-                        onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Password *</label>
-                      <Input
-                        type="password"
-                        value={newUser.password}
-                        onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Role *</label>
-                      <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="universal_user">Universal User</SelectItem>
-                          <SelectItem value="superuser">Superuser</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="supervisor">Supervisor</SelectItem>
-                          <SelectItem value="user">User</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Company</label>
-                      <Select 
-                        value={newUser.company_id?.toString() || ''} 
-                        onValueChange={(value) => setNewUser({...newUser, company_id: value ? parseInt(value) : undefined})}
-                        disabled={newUser.role === 'universal_user'}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={newUser.role === 'universal_user' ? 'N/A (Universal)' : 'Select company'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {companies.map((company) => (
-                            <SelectItem key={company.id} value={company.id.toString()}>
-                              {company.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+            <CreateSiteDialog 
+              isOpen={isCreateSiteDialogOpen}
+              onOpenChange={setIsCreateSiteDialogOpen}
+              companies={companies}
+              defaultCompanyId={selectedCompanyFilter !== 'all' ? parseInt(selectedCompanyFilter) : undefined}
+              onCreated={() => {
+                // No-op for now; parent can refresh as needed
+              }}
+            />
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Name</label>
-                      <Input
-                        value={newUser.name || ''}
-                        onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Department</label>
-                      <Input
-                        value={newUser.department || ''}
-                        onChange={(e) => setNewUser({...newUser, department: e.target.value})}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Business Unit</label>
-                      <Input
-                        value={newUser.business_unit || ''}
-                        onChange={(e) => setNewUser({...newUser, business_unit: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Plant</label>
-                      <Input
-                        value={newUser.plant || ''}
-                        onChange={(e) => setNewUser({...newUser, plant: e.target.value})}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end space-x-2 pt-4">
-                    <CommonButton type="button" variant="outline" onClick={() => setIsCreateUserDialogOpen(false)}>
-                      Cancel
-                    </CommonButton>
-                    <CommonButton type="submit" className="bg-[#34495E] hover:bg-[#34495E]/90">
-                      Create User
-                    </CommonButton>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <CreateUserDialog 
+              isOpen={isCreateUserDialogOpen}
+              onOpenChange={setIsCreateUserDialogOpen}
+              companies={companies}
+              onCreated={() => {
+                fetchUsers()
+              }}
+            />
           </div>
         </div>
 

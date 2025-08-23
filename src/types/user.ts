@@ -7,12 +7,13 @@ export interface User {
   company?:
     | string
     | {
-        id?: number;
+        id: number;
         name: string;
-        createdAt?: string;
-        updatedAt?: string;
-        deletedAt?: string | null;
       };
+  site?: {
+    id: number;
+    name: string;
+  };
   company_id?: number;
   permissions?: string[];
   isAuthenticated?: boolean;
@@ -35,9 +36,25 @@ export interface LoginResponse {
       _id: string;
       email: string;
       role: string;
-      company: string;
+      name: string | null;
+      company: {
+        id: number;
+        name: string;
+      };
+      site: {
+        id: number;
+        name: string;
+      } | null;
     };
     token: string;
+  };
+  message: string;
+}
+
+export interface ProfileResponse {
+  status: boolean;
+  data: {
+    user: User;
   };
   message: string;
 }
@@ -46,6 +63,8 @@ export interface CreateUserRequest {
   email: string;
   password: string;
   role: string;
+  // Optional: set primary site during creation
+  primarySiteId?: number;
 }
 
 export interface UpdateProfileRequest {

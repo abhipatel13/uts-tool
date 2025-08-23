@@ -10,5 +10,5 @@ export const AuthApi = {
     return api.post<void>('/api/auth/logout', null, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-  }
-}; 
+  },
+};

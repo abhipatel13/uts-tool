@@ -5,6 +5,8 @@ export interface Asset {
   id: string;
   name: string;
   description: string;
+  site_id?: string | number;
+  site?: { id: string | number; name: string };
   cmmsInternalId: string;
   functionalLocation: string;
   functionalLocationDesc: string;

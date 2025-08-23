@@ -50,6 +50,13 @@ export const isFullyAuthorized = async (): Promise<boolean> => {
   return await hasActiveLicense();
 };
 
+// Current site helpers
+export const getCurrentSite = (): { id: number; name: string } | null => {
+  if (typeof window === "undefined") return null;
+  const user = getCurrentUser();
+  return user.site || null;
+};
+
 // Get auth token for API requests
 export const getAuthToken = (): string | null => {
   if (typeof window === "undefined") return null;
@@ -66,6 +73,13 @@ export const setAuthToken = (token: string): void => {
 export const setUserData = (userData: User): void => {
   if (typeof window === "undefined") return;
   localStorage.setItem("user", JSON.stringify(userData));
+};
+
+export const updateUserData = (userData: Partial<User>): void => {
+  if (typeof window === "undefined") return;
+  const user = getCurrentUser();
+  if (!user) return;
+  localStorage.setItem("user", JSON.stringify({ ...user, ...userData }));
 };
 
 // Constants

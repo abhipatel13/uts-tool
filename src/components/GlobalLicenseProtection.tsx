@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { isAuthenticated, getCurrentUser } from "@/utils/auth"
+import { isAuthenticated, getCurrentUser, logout } from "@/utils/auth"
 import { LicenseAllocationService } from "@/services/licenseService"
 import { Loader2 } from "lucide-react"
 
@@ -31,6 +31,7 @@ export default function GlobalLicenseProtection({
 
         // Check authentication first
         if (!isAuthenticated()) {
+          logout();
           router.push("/auth/login")
           return
         }
@@ -38,6 +39,7 @@ export default function GlobalLicenseProtection({
         const user = getCurrentUser();
 
         if (!user) {
+          logout();
           router.push("/auth/login")
           return
         }

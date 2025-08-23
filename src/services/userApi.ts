@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import { User, ApiResponse, CreateUserRequest, UpdateProfileRequest } from '@/types';
+import { User, ApiResponse, CreateUserRequest, UpdateProfileRequest, ProfileResponse } from '@/types';
 
 export const UserApi = {
   // Get all users and supervisors
@@ -33,8 +33,27 @@ export const UserApi = {
     return api.delete<ApiResponse<void>>(`/api/users/deleteUser/${userId}`);
   },
 
-  // Update profile
+  getProfile: async (): Promise<ApiResponse<User>> => {
+    return api.get<ApiResponse<User>>('/api/auth/profile');
+  },
+  
   updateProfile: async (data: UpdateProfileRequest): Promise<ApiResponse<User>> => {
     return api.put<ApiResponse<User>>('/api/auth/profile', data);
+  },
+
+  // Get sites available to the current user. Universal users can pass companyId via query params
+  getSites: async (params?: { companyId?: number | string }) => {
+    const query = params?.companyId ? `?companyId=${params.companyId}` : '';
+    return api.get<{ status: boolean; data: Array<{ id: string | number; name: string }> }>(
+      `/api/auth/sites${query}`
+    );
+  },
+
+  // Switch the user's current/primary site
+  switchSite: async (siteId: string | number) => {
+    return api.put<ProfileResponse>(
+      '/api/auth/switch-site',
+      { siteId }
+    );
   }
 }; 

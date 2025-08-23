@@ -25,6 +25,8 @@ export interface RiskAssessment {
   date: string;
   time: string;
   scopeOfWork: string;
+  site_id?: string | number;
+  site?: { id: string | number; name: string };
   assetSystem: string;
   systemLockoutRequired: boolean;
   trainedWorkforce: boolean;

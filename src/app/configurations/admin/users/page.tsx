@@ -16,6 +16,7 @@ interface NewUser {
   password: string;
   role: string;
   company: string;
+  primarySiteId?: number;
 }
 
 export default function UserManagement() {
@@ -30,6 +31,7 @@ export default function UserManagement() {
     company: ''
   });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [sites, setSites] = useState<Array<{ id: number; name: string }>>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -96,6 +98,18 @@ export default function UserManagement() {
 
     fetchUsers();
     fetchCurrentUser();
+    // load sites for current user's company
+    const loadSites = async () => {
+      try {
+        const res = await UserApi.getSites();
+        if (res?.status && Array.isArray(res.data)) {
+          setSites(res.data as Array<{ id: number; name: string }>);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadSites();
   }, [toast]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -364,6 +378,24 @@ export default function UserManagement() {
                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                     required
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Primary Site</label>
+                  <Select
+                    value={newUser.primarySiteId ? String(newUser.primarySiteId) : ''}
+                    onValueChange={(value) => setNewUser({ ...newUser, primarySiteId: Number(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select primary site" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sites.map((site) => (
+                        <SelectItem key={site.id} value={String(site.id)}>
+                          {site.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Password</label>

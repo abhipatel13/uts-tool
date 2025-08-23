@@ -16,7 +16,7 @@ export const LicensePoolService = {
     notes?: string;
     companyId?: number;
   }) => {
-    return api.post<ApiResponse<LicensePool>>('/api/licenses/pools', data);
+    return api.post<ApiResponse<LicensePool>>('/api/licenses/pools', data, { includeSiteHeader: false });
   },
 
   // Get all license pools
@@ -33,12 +33,12 @@ export const LicensePoolService = {
     const queryString = params.toString();
     const endpoint = `/api/licenses/pools${queryString ? `?${queryString}` : ''}`;
     
-    return api.get<ApiResponse<LicensePool[]>>(endpoint);
+    return api.get<ApiResponse<LicensePool[]>>(endpoint, { includeSiteHeader: false });
   },
 
   // Get single license pool by ID
   getLicensePoolById: async (poolId: number) => {
-    return api.get<ApiResponse<LicensePool>>(`/api/licenses/pools/${poolId}`);
+    return api.get<ApiResponse<LicensePool>>(`/api/licenses/pools/${poolId}`, { includeSiteHeader: false });
   },
 
   // Update license pool
@@ -48,7 +48,7 @@ export const LicensePoolService = {
     status?: string;
     poolExpiryDate?: string;
   }) => {
-    return api.put<ApiResponse<LicensePool>>(`/api/licenses/pools/${poolId}`, data);
+    return api.put<ApiResponse<LicensePool>>(`/api/licenses/pools/${poolId}`, data, { includeSiteHeader: false });
   }
 };
 
@@ -67,7 +67,7 @@ export const LicenseAllocationService = {
     restrictions?: Record<string, unknown>;
     notes?: string;
   }) => {
-    return api.post<ApiResponse<LicenseAllocation>>('/api/licenses/allocations', data);
+    return api.post<ApiResponse<LicenseAllocation>>('/api/licenses/allocations', data, { includeSiteHeader: false });
   },
 
   // Get all license allocations
@@ -86,18 +86,19 @@ export const LicenseAllocationService = {
     const queryString = params.toString();
     const endpoint = `/api/licenses/allocations${queryString ? `?${queryString}` : ''}`;
     
-    return api.get<ApiResponse<LicenseAllocation[]>>(endpoint);
+    return api.get<ApiResponse<LicenseAllocation[]>>(endpoint, { includeSiteHeader: false });
   },
 
   // Get user license status
   getUserLicenseStatus: async (userId: number) => {
-    return api.get<ApiResponse<UserLicenseStatus>>(`/api/licenses/users/${userId}/status`);
+    return api.get<ApiResponse<UserLicenseStatus>>(`/api/licenses/users/${userId}/status`, { includeSiteHeader: false });
   },
 
   // Revoke license
   revokeLicense: async (allocationId: number, reason?: string) => {
     return api.delete<ApiResponse<void>>(`/api/licenses/allocations/${allocationId}`, {
-      body: { reason }
+      body: { reason },
+      includeSiteHeader: false,
     });
   },
 
@@ -106,7 +107,7 @@ export const LicenseAllocationService = {
     newValidUntil: string;
     reason?: string;
   }) => {
-    return api.put<ApiResponse<LicenseAllocation>>(`/api/licenses/allocations/${allocationId}/extend`, data);
+    return api.put<ApiResponse<LicenseAllocation>>(`/api/licenses/allocations/${allocationId}/extend`, data, { includeSiteHeader: false });
   }
 };
 
@@ -115,11 +116,11 @@ export const LicenseAllocationService = {
 export const LicenseAdminService = {
   // Get license analytics
   getLicenseAnalytics: async () => {
-    return api.get<ApiResponse<LicenseAnalytics>>('/api/licenses/analytics');
+    return api.get<ApiResponse<LicenseAnalytics>>('/api/licenses/analytics', { includeSiteHeader: false });
   },
 
   // Get expiring licenses (within next 30 days)
   getExpiringLicenses: async (days: number = 30) => {
-    return api.get<ApiResponse<LicenseAllocation[]>>(`/api/licenses/expiring?days=${days}`);
+    return api.get<ApiResponse<LicenseAllocation[]>>(`/api/licenses/expiring?days=${days}`, { includeSiteHeader: false });
   }
 }; 

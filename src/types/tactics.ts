@@ -7,6 +7,8 @@ export interface Tactic {
   analysis_name: string;
   location: string;
   status: string;
+  site_id?: string | number;
+  site?: { id: string | number; name: string };
   asset_details: AssetDetails;
   company: string;
   created_by: string;

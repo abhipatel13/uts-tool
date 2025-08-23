@@ -47,6 +47,19 @@ export interface Company {
   updatedAt?: string;
 }
 
+export interface Site {
+  id: number;
+  name: string;
+  company_id: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateSiteRequest {
+  name: string;
+  company_id: number;
+}
+
 export interface CreateCompanyRequest {
   name: string;
   description?: string;
@@ -152,5 +165,14 @@ export const UniversalUserApi = {
         totalCompanies: companies.length,
       }
     };
+  },
+  
+  // Get all sites for a company
+  getSites: async (company_id: number): Promise<ApiResponse<Site[]>> => {
+    return api.get<ApiResponse<Site[]>>(`/api/universal/companies/${company_id}/sites`);
+  },
+
+  createSite: async (data: CreateSiteRequest): Promise<ApiResponse<Site>> => {
+    return api.post<ApiResponse<Site>>('/api/universal/sites', data);
   },
 }; 

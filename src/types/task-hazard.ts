@@ -6,6 +6,8 @@ import { ApiResponse, ApprovalStatus } from "./api";
 // Main TaskHazard interface (consolidated from api.ts and task-hazard.ts)
 export interface TaskHazard {
   id: string;
+  site_id?: string | number;
+  site?: { id: string | number; name: string };
   date: string;
   time: string;
   scopeOfWork: string;

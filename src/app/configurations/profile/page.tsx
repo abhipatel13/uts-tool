@@ -8,7 +8,8 @@ import { UserApi } from "@/services/userApi"
 import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge";
 import { User } from "@/types/user";
-import { getCurrentUser } from "@/utils/auth"
+import { getCurrentUser, updateUserData } from "@/utils/auth"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -21,6 +22,8 @@ export default function ProfilePage() {
     newPassword: '',
     confirmPassword: '',
   });
+  const [sites, setSites] = useState<Array<{ id: number; name: string }>>([])
+  const [selectedSiteId, setSelectedSiteId] = useState<string>('')
   const { toast } = useToast();
 
   useEffect(() => {
@@ -39,6 +42,17 @@ export default function ProfilePage() {
             ...prev,
             email: userData.email
           }));
+          if (userData.site?.id) {
+            setSelectedSiteId(String(userData.site.id))
+          }
+          try {
+            const res = await UserApi.getSites()
+            if (res?.status && Array.isArray(res.data)) {
+              setSites(res.data as Array<{ id: number; name: string }>)
+            }
+          } catch (e) {
+            console.error(e)
+          }
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
@@ -103,6 +117,21 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSiteChange = async (value: string) => {
+    setSelectedSiteId(value)
+    try {
+      const updated = await UserApi.switchSite(Number(value))
+      if (updated?.status && updated.data?.user) {
+        updateUserData(updated.data.user)
+        setUser(updated.data.user)
+        toast({ title: 'Primary site updated' })
+      }
+    } catch (e) {
+      console.error(e)
+      toast({ title: 'Error', description: 'Failed to switch site', variant: 'destructive' })
+    }
+  }
+
   if (!mounted || loading) {
     return <div>Loading...</div>;
   }
@@ -134,6 +163,21 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleUpdateProfile} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium mb-1">Primary Site</label>
+              <Select value={selectedSiteId} onValueChange={handleSiteChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select site" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites.map((site) => (
+                    <SelectItem key={site.id} value={String(site.id)}>
+                      {site.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">Company</label>
               <Input

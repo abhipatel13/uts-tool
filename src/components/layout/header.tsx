@@ -20,15 +20,17 @@ import Link from 'next/link'
 import NotificationBell from "../NotificationBell"
 
 export function Header() {
-  const [user, setUser] = useState<{ email?: string } | null>(null)
+  const [user, setUser] = useState<{ email?: string; role?: string } | null>(null)
   const [mounted, setMounted] = useState(false)
   const [showBackButton, setShowBackButton] = useState(false)
+  
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
     setMounted(true)
     setUser(getCurrentUser())
+    
   }, [])
 
   useEffect(() => {
@@ -36,6 +38,8 @@ export function Header() {
     const shouldShowBack = pathname ? !['/', '/auth/login'].includes(pathname) : false
     setShowBackButton(shouldShowBack)
   }, [pathname])
+  
+
 
   const userInitials = mounted && user?.email ? user.email.substring(0, 2).toUpperCase() : "U"
 
