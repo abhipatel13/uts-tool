@@ -15,6 +15,11 @@ export const AssetHierarchyApi = {
     return api.get<ApiResponse<Asset[]>>('/api/asset-hierarchy');
   },
 
+  // Get assets by company (for universal users)
+  getByCompany: async (companyId: string): Promise<ApiResponse<Asset[]>> => {
+    return api.get<ApiResponse<Asset[]>>(`/api/asset-hierarchy/company/${companyId}`);
+  },
+
   // Get a specific asset
   getOne: async (id: string): Promise<ApiResponse<Asset>> => {
     return api.get<ApiResponse<Asset>>(`/api/asset-hierarchy/${id}`);

@@ -20,6 +20,11 @@ export interface Asset {
   level: number;  // Calculated based on hierarchy
   updatedAt: string;
   createdAt: string;
+  companyId?: number;  // Company ID for filtering
+  company?: {
+    id: number;
+    name: string;
+  };
 }
 
 // Asset details for tactics (from tacticsApi.ts)

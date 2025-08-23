@@ -12,6 +12,11 @@ export const RiskAssessmentApi = {
     return api.get<ApiResponse<RiskAssessment[]>>('/api/risk-assessments');
   },
 
+  // Get all risk assessments for universal users (all companies)
+  getRiskAssessmentsUniversal: async (): Promise<ApiResponse<RiskAssessment[]>> => {
+    return api.get<ApiResponse<RiskAssessment[]>>('/api/risk-assessments/universal');
+  },
+
   // Get a specific risk assessment
   getRiskAssessment: async (id: string): Promise<ApiResponse<RiskAssessment>> => {
     return api.get<ApiResponse<RiskAssessment>>(`/api/risk-assessments/${id}`);
