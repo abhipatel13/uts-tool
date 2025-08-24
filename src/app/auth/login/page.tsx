@@ -60,8 +60,6 @@ export default function Login() {
       
       const { user, token } = response.data
 
-      console.log(user)
-
       setUserData({
         id: user._id,
         email: user.email,

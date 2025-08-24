@@ -10,6 +10,11 @@ export const TacticsApi = {
     return api.get<ApiResponse<Tactic[]>>('/api/tactics');
   },
 
+  // Get all tactics for universal users (all companies)
+  getAllUniversal: async (): Promise<ApiResponse<Tactic[]>> => {
+    return api.get<ApiResponse<Tactic[]>>('/api/tactics/universal');
+  },
+
   getById: async (id: string): Promise<ApiResponse<Tactic>> => {
     return api.get<ApiResponse<Tactic>>(`/api/tactics/${id}`);
   },

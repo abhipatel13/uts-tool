@@ -37,7 +37,7 @@ export default function RiskAssessment() {
   const fetchAssessments = async () => {
     try {
       setIsLoading(true)
-      const response = await RiskAssessmentApi.getRiskAssessments()
+      const response = await RiskAssessmentApi.getAll()
       
       // Check if response has the expected structure with data property
       if (response && response.status && Array.isArray(response.data)) {

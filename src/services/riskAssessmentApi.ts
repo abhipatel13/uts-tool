@@ -8,8 +8,23 @@ export const RiskAssessmentApi = {
   },
 
   // Get all risk assessments
-  getRiskAssessments: async (): Promise<ApiResponse<RiskAssessment[]>> => {
+  getAll: async (): Promise<ApiResponse<RiskAssessment[]>> => {
     return api.get<ApiResponse<RiskAssessment[]>>('/api/risk-assessments');
+  },
+
+  // Get all risk assessments by company (for universal users)
+  getAllByCompany: async (companyId: string): Promise<ApiResponse<RiskAssessment[]>> => {
+    return api.get<ApiResponse<RiskAssessment[]>>(`/api/risk-assessments/company/${companyId}`);
+  },
+
+  // Get all risk assessments by site (for universal users)
+  getAllBySite: async (siteId: string): Promise<ApiResponse<RiskAssessment[]>> => {
+    return api.get<ApiResponse<RiskAssessment[]>>(`/api/risk-assessments/site/${siteId}`);
+  },
+
+  // Get all risk assessments for universal users (all companies)
+  getRiskAssessmentsUniversal: async (): Promise<ApiResponse<RiskAssessment[]>> => {
+    return api.get<ApiResponse<RiskAssessment[]>>('/api/risk-assessments/universal');
   },
 
   // Get a specific risk assessment

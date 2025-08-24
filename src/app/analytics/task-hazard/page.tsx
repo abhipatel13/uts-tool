@@ -22,7 +22,7 @@ export default function TaskHazardAnalytics() {
 
   // Consolidated fetchTaskHazards function
   const fetchTaskHazards = async () => {
-    const response = await TaskHazardApi.getTaskHazards()
+    const response = await TaskHazardApi.getAll()
     if (response && response.status && Array.isArray(response.data)) {
       setTaskHazards(response.data)
     } else {

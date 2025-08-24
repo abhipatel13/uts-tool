@@ -43,7 +43,7 @@ export default function TaskHazard() {
   const fetchTasks = async () => {
     try {
       setIsLoading(true)
-      const response = await TaskHazardApi.getTaskHazards()
+      const response = await TaskHazardApi.getAll()
       
       // Check if response has the expected structure with data property
       if (response && response.status && Array.isArray(response.data)) {

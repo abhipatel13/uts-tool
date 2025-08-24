@@ -61,44 +61,55 @@ export function Sidebar() {
     
     const items: NavItem[] = [];
 
-    // Universal Portal (only for universal users - show ONLY this)
-    if (user.role === 'universal_user') {
+    // For universal users, show the same structure but with universal access
+    const isUniversalUser = user.role === 'universal_user';
+
+    // Universal Portal (for universal users) - FIRST
+    if (isUniversalUser) {
       items.push({
         title: "Universal Portal",
         href: "/universal-portal",
         icon: Icons.UniversalDashboard,
       });
-      return items; // Return early - no other items for universal users
     }
 
     // Asset Hierarchy
-    if (hasPermission(Permissions.VIEW_ASSET_HIERARCHY) || hasPermission(Permissions.CREATE_ASSET_HIERARCHY)) {
+    if (hasPermission(Permissions.VIEW_ASSET_HIERARCHY) || hasPermission(Permissions.CREATE_ASSET_HIERARCHY) || isUniversalUser) {
       items.push({
         title: "Asset Hierarchy",
-        href: "/asset-hierarchy",
+        href: isUniversalUser ? "/universal-portal/asset-hierarchy" : "/asset-hierarchy",
         icon: Icons.AssetHierarchy,
       });
     }
 
     // Tactics
-    if (hasPermission(Permissions.TACTICS)) {
+    if (hasPermission(Permissions.TACTICS) || isUniversalUser) {
       items.push({
         title: "Tactics",
-        href: "/tactics",
+        href: isUniversalUser ? "/universal-portal/tactics" : "/tactics",
         icon: Icons.Tactics,
       });
     }
 
     // Safety
     const safetyItems: NavItem[] = [];
-    if (hasPermission(Permissions.TASK_HAZARD)) {
-      safetyItems.push({ title: "Task Hazard", href: "/safety/task-hazard" });
+    if (hasPermission(Permissions.TASK_HAZARD) || isUniversalUser) {
+      safetyItems.push({ 
+        title: "Task Hazard", 
+        href: isUniversalUser ? "/universal-portal/task-hazard" : "/safety/task-hazard" 
+      });
     }
-    if (hasPermission(Permissions.RISK_ASSESSMENT)) {
-      safetyItems.push({ title: "Risk Assessment", href: "/safety/risk-assessment" });
+    if (hasPermission(Permissions.RISK_ASSESSMENT) || isUniversalUser) {
+      safetyItems.push({ 
+        title: "Risk Assessment", 
+        href: isUniversalUser ? "/universal-portal/risk-assessment" : "/safety/risk-assessment" 
+      });
     }
-    if (hasPermission(Permissions.SUPERVISOR_APPROVAL)) {
-      safetyItems.push({ title: "Approval Requests", href: "/safety/supervisor-dashboard" });
+    if (hasPermission(Permissions.SUPERVISOR_APPROVAL) && !isUniversalUser) {
+      safetyItems.push({ 
+        title: "Approval Requests", 
+        href: "/safety/supervisor-dashboard" 
+      });
     }
     
     if (safetyItems.length > 0) {
@@ -111,28 +122,39 @@ export function Sidebar() {
     }
 
     // Analytics
-    if (hasPermission(Permissions.VIEW_ANALYTICS)) {
+    if (hasPermission(Permissions.VIEW_ANALYTICS) || isUniversalUser) {
       const analyticsItems: NavItem[] = [];
-      if (hasPermission(Permissions.TASK_HAZARD)) {
-        analyticsItems.push({ title: "Task Hazard", href: "/analytics/task-hazard" });
+      if (hasPermission(Permissions.TASK_HAZARD) || isUniversalUser) {
+        analyticsItems.push({ 
+          title: "Task Hazard", 
+          href: isUniversalUser ? "/universal-portal/analytics/task-hazard" : "/analytics/task-hazard" 
+        });
       }
-      if (hasPermission(Permissions.RISK_ASSESSMENT)) {
-        analyticsItems.push({ title: "Risk Assessment", href: "/analytics/risk-assessment" });
+      if (hasPermission(Permissions.RISK_ASSESSMENT) || isUniversalUser) {
+        analyticsItems.push({ 
+          title: "Risk Assessment", 
+          href: isUniversalUser ? "/universal-portal/analytics/risk-assessment" : "/analytics/risk-assessment" 
+        });
       }
       
       items.push({
         title: "Analytics",
-        href: "/analytics",
+        href: isUniversalUser ? "/universal-portal/analytics" : "/analytics",
         icon: Icons.Analytics,
         subItems: analyticsItems,
       });
     }
 
-    // Configurations
-    if (hasPermission(Permissions.CONFIGURATION_MANAGEMENT)) {
+
+
+    // Configurations (only for non-universal users)
+    if (hasPermission(Permissions.CONFIGURATION_MANAGEMENT) && !isUniversalUser) {
       const adminItems: NavItem[] = [];
       if (hasPermission(Permissions.USER_MANAGEMENT)) {
-        adminItems.push({ title: "User Management", href: "/configurations/admin/users" });
+        adminItems.push({ 
+          title: "User Management", 
+          href: "/configurations/admin/users" 
+        });
       }
       adminItems.push({ title: "Data Loader", href: "/configurations/admin/data-loader" });
       if (hasPermission(Permissions.LICENSING_MANAGEMENT)) {

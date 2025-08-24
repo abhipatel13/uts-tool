@@ -4,23 +4,24 @@ export interface User {
   email: string;
   name?: string;
   role: string;
+  company_id?: number;  
   company?:
-    | string
-    | {
-        id: number;
-        name: string;
-      };
-  site?: {
+    {
+      id: number;
+      name: string;
+    };
+  site_id?: number;
+  site?: 
+  {
     id: number;
     name: string;
   };
-  company_id?: number;
+  phone?: string;
+  department?: string;
+  image?: string;
   permissions?: string[];
   isAuthenticated?: boolean;
-  user_type?: string; // For backward compatibility
 }
-
-
 
 // Auth-related interfaces
 export interface LoginRequest {

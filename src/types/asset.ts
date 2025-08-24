@@ -5,8 +5,6 @@ export interface Asset {
   id: string;
   name: string;
   description: string;
-  site_id?: string | number;
-  site?: { id: string | number; name: string };
   cmmsInternalId: string;
   functionalLocation: string;
   functionalLocationDesc: string;
@@ -22,6 +20,16 @@ export interface Asset {
   level: number;  // Calculated based on hierarchy
   updatedAt: string;
   createdAt: string;
+  companyId?: number;  // Company ID for filtering
+  company?: {
+    id: number;
+    name: string;
+  };
+  site_id?: number;
+  site?: {
+    id: number;
+    name: string;
+  };
 }
 
 // Asset details for tactics (from tacticsApi.ts)

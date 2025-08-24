@@ -10,9 +10,19 @@ export const AssetHierarchyApi = {
     return api.post<ApiResponse<Asset[]>>('/api/asset-hierarchy', data);
   },
 
-  // Get all assets
+  // Get all assets accessible to the current user
   getAll: async (): Promise<ApiResponse<Asset[]>> => {
     return api.get<ApiResponse<Asset[]>>('/api/asset-hierarchy');
+  },
+
+  // Get assets by company (for universal users)
+  getAllByCompany: async (companyId: string): Promise<ApiResponse<Asset[]>> => {
+    return api.get<ApiResponse<Asset[]>>(`/api/asset-hierarchy/company/${companyId}`);
+  },
+
+  // Get assets by site (for universal users)
+  getAllBySite: async (siteId: string): Promise<ApiResponse<Asset[]>> => {
+    return api.get<ApiResponse<Asset[]>>(`/api/asset-hierarchy/site/${siteId}`);
   },
 
   // Get a specific asset

@@ -8,7 +8,7 @@ export default function UniversalPortalLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <UniversalHeader />
-      <main>
+      <main className="flex-1">
         {children}
       </main>
     </div>

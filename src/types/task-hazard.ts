@@ -20,6 +20,11 @@ export interface TaskHazard {
   status: string;
   location: string;
   geoFenceLimit?: number;
+  companyId?: number;  // Company ID for filtering
+  company?: {
+    id: number;
+    name: string;
+  };
 }
 
 // Supervisor interface

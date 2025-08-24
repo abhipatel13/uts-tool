@@ -8,8 +8,23 @@ export const TaskHazardApi = {
   },
 
   // Get all task hazard assessments
-  getTaskHazards: async (): Promise<ApiResponse<TaskHazard[]>> => {
+  getAll: async (): Promise<ApiResponse<TaskHazard[]>> => {
     return api.get<ApiResponse<TaskHazard[]>>('/api/task-hazards');
+  },
+
+  // Get all task hazards for universal users (all companies)
+  getTaskHazardsUniversal: async (): Promise<ApiResponse<TaskHazard[]>> => {
+    return api.get<ApiResponse<TaskHazard[]>>('/api/task-hazards/universal');
+  },
+
+  // Get task hazards by company (for universal users)
+  getAllByCompany: async (companyId: string): Promise<ApiResponse<TaskHazard[]>> => {
+    return api.get<ApiResponse<TaskHazard[]>>(`/api/task-hazards/company/${companyId}`);
+  },
+
+  // Get task hazards by site (for universal users)
+  getAllBySite: async (siteId: string): Promise<ApiResponse<TaskHazard[]>> => {
+    return api.get<ApiResponse<TaskHazard[]>>(`/api/task-hazards/site/${siteId}`);
   },
 
   // Get a specific task hazard assessment
