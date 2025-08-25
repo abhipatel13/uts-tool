@@ -44,4 +44,9 @@ export const AssetHierarchyApi = {
   getUploadHistory: async (): Promise<ApiResponse<UploadStatus[]>> => {
     return api.get<ApiResponse<UploadStatus[]>>('/api/asset-hierarchy/upload-history');
   },
+
+  // Delete an asset (Universal User - all companies)
+  deleteAssetUniversal: async (id: string): Promise<ApiResponse<void>> => {
+    return api.delete<ApiResponse<void>>(`/api/asset-hierarchy/universal/${id}`);
+  },
 }; 

@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Search, Filter, Building2, MapPin, TreePine, Layers } from "lucide-react"
+import { Search, Filter, Building2, MapPin, TreePine, Layers, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import { UniversalUserApi } from "@/services/universalUserApi"
 import { AssetHierarchyApi } from "@/services/assetHierarchyApi"
@@ -44,6 +45,7 @@ interface Asset {
     id: number;
     name: string;
   };
+  children?: Asset[];
 }
 
 interface AssetStats {
@@ -72,6 +74,11 @@ export default function UniversalAssetHierarchy() {
   const [companyFilter, setCompanyFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [hierarchicalAssets, setHierarchicalAssets] = useState<Asset[]>([]);
   
   const { toast } = useToast();
   const router = useRouter();
@@ -116,6 +123,7 @@ export default function UniversalAssetHierarchy() {
             asset.companyId === parseInt(companyFilter) || asset.company?.id === parseInt(companyFilter)
           );
           setAssets(filteredAssets);
+          
           calculateStats(filteredAssets, companies);
           return;
         }
@@ -130,6 +138,106 @@ export default function UniversalAssetHierarchy() {
       console.error('Error fetching assets:', error);
     }
   }, [companyFilter, companies]);
+
+  // Helper function to build hierarchical structure
+  const buildHierarchy = useCallback((assetsList: Asset[]) => {
+    const assetMap = new Map<string, Asset & { children: Asset[] }>();
+    const rootAssets: Asset[] = [];
+
+    // First pass: create map of all assets with children array
+    assetsList.forEach(asset => {
+      assetMap.set(asset.id, { ...asset, children: [] });
+    });
+
+    // Second pass: build parent-child relationships
+    assetsList.forEach(asset => {
+      const assetWithChildren = assetMap.get(asset.id);
+      if (assetWithChildren) {
+        if (asset.parent && assetMap.has(asset.parent)) {
+          // Add to parent's children
+          const parent = assetMap.get(asset.parent);
+          if (parent) {
+            parent.children.push(assetWithChildren);
+          }
+        } else {
+          // Root level asset (no parent or parent not found)
+          rootAssets.push(assetWithChildren);
+        }
+      }
+    });
+
+    return rootAssets;
+  }, []);
+
+  // Delete asset function
+  const handleDeleteAsset = async () => {
+    if (!assetToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await AssetHierarchyApi.deleteAssetUniversal(assetToDelete.id.toString());
+      
+      toast({
+        title: "Success",
+        description: "Asset deleted successfully",
+        variant: "default",
+      });
+      
+      // Refresh the assets list
+      await fetchAssets();
+      
+      // Close dialog and reset state
+      setDeleteDialogOpen(false);
+      setAssetToDelete(null);
+    } catch (error) {
+      console.error('Error deleting asset:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete asset",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const openDeleteDialog = (asset: Asset) => {
+    setAssetToDelete(asset);
+    setDeleteDialogOpen(true);
+  };
+
+  // Helper function to flatten hierarchy for display based on expanded state
+  const flattenHierarchy = useCallback((assets: Asset[], level = 0): Asset[] => {
+    const result: Asset[] = [];
+    
+    assets.forEach(asset => {
+      // Add the current asset with its level
+      result.push({ ...asset, level });
+      
+      // If this asset is expanded and has children, add its children recursively
+      if (expandedNodes.has(asset.id) && asset.children && asset.children.length > 0) {
+        result.push(...flattenHierarchy(asset.children, level + 1));
+      }
+    });
+    
+    return result;
+  }, [expandedNodes]);
+
+  // Toggle expansion of a node
+  const toggleExpansion = (assetId: string) => {
+    const newExpanded = new Set(expandedNodes);
+    if (newExpanded.has(assetId)) {
+      newExpanded.delete(assetId);
+    } else {
+      newExpanded.add(assetId);
+    }
+    setExpandedNodes(newExpanded);
+  };
+
+  // Check if asset has children
+  const hasChildren = (asset: Asset) => {
+    return asset.children && asset.children.length > 0;
+  };
 
   // Authentication and initial data loading
   useEffect(() => {
@@ -172,6 +280,14 @@ export default function UniversalAssetHierarchy() {
     }
   }, [companyFilter, isAuthenticated, fetchAssets]);
 
+  // Build hierarchy when assets change
+  useEffect(() => {
+    if (assets.length > 0) {
+      const hierarchy = buildHierarchy(assets);
+      setHierarchicalAssets(hierarchy);
+    }
+  }, [assets, buildHierarchy]);
+
   const calculateStats = (assetsList: Asset[], companiesList: Company[]) => {
     const newStats: AssetStats = {
       total: assetsList.length,
@@ -207,20 +323,28 @@ export default function UniversalAssetHierarchy() {
     setStats(newStats);
   };
 
-  // Filter functions
-  const filteredAssets = assets.filter(asset => {
-    const matchesSearch = 
-      asset.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.objectType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.functionalLocation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.id?.toString().includes(searchTerm);
+    // Filter functions - now works with hierarchical structure
+  const getFilteredHierarchicalAssets = () => {
+    // Get flattened hierarchy for display
+    const flatAssets = flattenHierarchy(hierarchicalAssets);
     
-    const matchesType = typeFilter === 'all' || asset.objectType === typeFilter;
-    const matchesStatus = statusFilter === 'all' || asset.systemStatus === statusFilter;
-    const matchesLevel = levelFilter === 'all' || asset.level.toString() === levelFilter;
-    
-    return matchesSearch && matchesType && matchesStatus && matchesLevel;
-  });
+    // Apply filters to the flattened hierarchy
+    return flatAssets.filter(asset => {
+      const matchesSearch = 
+        asset.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.objectType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.functionalLocation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.id?.toString().includes(searchTerm);
+
+      const matchesType = typeFilter === 'all' || asset.objectType === typeFilter;
+      const matchesStatus = statusFilter === 'all' || asset.systemStatus === statusFilter;
+      const matchesLevel = levelFilter === 'all' || asset.level.toString() === levelFilter;
+
+      return matchesSearch && matchesType && matchesStatus && matchesLevel;
+    });
+  };
+
+  const filteredAssets = getFilteredHierarchicalAssets();
 
   if (loading) {
     return (
@@ -498,7 +622,34 @@ export default function UniversalAssetHierarchy() {
                       {filteredAssets.map((asset) => (
                         <TableRow key={asset.id}>
                           <TableCell className="font-medium">{asset.id}</TableCell>
-                          <TableCell className="font-medium">{asset.name}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center">
+                              {hasChildren(asset) ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="p-1 h-6 w-6 mr-2"
+                                  onClick={() => toggleExpansion(asset.id)}
+                                >
+                                  {expandedNodes.has(asset.id) ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              ) : (
+                                <div className="w-8 mr-2" /> 
+                              )}
+                              <div style={{ marginLeft: `${asset.level * 20}px` }}>
+                                <span>{asset.name}</span>
+                                {asset.level === 0 && (
+                                  <Badge variant="outline" className="ml-2 text-xs">
+                                    Root Asset
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline">{asset.objectType}</Badge>
                           </TableCell>
@@ -539,16 +690,26 @@ export default function UniversalAssetHierarchy() {
                             </TableCell>
                           )}
                           <TableCell>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                // Navigate to the asset detail view
-                                router.push(`/asset-hierarchy/${asset.id}`);
-                              }}
-                            >
-                              View Details
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  // Navigate to the asset detail view
+                                  router.push(`/asset-hierarchy/${asset.id}`);
+                                }}
+                              >
+                                View Details
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openDeleteDialog(asset)}
+                                className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -571,6 +732,53 @@ export default function UniversalAssetHierarchy() {
           </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Asset</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this asset? This action cannot be undone.
+              {assetToDelete && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium">Asset Details:</p>
+                  <p className="text-sm text-gray-600">ID: {assetToDelete.id}</p>
+                  <p className="text-sm text-gray-600">Name: {assetToDelete.name}</p>
+                  <p className="text-sm text-gray-600">Type: {assetToDelete.objectType}</p>
+                  <p className="text-sm text-gray-600">Location: {assetToDelete.functionalLocation}</p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAsset}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Asset
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

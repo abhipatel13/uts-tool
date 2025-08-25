@@ -42,6 +42,11 @@ export const TaskHazardApi = {
     return api.delete<ApiResponse<void>>(`/api/task-hazards/${id}`);
   },
 
+  // Delete a task hazard assessment (Universal User - all companies)
+  deleteTaskHazardUniversal: async (id: string): Promise<ApiResponse<void>> => {
+    return api.delete<ApiResponse<void>>(`/api/task-hazards/universal/${id}`);
+  },
+
   // Get all approvals with optional filters
   getApprovals: async (params?: {
     status?: 'pending' | 'approved' | 'rejected';

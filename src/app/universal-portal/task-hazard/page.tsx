@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Search, Filter, Building2, Shield, Calendar, MapPin, User, FileText } from "lucide-react"
+import { Search, Filter, Building2, Shield, Calendar, MapPin, User, FileText, Trash2 } from "lucide-react"
 import Image from "next/image"
 import { TaskHazardApi } from "@/services/taskHazardApi"
 import { UniversalUserApi } from "@/services/universalUserApi"
@@ -46,6 +47,9 @@ export default function UniversalTaskHazard() {
   const [companyFilter, setCompanyFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [taskHazardToDelete, setTaskHazardToDelete] = useState<TaskHazard | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const { toast } = useToast();
   const router = useRouter();
@@ -124,6 +128,43 @@ export default function UniversalTaskHazard() {
       console.error('Error fetching task hazards:', error);
     }
   }, [companyFilter, statusFilter, dateFilter, companies]);
+
+  // Delete task hazard function
+  const handleDeleteTaskHazard = async () => {
+    if (!taskHazardToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await TaskHazardApi.deleteTaskHazardUniversal(taskHazardToDelete.id.toString());
+      
+      toast({
+        title: "Success",
+        description: "Task Hazard deleted successfully",
+        variant: "default",
+      });
+      
+      // Refresh the task hazards list
+      await fetchTaskHazards();
+      
+      // Close dialog and reset state
+      setDeleteDialogOpen(false);
+      setTaskHazardToDelete(null);
+    } catch (error) {
+      console.error('Error deleting task hazard:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task hazard",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const openDeleteDialog = (taskHazard: TaskHazard) => {
+    setTaskHazardToDelete(taskHazard);
+    setDeleteDialogOpen(true);
+  };
 
   // Authentication and initial data loading
   useEffect(() => {
@@ -484,16 +525,26 @@ export default function UniversalTaskHazard() {
                             </TableCell>
                           )}
                           <TableCell>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                // Navigate to the task hazard detail view
-                                router.push(`/safety/task-hazard/${taskHazard.id}`);
-                              }}
-                            >
-                              View Details
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  // Navigate to the task hazard detail view
+                                  router.push(`/safety/task-hazard/${taskHazard.id}`);
+                                }}
+                              >
+                                View Details
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openDeleteDialog(taskHazard)}
+                                className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -516,6 +567,53 @@ export default function UniversalTaskHazard() {
           </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Task Hazard</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this task hazard? This action cannot be undone.
+              {taskHazardToDelete && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium">Task Hazard Details:</p>
+                  <p className="text-sm text-gray-600">ID: {taskHazardToDelete.id}</p>
+                  <p className="text-sm text-gray-600">Scope: {taskHazardToDelete.scopeOfWork}</p>
+                  <p className="text-sm text-gray-600">Location: {taskHazardToDelete.location}</p>
+                  <p className="text-sm text-gray-600">Date: {new Date(taskHazardToDelete.date).toLocaleDateString()}</p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteTaskHazard}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Task Hazard
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

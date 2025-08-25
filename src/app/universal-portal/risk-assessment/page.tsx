@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Search, Filter, Building2, Shield, User, AlertTriangle, Layers } from "lucide-react"
+import { Search, Filter, Building2, Shield, User, AlertTriangle, Layers, Trash2 } from "lucide-react"
 import { UniversalUserApi } from "@/services/universalUserApi"
 import { RiskAssessmentApi } from "@/services/riskAssessmentApi"
 
@@ -81,6 +82,9 @@ export default function UniversalRiskAssessment() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [riskAssessmentToDelete, setRiskAssessmentToDelete] = useState<RiskAssessment | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const { toast } = useToast();
   const router = useRouter();
@@ -175,6 +179,43 @@ export default function UniversalRiskAssessment() {
       calculateStats([], companies);
     }
   }, [companyFilter, companies]);
+
+  // Delete risk assessment function
+  const handleDeleteRiskAssessment = async () => {
+    if (!riskAssessmentToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await RiskAssessmentApi.deleteRiskAssessmentUniversal(riskAssessmentToDelete.id.toString());
+      
+      toast({
+        title: "Success",
+        description: "Risk Assessment deleted successfully",
+        variant: "default",
+      });
+      
+      // Refresh the risk assessments list
+      await fetchRiskAssessments();
+      
+      // Close dialog and reset state
+      setDeleteDialogOpen(false);
+      setRiskAssessmentToDelete(null);
+    } catch (error) {
+      console.error('Error deleting risk assessment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete risk assessment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const openDeleteDialog = (riskAssessment: RiskAssessment) => {
+    setRiskAssessmentToDelete(riskAssessment);
+    setDeleteDialogOpen(true);
+  };
 
   // Authentication and initial data loading
   useEffect(() => {
@@ -610,16 +651,26 @@ export default function UniversalRiskAssessment() {
                             </TableCell>
                           )}
                           <TableCell>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                // Navigate to the risk assessment detail view
-                                router.push(`/risk-assessment/${assessment.id}`);
-                              }}
-                            >
-                              View Details
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  // Navigate to the risk assessment detail view
+                                  router.push(`/risk-assessment/${assessment.id}`);
+                                }}
+                              >
+                                View Details
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openDeleteDialog(assessment)}
+                                className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -642,6 +693,53 @@ export default function UniversalRiskAssessment() {
           </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Risk Assessment</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this risk assessment? This action cannot be undone.
+              {riskAssessmentToDelete && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium">Risk Assessment Details:</p>
+                  <p className="text-sm text-gray-600">ID: {riskAssessmentToDelete.id}</p>
+                  <p className="text-sm text-gray-600">Scope: {riskAssessmentToDelete.scopeOfWork}</p>
+                  <p className="text-sm text-gray-600">Location: {riskAssessmentToDelete.location}</p>
+                  <p className="text-sm text-gray-600">Date: {new Date(riskAssessmentToDelete.date).toLocaleDateString()}</p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteRiskAssessment}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Risk Assessment
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

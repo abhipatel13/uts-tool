@@ -31,4 +31,9 @@ export const RiskAssessmentApi = {
   deleteRiskAssessment: async (id: string): Promise<ApiResponse<void>> => {
     return api.delete<ApiResponse<void>>(`/api/risk-assessments/${id}`);
   },
+
+  // Delete a risk assessment (Universal User - all companies)
+  deleteRiskAssessmentUniversal: async (id: string): Promise<ApiResponse<void>> => {
+    return api.delete<ApiResponse<void>>(`/api/risk-assessments/universal/${id}`);
+  },
 }; 
