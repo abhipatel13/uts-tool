@@ -1,22 +1,23 @@
 import { api } from '@/lib/api-client';
 import { ApiResponse } from '@/types';
+import { User } from '@/types/user';
 
-export interface UniversalUser {
-  id: string | number;
-  email: string;
-  name?: string;
-  role: string;
-  company?: {
-    id: number;
-    name: string;
-  };
-  company_id?: number;
-  department?: string;
-  business_unit?: string;
-  plant?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+// export interface UniversalUser {
+//   id: string | number;
+//   email: string;
+//   name?: string;
+//   role: string;
+//   company?: {
+//     id: number;
+//     name: string;
+//   };
+//   company_id?: number;
+//   department?: string;
+//   business_unit?: string;
+//   plant?: string;
+//   createdAt?: string;
+//   updatedAt?: string;
+// }
 
 export interface CreateUniversalUserRequest {
   email: string;
@@ -53,7 +54,7 @@ export interface CreateCompanyRequest {
 }
 
 export interface UniversalUserListResponse {
-  users: UniversalUser[];
+  users: User[];
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -86,13 +87,13 @@ export const UniversalUserApi = {
   },
 
   // Create a new user (any role, any company)
-  createUser: async (userData: CreateUniversalUserRequest): Promise<ApiResponse<UniversalUser>> => {
-    return api.post<ApiResponse<UniversalUser>>('/api/universal/users', userData);
+  createUser: async (userData: CreateUniversalUserRequest): Promise<ApiResponse<User>> => {
+    return api.post<ApiResponse<User>>('/api/universal/users', userData);
   },
 
   // Update a user
-  updateUser: async (userId: string | number, userData: UpdateUniversalUserRequest): Promise<ApiResponse<UniversalUser>> => {
-    return api.put<ApiResponse<UniversalUser>>(`/api/universal/users/${userId}`, userData);
+  updateUser: async (userId: string | number, userData: UpdateUniversalUserRequest): Promise<ApiResponse<User>> => {
+    return api.put<ApiResponse<User>>(`/api/universal/users/${userId}`, userData);
   },
 
   // Delete a user
@@ -144,11 +145,11 @@ export const UniversalUserApi = {
       status: true,
       data: {
         totalUsers: users.length,
-        universalUsers: users.filter((u: UniversalUser) => u.role === 'universal_user').length,
-        superusers: users.filter((u: UniversalUser) => u.role === 'superuser').length,
-        admins: users.filter((u: UniversalUser) => u.role === 'admin').length,
-        supervisors: users.filter((u: UniversalUser) => u.role === 'supervisor').length,
-        users: users.filter((u: UniversalUser) => u.role === 'user').length,
+        universalUsers: users.filter((u: User) => u.role === 'universal_user').length,
+        superusers: users.filter((u: User) => u.role === 'superuser').length,
+        admins: users.filter((u: User) => u.role === 'admin').length,
+        supervisors: users.filter((u: User) => u.role === 'supervisor').length,
+        users: users.filter((u: User) => u.role === 'user').length,
         totalCompanies: companies.length,
       }
     };

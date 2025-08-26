@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
 
@@ -38,36 +38,84 @@ export default function TaskHazard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editTask, setEditTask] = useState<TaskHazardData | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const pageSize = 20
+  // Fetching indicator to avoid full list flashing
+  const [isFetching, setIsFetching] = useState(false)
+  const initialLoadRef = useRef(true)
+  const requestIdRef = useRef(0)
+  const currentPageRef = useRef(currentPage)
+  useEffect(() => { currentPageRef.current = currentPage }, [currentPage])
+  const fetchTasksRef = useRef<() => Promise<void>>(async () => {})
   
   // Define fetchTasks function outside of useEffect so it can be reused
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
-      setIsLoading(true)
-      const response = await TaskHazardApi.getTaskHazards()
+      if (initialLoadRef.current) setIsLoading(true)
+      setIsFetching(true)
+      const requestId = ++requestIdRef.current
+      const response = await TaskHazardApi.getTaskHazards({
+        page: currentPage,
+        limit: pageSize,
+        search: searchTerm?.trim() || undefined,
+      })
       
       // Check if response has the expected structure with data property
-      if (response && response.status && Array.isArray(response.data)) {
-        setTasks(response.data)
+      if (requestId === requestIdRef.current) {
+        if (response && response.status && Array.isArray(response.data)) {
+          setTasks(response.data)
+          if (response.pagination) {
+            setTotalPages(response.pagination.totalPages)
+            setTotalItems(response.pagination.totalItems)
+          }
+        } else {
+          // Fallback if the response structure is unexpected
+          setTasks([])
+        }
+        setError(null)
       } else {
-        // Fallback if the response structure is unexpected
-        setTasks([])
+        // Stale response - ignore
+        return
       }
-      
-      setError(null)
     } catch (error) {
       console.error("Error fetching tasks:", error)
       setError("Failed to load tasks. Please try again later.")
       // Set tasks to empty array on error
       setTasks([])
     } finally {
+      setIsFetching(false)
       setIsLoading(false)
+      initialLoadRef.current = false
     }
-  }
+  }, [searchTerm, currentPage, pageSize])
+  useEffect(() => { fetchTasksRef.current = fetchTasks }, [fetchTasks])
   
   // Fetch all tasks when component mounts
   useEffect(() => {
     fetchTasks()
-  }, [])
+  }, [fetchTasks])
+
+  // Refetch when search term changes (debounced) without interfering with pagination
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      if (currentPageRef.current !== 1) {
+        setCurrentPage(1)
+      } else {
+        fetchTasksRef.current()
+      }
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [searchTerm])
+
+  // Fetch when page changes
+  useEffect(() => {
+    if (!initialLoadRef.current) {
+      fetchTasks()
+    }
+  }, [currentPage, fetchTasks])
 
   // Highlight matching text in search results
   const highlightMatch = (text: string | undefined | null, searchTerm: string) => {
@@ -326,6 +374,28 @@ export default function TaskHazard() {
           </table>
         </div>
       </div>
+      {/* Pagination controls - Desktop */}
+      <div className="hidden md:flex items-center justify-between bg-white rounded-lg shadow-sm border p-3 mb-6">
+        <div className="text-sm text-gray-600">
+          Page {currentPage} of {totalPages} • Showing {tasks.length} of {totalItems} items
+        </div>
+        <div className="flex gap-2">
+          <CommonButton
+            variant="outline"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1 || isFetching}
+          >
+            Previous
+          </CommonButton>
+          <CommonButton
+            variant="outline"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages || isFetching}
+          >
+            Next
+          </CommonButton>
+        </div>
+      </div>
 
       {/* Mobile Card View */}
       <div className="block md:hidden">
@@ -466,6 +536,30 @@ export default function TaskHazard() {
                   </div>
                 );
               })}
+          </div>
+        )}
+        {/* Pagination controls - Mobile */}
+        {!isLoading && !error && (
+          <div className="flex md:hidden items-center justify-between bg-white rounded-lg shadow-sm border p-3 mt-4">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1 || isFetching}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages || isFetching}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </div>

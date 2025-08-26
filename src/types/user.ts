@@ -4,22 +4,19 @@ export interface User {
   email: string;
   name?: string;
   role: string;
-  company?:
-    | string
-    | {
-        id?: number;
-        name: string;
-        createdAt?: string;
-        updatedAt?: string;
-        deletedAt?: string | null;
-      };
   company_id?: number;
+  company?:{
+    id?: number;
+    name: string;
+    createdAt?: string;
+    updatedAt?: string;
+    deletedAt?: string | null;
+  };
+  phone?: string;
+  department?: string;
   permissions?: string[];
   isAuthenticated?: boolean;
-  user_type?: string; // For backward compatibility
 }
-
-
 
 // Auth-related interfaces
 export interface LoginRequest {

@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import { ApiResponse, TaskHazard, ApprovalsResponse } from '@/types';
+import { ApiResponse, TaskHazard, ApprovalsResponse, PaginatedResponse, BaseFilters } from '@/types';
 
 export const TaskHazardApi = {
   // Create a new task hazard
@@ -7,9 +7,20 @@ export const TaskHazardApi = {
     return api.post<TaskHazard>('/api/task-hazards', task);
   },
 
-  // Get all task hazard assessments
-  getTaskHazards: async (): Promise<ApiResponse<TaskHazard[]>> => {
-    return api.get<ApiResponse<TaskHazard[]>>('/api/task-hazards');
+  // Get task hazard assessments with pagination and search
+  getTaskHazards: async (
+    params?: Pick<BaseFilters, 'page' | 'limit' | 'search'>
+  ): Promise<PaginatedResponse<TaskHazard>> => {
+    const searchParams = new URLSearchParams();
+
+    if (params?.page) searchParams.append('page', String(params.page));
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.search) searchParams.append('search', params.search);
+
+    const queryString = searchParams.toString();
+    const endpoint = `/api/task-hazards${queryString ? `?${queryString}` : ''}`;
+
+    return api.get<PaginatedResponse<TaskHazard>>(endpoint);
   },
 
   // Get all task hazards for universal users (all companies)
@@ -18,8 +29,8 @@ export const TaskHazardApi = {
   },
 
   // Get task hazards by company (for universal users)
-  getByCompany: async (companyId: string): Promise<ApiResponse<TaskHazard[]>> => {
-    return api.get<ApiResponse<TaskHazard[]>>(`/api/task-hazards/company/${companyId}`);
+  getByCompany: async (companyId: string): Promise<PaginatedResponse<TaskHazard>> => {
+    return api.get<PaginatedResponse<TaskHazard>>(`/api/task-hazards/company/${companyId}`);
   },
 
   // Get a specific task hazard assessment

@@ -15,23 +15,25 @@ export interface ApiError {
   error?: string;
 }
 
-// Pagination interface for list responses
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+// Pagination interfaces aligned with backend response
+export interface PaginationMeta {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  pagination: PaginationMeta;
 }
 
 // Common filter interface
 export interface BaseFilters {
-  search?: string;
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  search?: string; // free-text search
+  page?: number;   // 1-based page index
+  limit?: number;  // page size (max 100)
 }
 
 // Status types used across different entities

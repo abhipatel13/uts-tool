@@ -11,28 +11,12 @@ import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Edit2, Trash2, Plus, Users, Building2, Shield, Crown, UserCheck } from "lucide-react"
-import Image from "next/image"
+import { Edit2, Trash2, Users, Building2, Shield, Crown, UserCheck, Plus } from "lucide-react"
+// import Image from "next/image"
 import { UniversalUserApi } from "@/services/universalUserApi"
 import { TaskHazardApi } from "@/services/taskHazardApi"
-import { TaskHazard } from "@/types"
-
-interface User {
-  id: string | number;
-  email: string;
-  name?: string;
-  role: string;
-  company?: {
-    id: number;
-    name: string;
-  };
-  companyId?: number;
-  phone?: string;
-  joiningDate?: string;
-  department?: string;
-  image?: string;
-}
-
+import { User } from "@/types/user"
+import { UserDialog } from "@/components/universal/UserDialog"
 interface Company {
   id: number;
   name: string;
@@ -44,47 +28,34 @@ interface Company {
   createdAt?: string;
 }
 
-interface NewUser {
-  name: string;
-  email: string;
-  password: string;
-  role: string;
-  companyId: number;
-  phone?: string;
-  department?: string;
-}
-
 interface NewCompany {
   name: string;
   description?: string;
 }
 
 interface UserStats {
-  totalUsers: number;
   universalUsers: number;
   superusers: number;
   admins: number;
   supervisors: number;
   users: number;
   totalCompanies: number;
-  totalTaskHazards: number;
 }
 
 export default function UniversalPortal() {
   const [users, setUsers] = useState<User[]>([]);
+  const [totalUsers, setTotalUsers] = useState<number>(0);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [taskHazards, setTaskHazards] = useState<TaskHazard[]>([]);
+  const [taskHazardCount, setTaskHazardCount] = useState<number>(0);
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<UserStats>({
-    totalUsers: 0,
     universalUsers: 0,
     superusers: 0,
     admins: 0,
     supervisors: 0,
     users: 0,
-    totalCompanies: 0,
-    totalTaskHazards: 0
+    totalCompanies: 0
   });
   
   const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
@@ -94,16 +65,6 @@ export default function UniversalPortal() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleteCompanyDialogOpen, setIsDeleteCompanyDialogOpen] = useState(false);
   
-  const [newUser, setNewUser] = useState<NewUser>({ 
-    name: '',
-    email: '', 
-    password: '', 
-    role: 'user',
-    companyId: 0,
-    phone: '',
-    department: ''
-  });
-  
   const [newCompany, setNewCompany] = useState<NewCompany>({
     name: '',
     description: ''
@@ -111,7 +72,6 @@ export default function UniversalPortal() {
   
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const [editFormData, setEditFormData] = useState<Partial<NewUser>>({});
   const [editCompanyFormData, setEditCompanyFormData] = useState<Partial<NewCompany>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -120,15 +80,12 @@ export default function UniversalPortal() {
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('all');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   
-
-  
   const { toast } = useToast();
   const router = useRouter();
 
   // Reset edit form when dialog opens/closes
   useEffect(() => {
     if (!isEditDialogOpen) {
-      setEditFormData({});
       setSelectedUser(null);
     }
   }, [isEditDialogOpen]);
@@ -147,7 +104,7 @@ export default function UniversalPortal() {
         
         setUsers(usersData);
         setCompanies(companiesData);
-        calculateStats(usersData, companiesData, []);
+        calculateStats(usersData, companiesData);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -173,6 +130,7 @@ export default function UniversalPortal() {
       const response = await UniversalUserApi.getAllUsers(params);
       if (response.status && response.data.users) {
         setUsers(response.data.users);
+        setTotalUsers(response.data.pagination.totalUsers);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -185,7 +143,7 @@ export default function UniversalPortal() {
       if (response.status) {
         const companiesData = response.data;
         setCompanies(companiesData);
-        calculateStats(users, companiesData, taskHazards);
+        calculateStats(users, companiesData);
       }
     } catch (error) {
       console.error('Error fetching companies:', error);
@@ -197,13 +155,15 @@ export default function UniversalPortal() {
       // Use the new company-based API for universal users
       const response = await TaskHazardApi.getByCompany(selectedCompanyFilter);
       if (response.status && response.data) {
-        setTaskHazards(response.data);
+        setTaskHazardCount(response.pagination.totalItems);
       }
     } catch (error) {
       console.error('Error fetching task hazards:', error);
       // Fallback to the original API if the new one fails
       try {
-        const fallbackResponse = await TaskHazardApi.getTaskHazards();
+        const fallbackResponse = await TaskHazardApi.getTaskHazards({
+          limit: 1000,
+        });
         if (fallbackResponse.status && fallbackResponse.data) {
           let taskHazardsData = fallbackResponse.data;
           
@@ -220,15 +180,13 @@ export default function UniversalPortal() {
             });
           }
           
-          setTaskHazards(taskHazardsData);
+          setTaskHazardCount(taskHazardsData.length);
         }
       } catch (fallbackError) {
         console.error('Error with fallback task hazard fetching:', fallbackError);
       }
     }
   }, [selectedCompanyFilter]);
-
-
 
   // Authentication and initial data loading
   useEffect(() => {
@@ -274,17 +232,15 @@ export default function UniversalPortal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompanyFilter, isAuthenticated]);
 
-  const calculateStats = (usersList: User[], companiesList: Company[], taskHazardsList: TaskHazard[] = []) => {
+  const calculateStats = (usersList: User[], companiesList: Company[]) => {
     
     const newStats: UserStats = {
-      totalUsers: usersList.length,
       universalUsers: usersList.filter(u => u.role === 'universal_user').length,
       superusers: usersList.filter(u => u.role === 'superuser').length,
       admins: usersList.filter(u => u.role === 'admin').length,
       supervisors: usersList.filter(u => u.role === 'supervisor').length,
       users: usersList.filter(u => u.role === 'user').length,
-      totalCompanies: companiesList.length,
-      totalTaskHazards: taskHazardsList.length
+      totalCompanies: companiesList.length
     };
     
     setStats(newStats);
@@ -292,38 +248,8 @@ export default function UniversalPortal() {
 
   // Calculate stats whenever data changes
   useEffect(() => {
-    calculateStats(users, companies, taskHazards);
-  }, [users, companies, taskHazards]);
-
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await UniversalUserApi.createUser(newUser);
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: "User created successfully",
-        });
-        setIsCreateUserDialogOpen(false);
-        setNewUser({ 
-          name: '',
-          email: '', 
-          password: '', 
-          role: 'user',
-          companyId: 0,
-          phone: '',
-          department: ''
-        });
-        fetchUsers();
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create user",
-        variant: "destructive",
-      });
-    }
-  };
+    calculateStats(users, companies);
+  }, [users, companies]);
 
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -345,29 +271,6 @@ export default function UniversalPortal() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create company",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleEditUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUser) return;
-
-    try {
-      const response = await UniversalUserApi.updateUser(selectedUser.id, editFormData);
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: "User updated successfully",
-        });
-        setIsEditDialogOpen(false);
-        fetchUsers();
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-          description: error instanceof Error ? error.message : "Failed to update user",
         variant: "destructive",
       });
     }
@@ -444,14 +347,6 @@ export default function UniversalPortal() {
 
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
-    setEditFormData({
-      name: user.name || '',
-      email: user.email || '',
-      role: user.role || 'user',
-      companyId: user.company?.id || user.companyId || 0,
-      phone: user.phone || '',
-      department: user.department || ''
-    });
     setIsEditDialogOpen(true);
   };
 
@@ -594,7 +489,7 @@ export default function UniversalPortal() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-100 text-sm">Total Users</p>
-                  <p className="text-2xl font-bold">{stats.totalUsers}</p>
+                  <p className="text-2xl font-bold">{totalUsers}</p>
                 </div>
                 <Users className="w-8 h-8 text-blue-200" />
               </div>
@@ -680,7 +575,7 @@ export default function UniversalPortal() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-yellow-100 text-sm">Task Hazards</p>
-                  <p className="text-2xl font-bold">{stats.totalTaskHazards}</p>
+                  <p className="text-2xl font-bold">{taskHazardCount}</p>
                 </div>
                 <Shield className="w-8 h-8 text-yellow-200" />
               </div>
@@ -738,101 +633,10 @@ export default function UniversalPortal() {
                 </form>
               </DialogContent>
             </Dialog>
-
-            <Dialog open={isCreateUserDialogOpen} onOpenChange={setIsCreateUserDialogOpen}>
-              <DialogTrigger asChild>
-                        <Button>
+                <Button onClick={() => setIsCreateUserDialogOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                          Add User
-                        </Button>
-              </DialogTrigger>
-                      <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New User</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleCreateUser} className="space-y-4">
-                    <div>
-                            <Label htmlFor="name">Name</Label>
-                      <Input
-                              id="name"
-                              value={newUser.name}
-                              onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                              id="email"
-                        type="email"
-                        value={newUser.email}
-                        onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div>
-                            <Label htmlFor="password">Password</Label>
-                      <Input
-                              id="password"
-                        type="password"
-                        value={newUser.password}
-                        onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div>
-                            <Label htmlFor="role">Role</Label>
-                      <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">User</SelectItem>
-                                <SelectItem value="supervisor">Supervisor</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="superuser">Superuser</SelectItem>
-                                <SelectItem value="universal_user">Universal User</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                            <Label htmlFor="company">Company</Label>
-                      <Select 
-                              value={newUser.companyId.toString()} 
-                              onValueChange={(value) => setNewUser({...newUser, companyId: parseInt(value)})}
-                      >
-                        <SelectTrigger>
-                                <SelectValue placeholder="Select company" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {companies.map((company) => (
-                            <SelectItem key={company.id} value={company.id.toString()}>
-                              {company.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                            <Label htmlFor="phone">Phone</Label>
-                      <Input
-                              id="phone"
-                              value={newUser.phone}
-                              onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                            <Label htmlFor="department">Department</Label>
-                      <Input
-                              id="department"
-                              value={newUser.department}
-                        onChange={(e) => setNewUser({...newUser, department: e.target.value})}
-                      />
-                          </div>
-                          <Button type="submit">Create User</Button>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
+                  Add User
+                </Button>
                     </div>
                   </div>
 
@@ -989,88 +793,26 @@ export default function UniversalPortal() {
           </CardContent>
         </Card>
 
-        {/* Edit User Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleEditUser} className="space-y-4">
-                <div>
-                <Label htmlFor="edit-name">Name</Label>
-                  <Input
-                  id="edit-name"
-                  value={editFormData.name || ''}
-                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
-                  required
-                  />
-                </div>
-                <div>
-                <Label htmlFor="edit-email">Email</Label>
-                  <Input
-                  id="edit-email"
-                  type="email"
-                  value={editFormData.email || ''}
-                  onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
-                  required
-                />
-                </div>
-                <div>
-                <Label htmlFor="edit-role">Role</Label>
-                  <Select 
-                  value={editFormData.role || 'user'} 
-                    onValueChange={(value) => setEditFormData({...editFormData, role: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="supervisor">Supervisor</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="superuser">Superuser</SelectItem>
-                    <SelectItem value="universal_user">Universal User</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                <Label htmlFor="edit-company">Company</Label>
-                  <Select 
-                  value={editFormData.companyId?.toString() || ''} 
-                  onValueChange={(value) => setEditFormData({...editFormData, companyId: parseInt(value)})}
-                  >
-                    <SelectTrigger>
-                    <SelectValue placeholder="Select company" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {companies.map((company) => (
-                        <SelectItem key={company.id} value={company.id.toString()}>
-                          {company.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                <Label htmlFor="edit-phone">Phone</Label>
-                  <Input
-                  id="edit-phone"
-                  value={editFormData.phone || ''}
-                  onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
-                  />
-                </div>
-                <div>
-                <Label htmlFor="edit-department">Department</Label>
-                  <Input
-                  id="edit-department"
-                  value={editFormData.department || ''}
-                  onChange={(e) => setEditFormData({...editFormData, department: e.target.value})}
-                  />
-                </div>
-              <Button type="submit">Update User</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        
+        
+
+        <UserDialog 
+          isOpen={isCreateUserDialogOpen}
+          onOpenChange={setIsCreateUserDialogOpen}
+          companies={companies}
+          onSaved={() => {
+            fetchUsers();
+          }}
+        />
+        <UserDialog 
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          companies={companies}
+          user={selectedUser || undefined}
+          onSaved={() => {
+            fetchUsers();
+          }}
+        />
 
         {/* Edit Company Dialog */}
         <Dialog open={isEditCompanyDialogOpen} onOpenChange={setIsEditCompanyDialogOpen}>
@@ -1138,9 +880,8 @@ export default function UniversalPortal() {
         </Dialog>
           </>
 
-
-                  </div>
-                </div>
+          </div>
+        </div>
       </div>
     </div>
   );
