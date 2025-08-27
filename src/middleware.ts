@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
         if (user.role === 'universal_user') {
           return NextResponse.redirect(new URL('/universal-portal', request.url))
         }
-      } catch (error) {
+      } catch {
         // Invalid user data, continue to normal flow
       }
     }

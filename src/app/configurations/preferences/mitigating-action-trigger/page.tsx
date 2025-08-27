@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { BackButton } from "@/components/ui/back-button"
+
 import { AlertTriangle, Shield, Settings, Save } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -84,7 +84,7 @@ export default function MitigatingActionTriggerPage() {
       setTriggers(defaultTriggers)
     }
     setLoading(false)
-  }, [])
+  }, [defaultTriggers])
 
   const updateTrigger = (id: string, updates: Partial<MitigatingActionTrigger>) => {
     setTriggers(prev => prev.map(trigger => 

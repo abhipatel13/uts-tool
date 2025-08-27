@@ -1,7 +1,7 @@
 "use client"
 
 import { CommonButton } from "@/components/ui/common-button"
-import { BackButton } from "@/components/ui/back-button"
+
 
 const mitigatingActionTypes = [
   {

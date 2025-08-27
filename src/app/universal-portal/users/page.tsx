@@ -240,11 +240,11 @@ export default function UniversalUsers() {
         // Refresh data
         fetchData();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating user:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create user",
+        description: (error as Error)?.message || "Failed to create user",
         variant: "destructive",
       });
     } finally {
@@ -305,11 +305,11 @@ export default function UniversalUsers() {
         setIsResetPasswordDialogOpen(false);
         setSelectedUserForReset(null);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error resetting password:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to reset password",
+        description: (error as Error)?.message || "Failed to reset password",
         variant: "destructive",
       });
     } finally {

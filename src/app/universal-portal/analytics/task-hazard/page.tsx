@@ -192,7 +192,7 @@ export default function TaskHazardAnalyticsPage() {
       setTaskHazards([]);
       calculateStats([]);
     }
-  }, [companyFilter, companies, calculateStats]);
+  }, [companyFilter, calculateStats]);
 
   // Apply filters
   const filteredTaskHazards = taskHazards.filter(taskHazard => {

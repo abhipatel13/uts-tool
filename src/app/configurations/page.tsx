@@ -1,15 +1,10 @@
 'use client';
-import { CommonButton } from "@/components/ui/common-button"
 import Link from "next/link"
 import { 
   Users, 
   Settings, 
   FileText, 
-  Shield, 
-  Database, 
-  Palette,
-  Bell,
-  MapPin
+  Shield
 } from "lucide-react"
 
 export default function Configurations() {
