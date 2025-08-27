@@ -101,6 +101,16 @@ export const UniversalUserApi = {
     return api.delete<ApiResponse<void>>(`/api/universal/users/${userId}`);
   },
 
+  // Reset user password
+  resetUserPassword: async (userId: string | number, newPassword: string): Promise<ApiResponse<void>> => {
+    return api.put<ApiResponse<void>>(`/api/universal/users/${userId}/reset-password`, { newPassword });
+  },
+
+  // Change own password
+  changeOwnPassword: async (currentPassword: string, newPassword: string): Promise<ApiResponse<void>> => {
+    return api.put<ApiResponse<void>>('/api/universal/change-password', { currentPassword, newPassword });
+  },
+
   // Get all companies
   getAllCompanies: async (): Promise<ApiResponse<Company[]>> => {
     return api.get<ApiResponse<Company[]>>('/api/universal/companies');

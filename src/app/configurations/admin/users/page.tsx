@@ -23,6 +23,7 @@ export default function UserManagement() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUniversalUser, setIsUniversalUser] = useState(false);
   const [newUser, setNewUser] = useState<NewUser>({ 
     email: '', 
     password: '', 
@@ -70,18 +71,25 @@ export default function UserManagement() {
         if (userData) {
           const user = JSON.parse(userData);
           setCurrentUser(user);
+          setIsUniversalUser(user.role === 'universal_user');
           
-          // Only superusers can access user management
+          // Only superusers can access this admin page
+          // Universal users should use the Universal Portal users page instead
           if (user.role !== 'superuser') {
-            setError('Access denied. Only superusers can manage users.');
-            return;
+            if (user.role === 'universal_user') {
+              router.push('/universal-portal/users');
+              return;
+            } else {
+              setError('Access denied. Only superusers can access this admin page.');
+              return;
+            }
           }
           
           // Set the company in newUser state when current user is loaded
           setNewUser({ 
             email: '', 
             password: '', 
-            role: 'user',
+            role: user.role === 'universal_user' ? 'superuser' : 'user', // Universal users default to creating superusers
             company: typeof user.company === 'string' 
               ? user.company 
               : (user.company && typeof user.company === 'object' && 'name' in user.company)
@@ -100,6 +108,17 @@ export default function UserManagement() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Additional validation: Universal users can only create superusers
+    if (currentUser?.role === 'universal_user' && newUser.role !== 'superuser') {
+      toast({
+        title: "Error",
+        description: "Universal users can only create Superuser accounts",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       // Ensure company is set from current user
       const userToCreate = {
@@ -121,7 +140,7 @@ export default function UserManagement() {
         setNewUser({ 
           email: '', 
           password: '', 
-          role: 'user',
+          role: currentUser?.role === 'universal_user' ? 'superuser' : 'user', // Universal users default to creating superusers
           company: typeof currentUser?.company === 'string' 
           ? currentUser.company 
           : (currentUser?.company && typeof currentUser.company === 'object' && 'name' in currentUser.company)
@@ -384,12 +403,23 @@ export default function UserManagement() {
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="superuser">Superuser</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="supervisor">Supervisor</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
+                      {(isUniversalUser || currentUser?.role === 'universal_user') ? (
+                        <SelectItem value="superuser">Superuser</SelectItem>
+                      ) : (
+                        <>
+                          <SelectItem value="superuser">Superuser</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="supervisor">Supervisor</SelectItem>
+                          <SelectItem value="user">User</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
+                  {(isUniversalUser || currentUser?.role === 'universal_user') && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Universal users can only create Superuser accounts
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Company</label>
@@ -435,10 +465,16 @@ export default function UserManagement() {
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="superuser">Superuser</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="supervisor">Supervisor</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
+                    {(isUniversalUser || currentUser?.role === 'universal_user') ? (
+                      <SelectItem value="superuser">Superuser</SelectItem>
+                    ) : (
+                      <>
+                        <SelectItem value="superuser">Superuser</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="supervisor">Supervisor</SelectItem>
+                        <SelectItem value="user">User</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

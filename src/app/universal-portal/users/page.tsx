@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Search, Filter, Users, Building2, Crown, Shield, UserCheck, User } from "lucide-react"
+import { Search, Filter, Users, Building2, Crown, Shield, UserCheck, User, Plus, Key } from "lucide-react"
 import { UniversalUserApi } from "@/services/universalUserApi"
 
 interface User {
@@ -61,6 +62,29 @@ export default function UniversalUsers() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  
+  // Create user dialog state
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'superuser', // Default to superuser since that's the only option for Universal Users
+    company_id: '',
+    department: '',
+    business_unit: '',
+    plant: ''
+  });
+  
+  // Reset password dialog state
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(null);
+  const [resetPasswordData, setResetPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
   
   const { toast } = useToast();
   const router = useRouter();
@@ -172,6 +196,127 @@ export default function UniversalUsers() {
     setStats(newStats);
   };
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newUser.name || !newUser.email || !newUser.password || !newUser.company_id) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreatingUser(true);
+    
+    try {
+      const userData = {
+        ...newUser,
+        company_id: parseInt(newUser.company_id)
+      };
+      
+      const response = await UniversalUserApi.createUser(userData);
+      
+      if (response.status) {
+        toast({
+          title: "Success",
+          description: "Superuser created successfully",
+        });
+        
+        // Reset form and close dialog
+        setNewUser({
+          name: '',
+          email: '',
+          password: '',
+          role: 'superuser',
+          company_id: '',
+          department: '',
+          business_unit: '',
+          plant: ''
+        });
+        setIsCreateDialogOpen(false);
+        
+        // Refresh data
+        fetchData();
+      }
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
+  const handleResetPassword = (user: User) => {
+    setSelectedUserForReset(user);
+    setResetPasswordData({
+      newPassword: '',
+      confirmPassword: ''
+    });
+    setIsResetPasswordDialogOpen(true);
+  };
+
+  const handleSubmitResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedUserForReset) return;
+    
+    // Validate passwords match
+    if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate password length
+    if (resetPasswordData.newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsResettingPassword(true);
+    
+    try {
+      const response = await UniversalUserApi.resetUserPassword(selectedUserForReset.id.toString(), resetPasswordData.newPassword);
+      
+      if (response.status) {
+        toast({
+          title: "Success",
+          description: `Password reset successfully for ${selectedUserForReset.email}`,
+        });
+        
+        // Reset form and close dialog
+        setResetPasswordData({
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setIsResetPasswordDialogOpen(false);
+        setSelectedUserForReset(null);
+      }
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   // Filter functions
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -211,7 +356,196 @@ export default function UniversalUsers() {
                 <p className="text-gray-600 mt-1">Manage user accounts and roles across all companies</p>
               </div>
             </div>
+            
+            {/* Create User Button */}
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Superuser
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Create New Superuser</DialogTitle>
+                  <DialogDescription>
+                    Universal users can only create Superuser accounts. Fill in the details below.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateUser} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="name">Name *</Label>
+                      <Input
+                        id="name"
+                        value={newUser.name}
+                        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                        placeholder="Full name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                        placeholder="user@company.com"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      placeholder="Enter password"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="role">Role</Label>
+                    <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="superuser">Superuser</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">Universal users can only create Superuser accounts</p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="company">Company *</Label>
+                    <Select value={newUser.company_id} onValueChange={(value) => setNewUser({ ...newUser, company_id: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select company" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {companies.map((company) => (
+                          <SelectItem key={company.id} value={company.id.toString()}>
+                            {company.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="department">Department</Label>
+                      <Input
+                        id="department"
+                        value={newUser.department}
+                        onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                        placeholder="e.g., IT, HR"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="business_unit">Business Unit</Label>
+                      <Input
+                        id="business_unit"
+                        value={newUser.business_unit}
+                        onChange={(e) => setNewUser({ ...newUser, business_unit: e.target.value })}
+                        placeholder="e.g., Operations"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="plant">Plant/Location</Label>
+                    <Input
+                      id="plant"
+                      value={newUser.plant}
+                      onChange={(e) => setNewUser({ ...newUser, plant: e.target.value })}
+                      placeholder="e.g., Main Office"
+                    />
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCreateDialogOpen(false)}
+                      disabled={isCreatingUser}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isCreatingUser}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isCreatingUser ? 'Creating...' : 'Create Superuser'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
+
+          {/* Reset Password Dialog */}
+          <Dialog open={isResetPasswordDialogOpen} onOpenChange={setIsResetPasswordDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Reset Password</DialogTitle>
+                <DialogDescription>
+                  Reset password for {selectedUserForReset?.email}. Enter a new password below.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmitResetPassword} className="space-y-4">
+                <div>
+                  <Label htmlFor="newPassword">New Password *</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={resetPasswordData.newPassword}
+                    onChange={(e) => setResetPasswordData({ ...resetPasswordData, newPassword: e.target.value })}
+                    placeholder="Enter new password"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters long</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={resetPasswordData.confirmPassword}
+                    onChange={(e) => setResetPasswordData({ ...resetPasswordData, confirmPassword: e.target.value })}
+                    placeholder="Confirm new password"
+                    required
+                  />
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsResetPasswordDialogOpen(false)}
+                    disabled={isResettingPassword}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isResettingPassword}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    {isResettingPassword ? 'Resetting...' : 'Reset Password'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
@@ -454,16 +788,27 @@ export default function UniversalUsers() {
                           <TableCell>{user.department || 'N/A'}</TableCell>
                           <TableCell>{user.phone || 'N/A'}</TableCell>
                           <TableCell>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                // Navigate to user detail view or edit
-                                router.push(`/universal-portal/users/${user.id}`);
-                              }}
-                            >
-                              View Details
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  // Navigate to user detail view or edit
+                                  router.push(`/universal-portal/users/${user.id}`);
+                                }}
+                              >
+                                View Details
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleResetPassword(user)}
+                                className="text-orange-600 hover:text-orange-700 border-orange-200 hover:border-orange-300"
+                              >
+                                <Key className="w-4 h-4 mr-1" />
+                                Reset Password
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

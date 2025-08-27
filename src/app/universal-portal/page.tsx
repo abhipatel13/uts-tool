@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -11,13 +11,21 @@ import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Edit2, Trash2, Users, Building2, Shield, Crown, UserCheck, Plus } from "lucide-react"
-// import Image from "next/image"
+import { Edit2, Trash2, Plus, Users, Building2, Shield, Crown, UserCheck, Lock, Key } from "lucide-react"
 import { UniversalUserApi } from "@/services/universalUserApi"
 import { TaskHazardApi } from "@/services/taskHazardApi"
 import { User } from "@/types/user"
-import { UserDialog } from "@/components/universal/UserDialog"
-import Link from "next/link"
+
+interface NewUser {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  companyId: number;
+  phone?: string;
+  department?: string;
+}
+
 interface Company {
   id: number;
   name: string;
@@ -65,6 +73,27 @@ export default function UniversalPortal() {
   const [isEditCompanyDialogOpen, setIsEditCompanyDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleteCompanyDialogOpen, setIsDeleteCompanyDialogOpen] = useState(false);
+  const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(null);
+  const [resetPasswordData, setResetPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+  
+  const [newUser, setNewUser] = useState<NewUser>({ 
+    name: '',
+    email: '', 
+    password: '', 
+    role: 'superuser', // Universal users can only create superusers
+    companyId: 0,
+    phone: '',
+    department: ''
+  });
+
+  const [editFormData, setEditFormData] = useState<Partial<NewUser>>({});
   
   const [newCompany, setNewCompany] = useState<NewCompany>({
     name: '',
@@ -74,6 +103,11 @@ export default function UniversalPortal() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [editCompanyFormData, setEditCompanyFormData] = useState<Partial<NewCompany>>({});
+  const [changePasswordData, setChangePasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   
@@ -87,6 +121,7 @@ export default function UniversalPortal() {
   // Reset edit form when dialog opens/closes
   useEffect(() => {
     if (!isEditDialogOpen) {
+      setEditFormData({});
       setSelectedUser(null);
     }
   }, [isEditDialogOpen]);
@@ -252,6 +287,218 @@ export default function UniversalPortal() {
     calculateStats(users, companies);
   }, [users, companies]);
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate company selection
+    if (!newUser.companyId || newUser.companyId === 0) {
+      toast({
+        title: "Error",
+        description: "Please select a company",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // Send the user data with proper company_id format for the backend
+      const userData = {
+        ...newUser,
+        company_id: newUser.companyId
+      };
+      
+      const response = await UniversalUserApi.createUser(userData);
+      if (response.status) {
+        toast({
+          title: "Success",
+          description: "Superuser created successfully",
+        });
+        setIsCreateUserDialogOpen(false);
+        setNewUser({ 
+          name: '',
+          email: '', 
+          password: '', 
+          role: 'superuser', // Universal users can only create superusers
+          companyId: 0,
+          phone: '',
+          department: ''
+        });
+        fetchUsers();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    if (!changePasswordData.currentPassword || !changePasswordData.newPassword || !changePasswordData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all password fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate new passwords match
+    if (changePasswordData.newPassword !== changePasswordData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate password length
+    if (changePasswordData.newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsChangingPassword(true);
+    
+    try {
+      const response = await UniversalUserApi.changeOwnPassword(
+        changePasswordData.currentPassword,
+        changePasswordData.newPassword
+      );
+      
+      if (response.status) {
+        toast({
+          title: "Success",
+          description: "Password changed successfully",
+        });
+        
+        // Reset form and close dialog
+        setChangePasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setIsChangePasswordDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to change password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+
+    try {
+      const response = await UniversalUserApi.updateUser(selectedUser.id, editFormData);
+      if (response.status) {
+        toast({
+          title: "Success",
+          description: "User updated successfully",
+        });
+        setIsEditDialogOpen(false);
+        fetchUsers();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResetUserPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedUserForReset) return;
+    
+    // Validate passwords match
+    if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate password length
+    if (resetPasswordData.newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsResettingPassword(true);
+    
+    try {
+      const response = await UniversalUserApi.resetUserPassword(selectedUserForReset.id.toString(), resetPasswordData.newPassword);
+      
+      if (response.status) {
+        toast({
+          title: "Success",
+          description: `Password reset successfully for ${selectedUserForReset.email}`,
+        });
+        
+        // Reset form and close dialog
+        setResetPasswordData({
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setIsResetPasswordDialogOpen(false);
+        setSelectedUserForReset(null);
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reset password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const openResetPasswordDialog = (user: User) => {
+    setSelectedUserForReset(user);
+    setResetPasswordData({
+      newPassword: '',
+      confirmPassword: ''
+    });
+    setIsResetPasswordDialogOpen(true);
+  };
+
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -348,6 +595,14 @@ export default function UniversalPortal() {
 
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
+    setEditFormData({
+      name: user.name || '',
+      email: user.email || '',
+      role: user.role || 'user',
+      companyId: user.company?.id || user.company_id || 0,
+      phone: user.phone || '',
+      department: user.department || ''
+    });
     setIsEditDialogOpen(true);
   };
 
@@ -397,11 +652,29 @@ export default function UniversalPortal() {
     return null;
   }
 
-    return (
+  return (
     <div className="min-h-screen bg-gray-50">
       <div className="w-full max-w-7xl mx-auto">
         {/* Main Content */}
         <div className="flex flex-col space-y-6 p-6">
+          {/* Header Section */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Universal Portal Dashboard</h1>
+              <p className="text-gray-600 mt-1">Manage users, companies, and system-wide operations</p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsChangePasswordDialogOpen(true)}
+                className="text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+              >
+                <Lock className="w-4 h-4 mr-2" />
+                Change Password
+              </Button>
+            </div>
+          </div>
+
           {/* Company Filter Section */}
           <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-indigo-50">
             <CardContent className="p-6">
@@ -634,18 +907,102 @@ export default function UniversalPortal() {
                 </form>
               </DialogContent>
             </Dialog>
-                <Button onClick={() => setIsCreateUserDialogOpen(true)}>
+
+            <Dialog open={isCreateUserDialogOpen} onOpenChange={setIsCreateUserDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
                   <Plus className="w-4 h-4 mr-2" />
                   Add User
                 </Button>
-                <Link href="/universal-portal/users/bulk-upload">
-                  <Button variant="outline">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Bulk Upload
-                  </Button>
-                </Link>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New User</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleCreateUser} className="space-y-4">
+                    <div>
+                            <Label htmlFor="name">Name</Label>
+                      <Input
+                              id="name"
+                              value={newUser.name}
+                              onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                              id="email"
+                        type="email"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                        required
+                      />
                     </div>
+                    <div>
+                            <Label htmlFor="password">Password</Label>
+                      <Input
+                              id="password"
+                        type="password"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div>
+                            <Label htmlFor="role">Role</Label>
+                      <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="superuser">Superuser</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Universal users can only create Superuser accounts
+                      </p>
+                    </div>
+                    <div>
+                            <Label htmlFor="company">Company *</Label>
+                      <Select 
+                              value={newUser.companyId > 0 ? newUser.companyId.toString() : ""} 
+                              onValueChange={(value) => setNewUser({...newUser, companyId: parseInt(value)})}
+                      >
+                        <SelectTrigger>
+                                <SelectValue placeholder="Select company" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {companies.map((company) => (
+                            <SelectItem key={company.id} value={company.id.toString()}>
+                              {company.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                            <Label htmlFor="phone">Phone</Label>
+                      <Input
+                              id="phone"
+                              value={newUser.phone}
+                              onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                            <Label htmlFor="department">Department</Label>
+                      <Input
+                              id="department"
+                              value={newUser.department}
+                        onChange={(e) => setNewUser({...newUser, department: e.target.value})}
+                      />
+                          </div>
+                          <Button type="submit">Create User</Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
                   </div>
+                </div>
 
                 {/* Search and Filter Controls */}
                 <div className="flex gap-4 mb-6">
@@ -726,6 +1083,14 @@ export default function UniversalPortal() {
                           >
                             <Edit2 className="w-4 h-4" />
                                 </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openResetPasswordDialog(user)}
+                                  className="text-orange-600 hover:text-orange-700 border-orange-200 hover:border-orange-300"
+                                >
+                                  <Key className="w-4 h-4" />
+                                </Button>
                                 <Button 
                             variant="outline"
                             size="sm"
@@ -800,27 +1165,90 @@ export default function UniversalPortal() {
           </CardContent>
         </Card>
 
-        
-        
-
-        <UserDialog 
-          isOpen={isCreateUserDialogOpen}
-          onOpenChange={setIsCreateUserDialogOpen}
-          companies={companies}
-          onSaved={() => {
-            fetchUsers();
-          }}
-        />
-        <UserDialog 
-          isOpen={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-          companies={companies}
-          user={selectedUser || undefined}
-          onSaved={() => {
-            fetchUsers();
-          }}
-        />
-
+        {/* Edit User Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditUser} className="space-y-4">
+                <div>
+                <Label htmlFor="edit-name">Name</Label>
+                  <Input
+                  id="edit-name"
+                  value={editFormData.name || ''}
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  required
+                  />
+                </div>
+                <div>
+                <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                  id="edit-email"
+                  type="email"
+                  value={editFormData.email || ''}
+                  onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                  required
+                />
+                </div>
+                <div>
+                <Label htmlFor="edit-role">Role</Label>
+                  <Select 
+                  value={editFormData.role || 'user'} 
+                    onValueChange={(value) => setEditFormData({...editFormData, role: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="supervisor">Supervisor</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="superuser">Superuser</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Universal users can edit to any role except Universal User
+                  </p>
+                </div>
+                <div>
+                <Label htmlFor="edit-company">Company</Label>
+                  <Select 
+                  value={editFormData.companyId?.toString() || ''} 
+                  onValueChange={(value) => setEditFormData({...editFormData, companyId: parseInt(value)})}
+                  >
+                    <SelectTrigger>
+                    <SelectValue placeholder="Select company" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id.toString()}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                <Label htmlFor="edit-phone">Phone</Label>
+                  <Input
+                  id="edit-phone"
+                  value={editFormData.phone || ''}
+                  onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                  />
+                </div>
+                <div>
+                <Label htmlFor="edit-department">Department</Label>
+                  <Input
+                  id="edit-department"
+                  value={editFormData.department || ''}
+                  onChange={(e) => setEditFormData({...editFormData, department: e.target.value})}
+                  />
+                </div>
+              <Button type="submit">Update User</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit Company Dialog */}
         <Dialog open={isEditCompanyDialogOpen} onOpenChange={setIsEditCompanyDialogOpen}>
@@ -884,6 +1312,130 @@ export default function UniversalPortal() {
                 Delete
               </Button>
                 </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Change Password Dialog */}
+        <Dialog open={isChangePasswordDialogOpen} onOpenChange={setIsChangePasswordDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Change Password</DialogTitle>
+              <DialogDescription>
+                Change your Universal User password. You will need to enter your current password to confirm.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <Label htmlFor="currentPassword">Current Password *</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={changePasswordData.currentPassword}
+                  onChange={(e) => setChangePasswordData({ ...changePasswordData, currentPassword: e.target.value })}
+                  placeholder="Enter current password"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="newPassword">New Password *</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={changePasswordData.newPassword}
+                  onChange={(e) => setChangePasswordData({ ...changePasswordData, newPassword: e.target.value })}
+                  placeholder="Enter new password"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters long</p>
+              </div>
+
+              <div>
+                <Label htmlFor="confirmNewPassword">Confirm New Password *</Label>
+                <Input
+                  id="confirmNewPassword"
+                  type="password"
+                  value={changePasswordData.confirmPassword}
+                  onChange={(e) => setChangePasswordData({ ...changePasswordData, confirmPassword: e.target.value })}
+                  placeholder="Confirm new password"
+                  required
+                />
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsChangePasswordDialogOpen(false)}
+                  disabled={isChangingPassword}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isChangingPassword}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isChangingPassword ? 'Changing...' : 'Change Password'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reset User Password Dialog */}
+        <Dialog open={isResetPasswordDialogOpen} onOpenChange={setIsResetPasswordDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Reset Password</DialogTitle>
+              <DialogDescription>
+                Reset password for {selectedUserForReset?.email}. Enter a new password below.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleResetUserPassword} className="space-y-4">
+              <div>
+                <Label htmlFor="resetNewPassword">New Password *</Label>
+                <Input
+                  id="resetNewPassword"
+                  type="password"
+                  value={resetPasswordData.newPassword}
+                  onChange={(e) => setResetPasswordData({ ...resetPasswordData, newPassword: e.target.value })}
+                  placeholder="Enter new password"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters long</p>
+              </div>
+
+              <div>
+                <Label htmlFor="resetConfirmPassword">Confirm Password *</Label>
+                <Input
+                  id="resetConfirmPassword"
+                  type="password"
+                  value={resetPasswordData.confirmPassword}
+                  onChange={(e) => setResetPasswordData({ ...resetPasswordData, confirmPassword: e.target.value })}
+                  placeholder="Confirm new password"
+                  required
+                />
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsResetPasswordDialogOpen(false)}
+                  disabled={isResettingPassword}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isResettingPassword}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  {isResettingPassword ? 'Resetting...' : 'Reset Password'}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
           </>
