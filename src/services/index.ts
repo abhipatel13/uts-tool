@@ -12,7 +12,8 @@ export * from './licenseService';
 export * from './userApi';
 export * from './notificationApi';
 export * from './tacticsApi';
-export * from './paymentService';
+export * from './PaymentService';
+export * from './BulkUserService';
 
 // Re-export commonly used services for convenience
 export { AuthApi } from './authApi';
@@ -23,4 +24,5 @@ export { LicensePoolService, LicenseAllocationService, LicenseAdminService } fro
 export { UserApi } from './userApi';
 export { NotificationApi } from './notificationApi';
 export { TacticsApi } from './tacticsApi';
-export { PaymentService } from './paymentService'; 
+export { PaymentService } from './PaymentService';
+export { BulkUserService } from './BulkUserService';

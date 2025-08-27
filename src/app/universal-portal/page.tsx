@@ -17,6 +17,7 @@ import { UniversalUserApi } from "@/services/universalUserApi"
 import { TaskHazardApi } from "@/services/taskHazardApi"
 import { User } from "@/types/user"
 import { UserDialog } from "@/components/universal/UserDialog"
+import Link from "next/link"
 interface Company {
   id: number;
   name: string;
@@ -637,6 +638,12 @@ export default function UniversalPortal() {
                   <Plus className="w-4 h-4 mr-2" />
                   Add User
                 </Button>
+                <Link href="/universal-portal/users/bulk-upload">
+                  <Button variant="outline">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Bulk Upload
+                  </Button>
+                </Link>
                     </div>
                   </div>
 
@@ -813,6 +820,7 @@ export default function UniversalPortal() {
             fetchUsers();
           }}
         />
+
 
         {/* Edit Company Dialog */}
         <Dialog open={isEditCompanyDialogOpen} onOpenChange={setIsEditCompanyDialogOpen}>
