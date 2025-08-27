@@ -14,7 +14,7 @@ export interface NavItem {
 export interface DashboardItem {
   title: string;
   description: string;
-  icon: string;
+  icon?: React.ComponentType<{ className?: string }>;
   href: string;
   permission: string;
   color?: string;

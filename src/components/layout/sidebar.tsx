@@ -11,18 +11,18 @@ import { Permissions, getPermissionsForRole } from "@/config/permissions";
 import { NavItem, User } from "@/types";
 
 // Simple icon components
-const Icons = {
+export const Icons = {
   AssetHierarchy: () => (
-    <Image src="/asset-hierarchy.png" alt="Asset Hierarchy" width={32} height={32} className="w-8 h-8" priority />
+    <Image src="/asset-hierarchy.png" alt="Asset Hierarchy" width={128} height={128} className="w-10 h-10" priority />
   ),
   Safety: () => (
-    <Image src="/safety-hat.png" alt="Safety" width={32} height={32} className="w-8 h-8" priority />
+    <Image src="/safety-hat.png" alt="Safety" width={128} height={128} className="w-10 h-10" priority />
   ),
   Analytics: () => (
-    <Image src="/analytics.png" alt="Analytics" width={32} height={32} className="w-8 h-8" priority />
+    <Image src="/analytics.png" alt="Analytics" width={128} height={128} className="w-10 h-10" priority />
   ),
   Configurations: () => (
-    <Image src="/configurations.png" alt="Configurations" width={32} height={32} className="w-8 h-8" priority />
+    <Image src="/configurations.png" alt="Configurations" width={128} height={128} className="w-10 h-10" priority />
   ),
   Tactics: () => (
     <div className="p-2 rounded-full flex items-center justify-center bg-[#E74C3C]">
@@ -39,7 +39,7 @@ const Icons = {
       <Crown className="w-6 h-6 text-white" />
     </div>
   ),
-};
+}; 
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);

@@ -6,6 +6,7 @@ import {
   getRoleTitle as getTitle,
 } from "@/config/permissions";
 import { DashboardItem, QuickAction } from "@/types";
+import { Icons } from "@/components/layout/sidebar";
 
 // Re-export centralized functions for backward compatibility
 export const getRoleColorScheme = () => {
@@ -36,42 +37,42 @@ export function getDashboardItems(): DashboardItem[] {
     {
       title: "Asset Hierarchy",
       description: "Manage and view your asset hierarchy structure",
-      icon: "Building2",
+      icon: Icons.AssetHierarchy,
       href: "/asset-hierarchy",
       permission: Permissions.VIEW_ASSET_HIERARCHY,
     },
     {
       title: "Tactics",
       description: "Manage and configure tactics",
-      icon: "Target",
+      icon: Icons.Tactics,
       href: "/tactics",
       permission: Permissions.TACTICS,
     },
     {
       title: "Task Hazard",
       description: "Create and manage task hazard assessments",
-      icon: "AlertTriangle",
+      icon: Icons.Safety,
       href: "/safety/task-hazard",
       permission: Permissions.TASK_HAZARD,
     },
     {
       title: "Risk Assessment",
       description: "Create and manage risk assessments",
-      icon: "Shield",
+      icon: Icons.Safety,
       href: "/safety/risk-assessment",
       permission: Permissions.RISK_ASSESSMENT,
     },
     {
       title: "Analytics",
       description: "View analytics and reports",
-      icon: "BarChart3",
+      icon: Icons.Analytics,
       href: "/analytics",
       permission: Permissions.VIEW_ANALYTICS,
     },
     {
       title: "Configuration",
       description: "Manage system configurations",
-      icon: "Settings",
+      icon: Icons.Configurations,
       href: "/configurations",
       permission: Permissions.CONFIGURATION_MANAGEMENT,
     },
