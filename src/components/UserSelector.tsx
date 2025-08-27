@@ -1,12 +1,13 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
-import { userApi, type User } from "@/services/userApi"
+import { UserApi } from "@/services"
+import type { User } from "@/types"
 import { useToast } from "@/components/ui/use-toast"
 
 interface UserSelectorProps {
@@ -45,7 +46,7 @@ export function UserSelector({
     const fetchUsers = async () => {
       try {
         setIsLoadingUsers(true)
-        const response = await userApi.getAllRestricted()
+        const response = await UserApi.getAllRestricted()
         let filteredUsers = response.data
         
         // Apply role filter if specified

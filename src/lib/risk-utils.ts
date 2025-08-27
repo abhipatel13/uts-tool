@@ -76,6 +76,8 @@ export const getRiskScore = (likelihood: string, consequence: string, consequenc
 };
 
 export const getRiskColor = (score: number, riskType: string) => {
+  if (riskType === "" || score === 0) return "";
+  
   // For Maintenance Risk
   if (riskType === "Maintenance") {
     // Looking at the exact matrix:
@@ -163,6 +165,10 @@ export const getRiskColor = (score: number, riskType: string) => {
   
   // Red (12-25)
   return "bg-[#ED1C24] text-white";
+}
+
+export const getRiskColorText = (score: number, riskType: string) => {
+  return getRiskColor(score, riskType).split(" ")[1];
 }
 
 export const getRiskColorPastel = (score: number, riskType: string) => {

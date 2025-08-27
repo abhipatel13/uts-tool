@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { CommonButton } from "@/components/ui/common-button"
 import { Plus, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
@@ -11,7 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { riskAssessmentApi, type RiskAssessment } from "@/services/api"
+import { RiskAssessmentApi } from "@/services"
+import type { RiskAssessment } from "@/types"
 import RiskAssessmentForm from "@/components/RiskAssessmentForm"
 
 
@@ -36,7 +37,7 @@ export default function RiskAssessment() {
   const fetchAssessments = async () => {
     try {
       setIsLoading(true)
-      const response = await riskAssessmentApi.getRiskAssessments()
+      const response = await RiskAssessmentApi.getRiskAssessments()
       
       // Check if response has the expected structure with data property
       if (response && response.status && Array.isArray(response.data)) {
@@ -80,7 +81,7 @@ export default function RiskAssessment() {
     if (!deleteAssessmentId) return
 
     try {
-      await riskAssessmentApi.deleteRiskAssessment(deleteAssessmentId)
+      await RiskAssessmentApi.deleteRiskAssessment(deleteAssessmentId)
       
       toast({
         title: "Success",
@@ -125,7 +126,7 @@ export default function RiskAssessment() {
               />
             </div>
             <CommonButton 
-              className="bg-[#00A3FF] hover:bg-[#00A3FF]/90 gap-2 w-full sm:w-auto sm:flex-shrink-0 order-1 sm:order-2" 
+              className="gap-2 w-full sm:w-auto sm:flex-shrink-0 order-1 sm:order-2" 
               onClick={() => setOpen(true)}
             >
               <Plus className="h-4 w-4" /> ADD NEW

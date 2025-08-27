@@ -4,8 +4,8 @@ import { CommonButton } from "@/components/ui/common-button"
 import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { setUserData } from "@/utils/auth"
-import { authApi } from "@/services/authApi"
+import { setAuthToken, setUserData } from "@/utils/auth"
+import { AuthApi } from "@/services"
 
 export default function Login() {
   const router = useRouter()
@@ -31,7 +31,7 @@ export default function Login() {
     setIsLoading(true)
 
     // Basic validation
-    if (!formData.email || !formData.password || !formData.company) {
+    if (!formData.email || !formData.password) {
       setError("Please fill in all fields")
       setIsLoading(false)
       return
@@ -47,7 +47,7 @@ export default function Login() {
 
     try {
       // Authenticate with backend API
-      const response = await authApi.login({
+      const response = await AuthApi.login({
         email: formData.email,
         password: formData.password,
         company: formData.company
@@ -58,7 +58,7 @@ export default function Login() {
         throw new Error("Invalid response from server")
       }
       
-      const { user } = response.data
+      const { user, token } = response.data
 
       setUserData({
         id: user._id,
@@ -68,6 +68,8 @@ export default function Login() {
         company: user.company,
         isAuthenticated: true
       })
+      
+      setAuthToken(token)
 
       router.push("/")
     } catch (apiError: unknown) {
@@ -122,7 +124,6 @@ export default function Login() {
               type="text"
               value={formData.company}
               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              required
               placeholder="Enter your company name"
               className="w-full"
               disabled={isLoading}

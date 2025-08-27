@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { notificationApi, type Notification } from '../../services/api';
-
+import { NotificationApi } from '@/services';
+import { Notification } from '@/types';
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -15,7 +15,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await notificationApi.getMyNotifications();
+        const response = await NotificationApi.getMyNotifications();
         setNotifications(response.data);
       } catch (error) {
         console.error('Error fetching notifications:', error);
@@ -30,7 +30,7 @@ export default function NotificationsPage() {
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
       try {
-        await notificationApi.markAsRead(notification.id);
+        await NotificationApi.markAsRead(notification.id);
         setNotifications(notifications.map(n => 
           n.id === notification.id ? { ...n, isRead: true } : n
         ));
@@ -184,7 +184,6 @@ export default function NotificationsPage() {
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
-        
         <div className="bg-white rounded-lg shadow-sm border p-8 text-center text-gray-500">
           <div className="flex items-center justify-center gap-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#00A3FF]"></div>
@@ -197,8 +196,6 @@ export default function NotificationsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-
-      
       <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-[#2C3E50] mb-4">Notifications</h1>
         

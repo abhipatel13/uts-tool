@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  user_type: string;
-}
+import { api } from '@/lib/api-client';
+import { User, ApiResponse } from '@/types';
 
 interface AuthState {
   user: User | null;
@@ -22,13 +17,8 @@ export function useAuth() {
     // Fetch user data from your authentication endpoint
     const fetchUser = async () => {
       try {
-        const response = await fetch('/api/auth/user');
-        if (response.ok) {
-          const userData = await response.json();
-          setAuthState({ user: userData, loading: false });
-        } else {
-          setAuthState({ user: null, loading: false });
-        }
+        const userData = await api.get<ApiResponse<User>>('/api/auth/user');
+        setAuthState({ user: userData.data, loading: false });
       } catch (error) {
         console.error('Error fetching user:', error);
         setAuthState({ user: null, loading: false });

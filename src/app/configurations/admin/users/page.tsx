@@ -7,21 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
-import { userApi } from "@/services/userApi"
 import { useToast } from "@/components/ui/use-toast";
-
-interface User {
-  id: number;
-  email: string;
-  role: string;
-  company: {
-    id?: number;
-    name: string;
-    createdAt?: string;
-    updatedAt?: string;
-    deletedAt?: string | null;
-  } | string;
-}
+import { UserApi } from "@/services";
+import { User } from '@/types/user';
+import Link from "next/link"
+import { Plus } from "lucide-react"
 
 interface NewUser {
   email: string;
@@ -35,6 +25,7 @@ export default function UserManagement() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUniversalUser, setIsUniversalUser] = useState(false);
   const [newUser, setNewUser] = useState<NewUser>({ 
     email: '', 
     password: '', 
@@ -59,9 +50,7 @@ export default function UserManagement() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        console.log('Starting to fetch users...');
-        const response = await userApi.getAll();
-        console.log('Users fetched:', response);
+        const response = await UserApi.getAll();
         if (response.status) {
           setUsers(response.data);
         }
@@ -84,18 +73,25 @@ export default function UserManagement() {
         if (userData) {
           const user = JSON.parse(userData);
           setCurrentUser(user);
+          setIsUniversalUser(user.role === 'universal_user');
           
-          // Only superusers can access user management
+          // Only superusers can access this admin page
+          // Universal users should use the Universal Portal users page instead
           if (user.role !== 'superuser') {
-            setError('Access denied. Only superusers can manage users.');
-            return;
+            if (user.role === 'universal_user') {
+              router.push('/universal-portal/users');
+              return;
+            } else {
+              setError('Access denied. Only superusers can access this admin page.');
+              return;
+            }
           }
           
           // Set the company in newUser state when current user is loaded
           setNewUser({ 
             email: '', 
             password: '', 
-            role: 'user',
+            role: user.role === 'universal_user' ? 'superuser' : 'user', // Universal users default to creating superusers
             company: typeof user.company === 'string' 
               ? user.company 
               : (user.company && typeof user.company === 'object' && 'name' in user.company)
@@ -114,6 +110,17 @@ export default function UserManagement() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Additional validation: Universal users can only create superusers
+    if (currentUser?.role === 'universal_user' && newUser.role !== 'superuser') {
+      toast({
+        title: "Error",
+        description: "Universal users can only create Superuser accounts",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       // Ensure company is set from current user
       const userToCreate = {
@@ -125,7 +132,7 @@ export default function UserManagement() {
             : ''
       };
 
-      const response = await userApi.create(userToCreate);
+      const response = await UserApi.create(userToCreate);
       if (response.status) {
         toast({
           title: "Success",
@@ -135,7 +142,7 @@ export default function UserManagement() {
         setNewUser({ 
           email: '', 
           password: '', 
-          role: 'user',
+          role: currentUser?.role === 'universal_user' ? 'superuser' : 'user', // Universal users default to creating superusers
           company: typeof currentUser?.company === 'string' 
           ? currentUser.company 
           : (currentUser?.company && typeof currentUser.company === 'object' && 'name' in currentUser.company)
@@ -143,7 +150,7 @@ export default function UserManagement() {
             : '' 
         });
         // Refresh the users list
-        const updatedResponse = await userApi.getAll();
+        const updatedResponse = await UserApi.getAll();
         if (updatedResponse.status) {
           setUsers(updatedResponse.data);
         }
@@ -153,10 +160,10 @@ export default function UserManagement() {
       
       // Handle validation errors from backend
       if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { response?: { data?: { errors?: Array<{ field: string; message: string }>, message?: string } } };
+        const responseError = error as { response?: { data?: { errors?: Array<{ field: string; message: string }>, message?: string } } };
         
-        if (axiosError.response?.data?.errors) {
-          const validationErrors = axiosError.response.data.errors;
+        if (responseError.response?.data?.errors) {
+          const validationErrors = responseError.response.data.errors;
           const errorMessages = validationErrors.map((err) => {
             if (err.field === 'email') {
               return "Please enter a valid email address";
@@ -169,10 +176,10 @@ export default function UserManagement() {
             description: errorMessages.join(", "),
             variant: "destructive",
           });
-        } else if (axiosError.response?.data?.message) {
+        } else if (responseError.response?.data?.message) {
           toast({
             title: "Error",
-            description: axiosError.response.data.message,
+            description: responseError.response.data.message,
             variant: "destructive",
           });
         } else {
@@ -194,7 +201,7 @@ export default function UserManagement() {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      const response = await userApi.delete(userId);
+      const response = await UserApi.delete(userId);
       if (response.status) {
         setUsers(users.filter(user => user.id.toString() !== userId));
         toast({
@@ -225,7 +232,7 @@ export default function UserManagement() {
     if (!selectedUser) return;
 
     try {
-      const response = await userApi.update(selectedUser.id.toString(), {
+      const response = await UserApi.update(selectedUser.id.toString(), {
         email: editFormData.email,
         role: editFormData.role
       });
@@ -250,10 +257,10 @@ export default function UserManagement() {
       
       // Handle validation errors from backend
       if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { response?: { data?: { errors?: Array<{ field: string; message: string }>, message?: string } } };
+        const responseError = error as { response?: { data?: { errors?: Array<{ field: string; message: string }>, message?: string } } };
         
-        if (axiosError.response?.data?.errors) {
-          const validationErrors = axiosError.response.data.errors;
+        if (responseError.response?.data?.errors) {
+          const validationErrors = responseError.response.data.errors;
           const errorMessages = validationErrors.map((err) => {
             if (err.field === 'email') {
               return "Please enter a valid email address";
@@ -266,10 +273,10 @@ export default function UserManagement() {
             description: errorMessages.join(", "),
             variant: "destructive",
           });
-        } else if (axiosError.response?.data?.message) {
+        } else if (responseError.response?.data?.message) {
           toast({
             title: "Error",
-            description: axiosError.response.data.message,
+            description: responseError.response.data.message,
             variant: "destructive",
           });
         } else {
@@ -317,7 +324,7 @@ export default function UserManagement() {
     }
 
     try {
-      const response = await userApi.resetPassword(selectedUser.id.toString(), passwordFormData.newPassword);
+      const response = await UserApi.resetPassword(selectedUser.id.toString(), passwordFormData.newPassword);
       
       if (response.status) {
         setIsPasswordDialogOpen(false);
@@ -359,6 +366,12 @@ export default function UserManagement() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <Link href="/configurations/admin/users/bulk-upload">
+            <CommonButton variant="info">
+              <Plus className="w-4 h-4 mr-2" />
+              Bulk Upload
+            </CommonButton>
+          </Link>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <CommonButton>
@@ -398,12 +411,23 @@ export default function UserManagement() {
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="superuser">Superuser</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="supervisor">Supervisor</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
+                      {(isUniversalUser || currentUser?.role === 'universal_user') ? (
+                        <SelectItem value="superuser">Superuser</SelectItem>
+                      ) : (
+                        <>
+                          <SelectItem value="superuser">Superuser</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="supervisor">Supervisor</SelectItem>
+                          <SelectItem value="user">User</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
+                  {(isUniversalUser || currentUser?.role === 'universal_user') && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Universal users can only create Superuser accounts
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Company</label>
@@ -449,10 +473,16 @@ export default function UserManagement() {
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="superuser">Superuser</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="supervisor">Supervisor</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
+                    {(isUniversalUser || currentUser?.role === 'universal_user') ? (
+                      <SelectItem value="superuser">Superuser</SelectItem>
+                    ) : (
+                      <>
+                        <SelectItem value="superuser">Superuser</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="supervisor">Supervisor</SelectItem>
+                        <SelectItem value="user">User</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

@@ -2,7 +2,6 @@
 
 import { createContext, useContext, ReactNode, useState, useRef, useEffect } from 'react';
 import { getCurrentUser, logout as authLogout } from '@/utils/auth';
-import React from 'react';
 
 interface AuthUser {
   id?: string;
@@ -60,14 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Logout failed:', error);
     } finally {
       // Ensure isLoggingOut is reset after a maximum of 5 seconds
+      const LOGOUT_RESET_TIMEOUT_MS = 5000;
       logoutTimeoutRef.current = setTimeout(() => {
         setIsLoggingOut(false);
-      }, 5000);
+      }, LOGOUT_RESET_TIMEOUT_MS);
     }
   };
 
   // Cleanup on unmount
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (logoutTimeoutRef.current) {
         clearTimeout(logoutTimeoutRef.current);

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, X } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
@@ -14,12 +14,27 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { riskAssessmentApi, type RiskAssessment, type Risk } from "@/services/api"
-import { riskCategories, getConsequenceLabels, getRiskScore, getRiskColor } from "@/lib/risk-utils"
+import { RiskAssessmentApi } from "@/services"
+import type { RiskAssessment, RiskType } from "@/types"
+import { riskCategories, getConsequenceLabels, getRiskScore, getRiskColor, getRiskColorText } from "@/lib/risk-utils"
 import { AssetSelector } from './AssetSelector'
 import { UserSelector } from './UserSelector'
 import { LocationSelector } from './LocationSelector'
 import { RiskMatrix } from './RiskMatrix'
+
+// Form-specific Risk type that allows empty strings
+interface FormRisk {
+  id: string;
+  riskDescription: string;
+  riskType: string; // Allow empty string in form
+  asIsLikelihood: string;
+  asIsConsequence: string;
+  mitigatingAction: string;
+  mitigatedLikelihood: string;
+  mitigatedConsequence: string;
+  mitigatingActionType: string;
+  requiresSupervisorSignature: boolean;
+}
 
 interface RiskAssessmentFormProps {
   open: boolean;
@@ -47,8 +62,8 @@ export default function RiskAssessmentForm({
   const supervisorRoleFilter = useMemo(() => ['supervisor'], [])
 
   // Memoize the onChange callbacks to prevent unnecessary re-renders
-  const handleIndividualChange = useCallback((individual: string | string[]) => {
-    setFormData(prev => ({...prev, individuals: individual as string}))
+  const handleIndividualsChange = useCallback((individuals: string | string[]) => {
+    setFormData(prev => ({...prev, individuals: individuals as string[]}))
   }, [])
 
   const handleSupervisorChange = useCallback((supervisor: string | string[]) => {
@@ -64,7 +79,7 @@ export default function RiskAssessmentForm({
   }, [])
 
   // Convert API risks to local format
-  const convertApiRisksToLocal = (apiRisks: RiskAssessment['risks']): Risk[] => {
+  const convertApiRisksToLocal = (apiRisks: RiskAssessment['risks']): FormRisk[] => {
     if (!apiRisks) return [];
     return apiRisks.map(risk => ({
       id: risk.id || Date.now().toString(),
@@ -92,7 +107,9 @@ export default function RiskAssessmentForm({
         systemLockoutRequired: assessment.systemLockoutRequired,
         trainedWorkforce: assessment.trainedWorkforce,
         risks: convertApiRisksToLocal(assessment.risks),
-        individuals: assessment.individuals,
+        individuals: Array.isArray(assessment.individuals) 
+          ? assessment.individuals 
+          : assessment.individuals ? assessment.individuals.split(',').map(email => email.trim()).filter(Boolean) : [],
         supervisor: assessment.supervisor,
         status: assessment.status,
         location: assessment.location,
@@ -105,8 +122,8 @@ export default function RiskAssessmentForm({
       assetSystem: "",
       systemLockoutRequired: false,
       trainedWorkforce: false,
-      risks: [] as Risk[],
-      individuals: "",
+      risks: [] as FormRisk[],
+      individuals: [] as string[],
       supervisor: "",
       status: "Active",
       location: "",
@@ -125,7 +142,9 @@ export default function RiskAssessmentForm({
         systemLockoutRequired: assessment.systemLockoutRequired,
         trainedWorkforce: assessment.trainedWorkforce,
         risks: convertApiRisksToLocal(assessment.risks),
-        individuals: assessment.individuals,
+        individuals: Array.isArray(assessment.individuals) 
+          ? assessment.individuals 
+          : assessment.individuals ? assessment.individuals.split(',').map(email => email.trim()).filter(Boolean) : [],
         supervisor: assessment.supervisor,
         status: assessment.status,
         location: assessment.location,
@@ -138,7 +157,7 @@ export default function RiskAssessmentForm({
     if (open && mode === 'create') {
       const now = new Date()
       const currentDate = now.toISOString().split('T')[0]
-      const currentTime = now.toTimeString().slice(0, 5)
+      const currentTime = now.toTimeString().slice(0, 8)
       setFormData(prev => ({
         ...prev,
         date: currentDate,
@@ -181,13 +200,13 @@ export default function RiskAssessmentForm({
   };
 
   // Calculate risk score for display
-  const calculateRiskScore = (risk: Risk, isAsIs: boolean = true) => {
+  const calculateRiskScore = (risk: FormRisk, isAsIs: boolean = true) => {
     const likelihood = isAsIs ? risk.asIsLikelihood : risk.mitigatedLikelihood;
     const consequence = isAsIs ? risk.asIsConsequence : risk.mitigatedConsequence;
     
     if (!likelihood || !consequence || !risk.riskType) return null;
     
-    return getRiskScore(likelihood, consequence, getConsequenceLabels(risk.riskType));
+    return getRiskScore(likelihood, consequence, getConsequenceLabels(risk.riskType as RiskType));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -209,12 +228,14 @@ export default function RiskAssessmentForm({
       // Check if any risks require supervisor signature
       const requiresSupervisorApproval = formData.risks.some(risk => risk.requiresSupervisorSignature);
       
+      // Convert FormRisk to Risk for API submission
       const formattedData = {
         ...formData,
+        individuals: formData.individuals.join(','),
         risks: formData.risks.map(risk => ({
           id: risk.id || "",
           riskDescription: risk.riskDescription || "",
-          riskType: risk.riskType || "",
+          riskType: risk.riskType as RiskType,
           asIsLikelihood: risk.asIsLikelihood || "",
           asIsConsequence: risk.asIsConsequence || "",
           mitigatingAction: risk.mitigatingAction || "",
@@ -228,7 +249,7 @@ export default function RiskAssessmentForm({
       if (mode === 'create') {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id, ...createData } = formattedData;
-        await riskAssessmentApi.createRiskAssessment(createData);
+        await RiskAssessmentApi.createRiskAssessment(createData);
         toast({
           title: "Success",
           description: requiresSupervisorApproval 
@@ -241,7 +262,7 @@ export default function RiskAssessmentForm({
         if (!assessmentId) {
           throw new Error('Assessment ID is required for updates');
         }
-        await riskAssessmentApi.updateRiskAssessment(assessmentId, formattedData);
+        await RiskAssessmentApi.updateRiskAssessment(assessmentId, formattedData);
         if (formattedData.status === 'Completed') {
           toast({
             title: "Success",
@@ -274,7 +295,7 @@ export default function RiskAssessmentForm({
   }
 
   const addRisk = () => {
-    const newRisk: Risk = {
+    const newRisk: FormRisk = {
       id: Date.now().toString(),
       riskDescription: "",
       riskType: "",
@@ -292,7 +313,7 @@ export default function RiskAssessmentForm({
     }))
   }
 
-  const updateRisk = (riskId: string, updates: Partial<Risk>) => {
+  const updateRisk = (riskId: string, updates: Partial<FormRisk>) => {
     setFormData(prev => ({
       ...prev,
       risks: prev.risks.map(risk => 
@@ -314,7 +335,7 @@ export default function RiskAssessmentForm({
     setShowRiskMatrix(true);
   }
 
-  const handleRiskUpdate = (riskId: string, updates: Partial<Risk>) => {
+  const handleRiskUpdate = (riskId: string, updates: Partial<FormRisk>) => {
     // Update the risk in formData
     const updatedRisks = formData.risks.map(risk => 
       risk.id === riskId 
@@ -422,12 +443,12 @@ export default function RiskAssessmentForm({
 
             <div className="space-y-2">
             <UserSelector
-                value={formData.individuals || ""}
-                onChange={handleIndividualChange}
+                value={formData.individuals || []}
+                onChange={handleIndividualsChange}
                 error={validationErrors.individuals}
                 label="Individual/Team"
                 placeholder="Select individual/team member"
-                multiple={false}
+                multiple={true}
             />
             </div>
 
@@ -550,16 +571,16 @@ export default function RiskAssessmentForm({
                           <Button
                             type="button"
                             variant="outline"
-                            className="w-full h-11 mt-1"
+                            className={`w-full h-11 mt-1 ${getRiskColor(asIsScore || 0, risk.riskType || '')} hover:${getRiskColor(asIsScore || 0, risk.riskType || '')}`}
                             disabled={!risk.riskType}
                             onClick={() => risk.id && openRiskMatrix(risk.id, true)}
                           >
                             {asIsScore !== null ? (
                               <div className="flex items-center gap-2">
-                                <span className={`px-2 py-1 rounded text-xs ${getRiskColor(asIsScore, risk.riskType || '')}`}>
-                                  {risk.asIsLikelihood} x {risk.asIsConsequence}
+                                <span className={`px-2 py-1 rounded text-xs ${getRiskColorText(asIsScore, risk.riskType || '')}`}>
+                                  {risk.asIsLikelihood} and {risk.asIsConsequence}
                                 </span>
-                                <span className="text-gray-500 text-xs">Score {asIsScore}</span>
+                                <span className={`text-gray-500 text-xs ${getRiskColorText(asIsScore || 0, risk.riskType || '')}`}>Score {asIsScore}</span>
                               </div>
                             ) : (
                               <div className="text-gray-500 text-xs">
@@ -611,16 +632,16 @@ export default function RiskAssessmentForm({
                           <Button
                             type="button"
                             variant="outline"
-                            className="w-full h-11 mt-1"
+                            className={`w-full h-11 mt-1 ${getRiskColor(mitigatedScore || 0, risk.riskType || '')} hover:${getRiskColor(mitigatedScore || 0, risk.riskType || '')}`}
                             disabled={!risk.mitigatingActionType}
                             onClick={() => risk.id && openRiskMatrix(risk.id, false)}
                           >
                             {mitigatedScore !== null ? (
                               <div className="flex items-center gap-2">
-                                <span className={`px-2 py-1 rounded text-xs ${getRiskColor(mitigatedScore, risk.riskType || '')}`}>
-                                  {risk.mitigatedLikelihood} x {risk.mitigatedConsequence}
+                                <span className={`px-2 py-1 rounded text-xs ${getRiskColorText(mitigatedScore, risk.riskType || '')}`}>
+                                  {risk.mitigatedLikelihood} and {risk.mitigatedConsequence}
                                 </span>
-                                <span className="text-gray-500 text-xs">Score {mitigatedScore}</span>
+                                <span className={`text-gray-500 text-xs ${getRiskColorText(mitigatedScore, risk.riskType || '')}`}>Score {mitigatedScore}</span>
                               </div>
                             ) : (
                               <div className="text-gray-500 text-xs">
@@ -635,12 +656,6 @@ export default function RiskAssessmentForm({
                           )}
                         </div>
                       </div>
-                      
-                      {risk.requiresSupervisorSignature && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                          <span className="text-amber-700 text-sm">⚠️ Supervisor signature required - Status will remain pending until approved</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
@@ -681,7 +696,10 @@ export default function RiskAssessmentForm({
         onOpenChange={setShowRiskMatrix}
         riskId={activeRiskId}
         isAsIsMatrix={isAsIsMatrix}
-        risk={formData.risks.find(r => r.id === activeRiskId) || null}
+        risk={formData.risks.find(r => r.id === activeRiskId) ? {
+          ...formData.risks.find(r => r.id === activeRiskId)!,
+          riskType: formData.risks.find(r => r.id === activeRiskId)!.riskType as RiskType
+        } : null}
         onRiskUpdate={handleRiskUpdate}
       />
     </Dialog>

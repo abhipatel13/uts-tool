@@ -1,156 +1,135 @@
-import { getCurrentUser, hasPermission } from "./auth"
+import { getCurrentUser, hasPermission } from "./auth";
+import {
+  Permissions,
+  getRoleColorScheme as getColorScheme,
+  getRoleIcon as getIcon,
+  getRoleTitle as getTitle,
+} from "@/config/permissions";
+import { DashboardItem, QuickAction } from "@/types";
+import { Icons } from "@/components/layout/sidebar";
 
-interface DashboardItem {
-  title: string;
-  description: string;
-  icon: string;
-  href: string;
-  permission: string;
-}
-
-// Get role-specific color scheme
+// Re-export centralized functions for backward compatibility
 export const getRoleColorScheme = () => {
-  const user = getCurrentUser()
-  if (!user) return { primary: "gray", secondary: "gray" }
+  const user = getCurrentUser();
+  if (!user) return { primary: "gray", secondary: "gray" };
+  return getColorScheme(user.role);
+};
 
-  switch (user.role) {
-    case "superuser":
-      return { primary: "purple", secondary: "purple" }
-    case "admin":
-      return { primary: "blue", secondary: "blue" }
-    case "supervisor":
-      return { primary: "green", secondary: "green" }
-    default:
-      return { primary: "gray", secondary: "gray" }
-  }
-}
-
-// Get role-specific icon
 export const getRoleIcon = () => {
-  const user = getCurrentUser()
-  if (!user) return "user"
+  const user = getCurrentUser();
+  if (!user) return "user";
+  return getIcon(user.role);
+};
 
-  switch (user.role) {
-    case "superuser":
-      return "shield"
-    case "admin":
-      return "users"
-    case "supervisor":
-      return "file-text"
-    default:
-      return "user"
-  }
-}
-
-// Get role-specific title
 export const getRoleTitle = () => {
-  const user = getCurrentUser()
-  if (!user) return "User"
+  const user = getCurrentUser();
+  if (!user) return "User";
+  return getTitle(user.role);
+};
 
-  switch (user.role) {
-    case "superuser":
-      return "Superuser"
-    case "admin":
-      return "Administrator"
-    case "supervisor":
-      return "Supervisor"
-    default:
-      return "User"
-  }
-}
-
-// Check if user has access to a specific feature
-export const hasFeatureAccess = (feature: string): boolean => {
-  const user = getCurrentUser()
-  if (!user) return false
-
-  // Superuser or Admin has access to all features
-  if (user.role === "superuser" || user.role === "admin") return true
-
-  // Define feature permissions
-  const featurePermissions: Record<string, string[]> = {
-    users: ["account_creation"],
-    licenses: ["licensing_management"],
-    assets: ["asset_hierarchy"],
-    "risk-assessment": ["risk_assessment"],
-    "risk-assessment-creation": ["risk_assessment_creation"],
-    safety: ["safety_management"],
-    "safety-reporting": ["safety_reporting"],
-    analytics: ["analytics_reporting"],
-    configuration: ["system_configuration"]
-  }
-
-  // Check if user has permission for the feature
-  const requiredPermissions = featurePermissions[feature] || []
-  return requiredPermissions.some((permission) => hasPermission(permission))
-}
-
-// Get role-specific dashboard items
+// Get role-specific dashboard items - now uses centralized permission system
 export function getDashboardItems(): DashboardItem[] {
   const user = getCurrentUser();
   if (!user) return [];
 
-  // Define all possible dashboard items
+  // Define all possible dashboard items using centralized permissions
   const allItems: DashboardItem[] = [
     {
       title: "Asset Hierarchy",
       description: "Manage and view your asset hierarchy structure",
-      icon: "Building2",
+      icon: Icons.AssetHierarchy,
       href: "/asset-hierarchy",
-      permission: "asset_hierarchy"
+      permission: Permissions.VIEW_ASSET_HIERARCHY,
     },
     {
       title: "Tactics",
       description: "Manage and configure tactics",
-      icon: "Target",
+      icon: Icons.Tactics,
       href: "/tactics",
-      permission: "view_tactics"
+      permission: Permissions.TACTICS,
     },
     {
       title: "Task Hazard",
       description: "Create and manage task hazard assessments",
-      icon: "AlertTriangle",
+      icon: Icons.Safety,
       href: "/safety/task-hazard",
-      permission: "task_hazard_management"
+      permission: Permissions.TASK_HAZARD,
     },
     {
       title: "Risk Assessment",
       description: "Create and manage risk assessments",
-      icon: "Shield",
+      icon: Icons.Safety,
       href: "/safety/risk-assessment",
-      permission: "risk_assessment_creation"
+      permission: Permissions.RISK_ASSESSMENT,
     },
     {
       title: "Analytics",
       description: "View analytics and reports",
-      icon: "BarChart3",
+      icon: Icons.Analytics,
       href: "/analytics",
-      permission: "analytics_reporting"
+      permission: Permissions.VIEW_ANALYTICS,
     },
     {
-      title: "Notifications",
-      description: "View and manage notifications",
-      icon: "Bell",
-      href: "/notifications",
-      permission: "notifications"
-    }
+      title: "Configuration",
+      description: "Manage system configurations",
+      icon: Icons.Configurations,
+      href: "/configurations",
+      permission: Permissions.CONFIGURATION_MANAGEMENT,
+    },
   ];
 
-  // Filter items based on user role
-  if (user.role === "superuser" || user.role === "admin") { // Grant admin same access as superuser
-    return allItems;
-  }
+  // Filter items based on user permissions using centralized system
+  return allItems.filter((item) => hasPermission(item.permission));
+}
 
-  if (user.role === "supervisor") {
-    return allItems.filter(item => 
-      item.permission === "task_hazard_management" ||
-      item.permission === "risk_assessment_creation" ||
-      item.permission === "analytics_reporting"
-    );
-  }
+// Get quick actions based on user permissions
+export function getQuickActions(): QuickAction[] {
 
-  // Regular user - only show risk assessment creation
-  return allItems.filter(item => 
-    item.permission === "task_hazard_management"
+  const quickActions: QuickAction[] = [
+    {
+      title: "Create Task Hazard",
+      description: "Start a new assessment",
+      href: "/safety/task-hazard",
+      permission: Permissions.TASK_HAZARD,
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200",
+      textColor: "text-orange-900",
+      descriptionColor: "text-orange-700",
+    },
+    {
+      title: "Risk Assessment",
+      description: "Evaluate risks",
+      href: "/safety/risk-assessment",
+      permission: Permissions.RISK_ASSESSMENT,
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
+      textColor: "text-blue-900",
+      descriptionColor: "text-blue-700",
+    },
+    {
+      title: "View Assets",
+      description: "Browse hierarchy",
+      href: "/asset-hierarchy",
+      permission: Permissions.VIEW_ASSET_HIERARCHY,
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
+      textColor: "text-green-900",
+      descriptionColor: "text-green-700",
+    },
+    {
+      title: "Analytics",
+      description: "View reports",
+      href: "/analytics",
+      permission: Permissions.VIEW_ANALYTICS,
+      bgColor: "bg-purple-50",
+      borderColor: "border-purple-200",
+      textColor: "text-purple-900",
+      descriptionColor: "text-purple-700",
+    },
+  ];
+
+  // Filter actions based on user permissions - only show what user can access
+  return quickActions.filter((action) =>
+    hasPermission(action.permission)
   );
-} 
+}

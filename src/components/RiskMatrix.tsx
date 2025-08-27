@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -18,7 +18,7 @@ import {
   getRiskColor,
   getConsequenceLabels
 } from "@/lib/risk-utils"
-import type { Risk } from "@/services/api"
+import type { Risk } from "@/types"
 
 interface RiskMatrixProps {
   open: boolean;
@@ -50,9 +50,6 @@ export function RiskMatrix({
   const handleRiskMatrixClick = (likelihood: string, consequence: string, score: number) => {
     if (!risk || !riskId) return;
 
-    console.log('Current Risk:', risk);
-    console.log('Score:', score);
-
     // Create updates based on whether it's as-is or mitigated
     const updates: Partial<Risk> = isAsIsMatrix
       ? { 
@@ -66,8 +63,6 @@ export function RiskMatrix({
             ? enableSupervisorSignature && score >= 16
             : enableSupervisorSignature && score > 9
         };
-
-    console.log('Risk Updates:', updates);
 
     // Call the parent update function
     onRiskUpdate(riskId, updates);
@@ -141,7 +136,7 @@ export function RiskMatrix({
 
               {/* Matrix Rows */}
               {likelihoodLabels.map((likelihood) => (
-                <React.Fragment key={likelihood.value}>
+                <div key={likelihood.value} className="contents">
                   <div className="bg-white p-1 sm:p-2">
                     <div className="font-medium text-xs sm:text-sm">{likelihood.label}</div>
                     <div className="text-xs text-gray-500 hidden sm:block mt-1">{likelihood.description}</div>
@@ -174,7 +169,7 @@ export function RiskMatrix({
                       </button>
                     );
                   })}
-                </React.Fragment>
+                </div>
               ))}
             </div>
           </div>

@@ -4,19 +4,15 @@ import { CommonButton } from "@/components/ui/common-button"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { getCurrentUser } from "@/utils/auth"
-import { LicenseAllocationService } from "@/services/licenseService"
+import { LicenseAllocationService } from "@/services"
 import { Shield, AlertTriangle, Clock, XCircle } from "lucide-react"
+import { LicenseAllocation } from "@/types"
 
 export default function Unauthorized() {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<{ role: string; id?: number } | null>(null)
-  const [licenseStatus, setLicenseStatus] = useState<{
-    hasActiveLicense: boolean;
-    activeAllocations: Array<{ id: number; status: string; expiry_date: string }>;
-    expiredAllocations: Array<{ id: number; status: string; expiry_date: string }>;
-    upcomingAllocations: Array<{ id: number; status: string; expiry_date: string }>;
-  } | null>(null)
+  const [licenseAllocation, setLicenseAllocation] = useState<LicenseAllocation | null>(null)
   const [isLoadingLicense, setIsLoadingLicense] = useState(false)
 
   useEffect(() => {
@@ -30,7 +26,14 @@ export default function Unauthorized() {
       LicenseAllocationService.getUserLicenseStatus(currentUser.id)
         .then(response => {
           if (response?.status) {
-            setLicenseStatus(response.data)
+            const licenseAllocation = response.data.activeAllocations.length > 0 
+            ? response.data.activeAllocations[0] 
+            : response.data.expiredAllocations.length > 0
+            ? response.data.expiredAllocations[0]
+            : response.data.upcomingAllocations.length > 0
+            ? response.data.upcomingAllocations[0]
+            : null
+            setLicenseAllocation(licenseAllocation)
           }
         })
         .catch(error => {
@@ -61,17 +64,18 @@ export default function Unauthorized() {
       return { icon: Clock, title: "Checking License", message: "Validating your license status..." }
     }
     
-    if (!licenseStatus) {
+    if (!licenseAllocation) {
       return { icon: AlertTriangle, title: "License Check Failed", message: "Unable to verify your license status. Please try again or contact support." }
     }
     
-    if (!licenseStatus.hasActiveLicense) {
-      if (licenseStatus.expiredAllocations.length > 0) {
+    // Check if the license is active
+    const isActive = licenseAllocation.status === 'active'
+    const isExpired = licenseAllocation.status === 'expired'
+    const isAllocated = licenseAllocation.status === 'allocated'
+    
+    if (!isActive && !isAllocated) {
+      if (isExpired) {
         return { icon: Clock, title: "License Expired", message: "Your license has expired. Please contact your administrator to renew your license." }
-      }
-      
-      if (licenseStatus.upcomingAllocations.length > 0) {
-        return { icon: Clock, title: "License Not Yet Active", message: "Your license is scheduled to become active soon. Please wait or contact your administrator." }
       }
       
       return { icon: XCircle, title: "No Valid License", message: "You don't have an active license. Please contact your administrator to get a license assigned." }
@@ -99,19 +103,20 @@ export default function Unauthorized() {
               Your current role: <span className="font-medium">{user.role}</span>
             </p>
             
-            {licenseStatus && user.role !== 'superuser' && (
+            {licenseAllocation && user.role !== 'superuser' && (
               <div className="space-y-2">
                 <p className="text-sm text-gray-500">
-                  Active licenses: <span className="font-medium">{licenseStatus.activeAllocations.length}</span>
+                  License status: <span className="font-medium">{licenseAllocation.status}</span>
                 </p>
-                {licenseStatus.expiredAllocations.length > 0 && (
+                <p className="text-sm text-gray-500">
+                  Valid from: <span className="font-medium">{new Date(licenseAllocation.validFrom).toLocaleDateString()}</span>
+                </p>
+                <p className="text-sm text-gray-500">
+                  Valid until: <span className="font-medium">{new Date(licenseAllocation.validUntil).toLocaleDateString()}</span>
+                </p>
+                {licenseAllocation.licensePool && (
                   <p className="text-sm text-gray-500">
-                    Expired licenses: <span className="font-medium">{licenseStatus.expiredAllocations.length}</span>
-                  </p>
-                )}
-                {licenseStatus.upcomingAllocations.length > 0 && (
-                  <p className="text-sm text-gray-500">
-                    Upcoming licenses: <span className="font-medium">{licenseStatus.upcomingAllocations.length}</span>
+                    License type: <span className="font-medium">{licenseAllocation.licensePool.licenseType}</span>
                   </p>
                 )}
               </div>
@@ -133,7 +138,7 @@ export default function Unauthorized() {
             Switch Account
           </CommonButton>
           
-          {user && user.role !== 'superuser' && !licenseStatus?.hasActiveLicense && (
+          {user && user.role !== 'superuser' && licenseAllocation && licenseAllocation.status !== 'active' && (
             <CommonButton 
               onClick={() => router.push("/admin/license-management")}
               variant="info"

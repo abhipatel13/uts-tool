@@ -6,7 +6,7 @@ import {
     DialogTitle,
   } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { TaskHazard } from "@/services/api";
+import type { TaskHazard } from "@/types";
 import { getRiskColorPastel, getRiskScore, getConsequenceLabels } from "@/lib/risk-utils";
 
 

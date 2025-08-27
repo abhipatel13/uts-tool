@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
 
@@ -12,8 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { taskHazardApi } from "@/services/api"
-import type { TaskHazard } from "@/services/api"
+import { TaskHazardApi } from "@/services"
+import type { TaskHazard } from "@/types"
 import TaskHazardForm from "@/components/TaskHazardForm"
 import {
   getRiskScore,
@@ -38,36 +38,84 @@ export default function TaskHazard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editTask, setEditTask] = useState<TaskHazardData | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const pageSize = 20
+  // Fetching indicator to avoid full list flashing
+  const [isFetching, setIsFetching] = useState(false)
+  const initialLoadRef = useRef(true)
+  const requestIdRef = useRef(0)
+  const currentPageRef = useRef(currentPage)
+  useEffect(() => { currentPageRef.current = currentPage }, [currentPage])
+  const fetchTasksRef = useRef<() => Promise<void>>(async () => {})
   
   // Define fetchTasks function outside of useEffect so it can be reused
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
-      setIsLoading(true)
-      const response = await taskHazardApi.getTaskHazards()
+      if (initialLoadRef.current) setIsLoading(true)
+      setIsFetching(true)
+      const requestId = ++requestIdRef.current
+      const response = await TaskHazardApi.getTaskHazards({
+        page: currentPage,
+        limit: pageSize,
+        search: searchTerm?.trim() || undefined,
+      })
       
       // Check if response has the expected structure with data property
-      if (response && response.status && Array.isArray(response.data)) {
-        setTasks(response.data)
+      if (requestId === requestIdRef.current) {
+        if (response && response.status && Array.isArray(response.data)) {
+          setTasks(response.data)
+          if (response.pagination) {
+            setTotalPages(response.pagination.totalPages)
+            setTotalItems(response.pagination.totalItems)
+          }
+        } else {
+          // Fallback if the response structure is unexpected
+          setTasks([])
+        }
+        setError(null)
       } else {
-        // Fallback if the response structure is unexpected
-        setTasks([])
+        // Stale response - ignore
+        return
       }
-      
-      setError(null)
     } catch (error) {
       console.error("Error fetching tasks:", error)
       setError("Failed to load tasks. Please try again later.")
       // Set tasks to empty array on error
       setTasks([])
     } finally {
+      setIsFetching(false)
       setIsLoading(false)
+      initialLoadRef.current = false
     }
-  }
+  }, [searchTerm, currentPage, pageSize])
+  useEffect(() => { fetchTasksRef.current = fetchTasks }, [fetchTasks])
   
   // Fetch all tasks when component mounts
   useEffect(() => {
     fetchTasks()
-  }, [])
+  }, [fetchTasks])
+
+  // Refetch when search term changes (debounced) without interfering with pagination
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      if (currentPageRef.current !== 1) {
+        setCurrentPage(1)
+      } else {
+        fetchTasksRef.current()
+      }
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [searchTerm])
+
+  // Fetch when page changes
+  useEffect(() => {
+    if (!initialLoadRef.current) {
+      fetchTasks()
+    }
+  }, [currentPage, fetchTasks])
 
   // Highlight matching text in search results
   const highlightMatch = (text: string | undefined | null, searchTerm: string) => {
@@ -87,7 +135,7 @@ export default function TaskHazard() {
     if (!deleteTaskId) return
 
     try {
-      await taskHazardApi.deleteTaskHazard(deleteTaskId)
+      await TaskHazardApi.deleteTaskHazard(deleteTaskId)
       
       toast({
         title: "Success",
@@ -210,17 +258,17 @@ export default function TaskHazard() {
                   })
                   .map(task => {
                     // Calculate highest unmitigated risk score
-                    let highestUnmitigatedScore = 0;
-                    let highestUnmitigatedType = "";
+                    let highestMitigatedScore = 0;
+                    let highestMitigatedType = "";
                     
                     if (task.risks && task.risks.length > 0) {
                       task.risks.forEach(risk => {
                         const consequenceLabels = getConsequenceLabels(risk.riskType);
                         
-                        const score = getRiskScore(risk.asIsLikelihood, risk.asIsConsequence, consequenceLabels);
-                        if (score > highestUnmitigatedScore) {
-                          highestUnmitigatedScore = score;
-                          highestUnmitigatedType = risk.riskType;
+                        const score = getRiskScore(risk.mitigatedLikelihood, risk.mitigatedConsequence, consequenceLabels);
+                        if (score > highestMitigatedScore) {
+                          highestMitigatedScore = score;
+                          highestMitigatedType = risk.riskType;
                         }
                       });
                     }
@@ -243,9 +291,9 @@ export default function TaskHazard() {
                         <td className="p-3 sm:p-4 text-sm">{task.date} {task.time}</td>
                         <td className="p-3 sm:p-4 hidden lg:table-cell text-sm break-words">{highlightMatch(task.location, searchTerm)}</td>
                         <td className="p-3 sm:p-4">
-                          {highestUnmitigatedScore > 0 ? (
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRiskColor(highestUnmitigatedScore, highestUnmitigatedType)}`}>
-                              {highestUnmitigatedScore}
+                          {highestMitigatedScore > 0 ? (
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRiskColor(highestMitigatedScore, highestMitigatedType)}`}>
+                              {highestMitigatedScore}
                             </span>
                           ) : (
                             <span className="text-sm text-gray-500">N/A</span>
@@ -324,6 +372,28 @@ export default function TaskHazard() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+      {/* Pagination controls - Desktop */}
+      <div className="hidden md:flex items-center justify-between bg-white rounded-lg shadow-sm border p-3 mb-6">
+        <div className="text-sm text-gray-600">
+          Page {currentPage} of {totalPages} • Showing {tasks.length} of {totalItems} items
+        </div>
+        <div className="flex gap-2">
+          <CommonButton
+            variant="outline"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1 || isFetching}
+          >
+            Previous
+          </CommonButton>
+          <CommonButton
+            variant="outline"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages || isFetching}
+          >
+            Next
+          </CommonButton>
         </div>
       </div>
 
@@ -466,6 +536,30 @@ export default function TaskHazard() {
                   </div>
                 );
               })}
+          </div>
+        )}
+        {/* Pagination controls - Mobile */}
+        {!isLoading && !error && (
+          <div className="flex md:hidden items-center justify-between bg-white rounded-lg shadow-sm border p-3 mt-4">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1 || isFetching}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages || isFetching}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </div>

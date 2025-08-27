@@ -296,7 +296,7 @@ export function AnalyticsPageWrapper<T extends { id?: string | number; location?
     <div className="p-4 sm:p-6 lg:p-8">
 
       
-      <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""} onLoad={() => console.log('Maps API has loaded.')}>
+      <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}>
         {/* Responsive header section */}
         <div className="mb-6">
           <div className="flex flex-col gap-4 mb-4">

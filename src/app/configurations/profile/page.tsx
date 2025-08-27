@@ -2,21 +2,13 @@
 
 import { CommonButton } from "@/components/ui/common-button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useState, useEffect } from "react"
-import { userApi } from "@/services/userApi"
-import { getCurrentUser } from "@/utils/auth"
+import { UserApi } from "@/services/userApi"
 import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge";
-
-
-interface User {
-  id: number;
-  email: string;
-  role: string;
-  company: string | { id?: number; name: string; createdAt?: string; updatedAt?: string; deletedAt?: string | null; };
-}
+import { User } from "@/types/user";
+import { getCurrentUser } from "@/utils/auth"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -40,13 +32,12 @@ export default function ProfilePage() {
 
     const fetchUserProfile = async () => {
       try {
-        const userData = localStorage.getItem('user');
+        const userData = getCurrentUser()
         if (userData) {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
+          setUser(userData);
           setFormData(prev => ({
             ...prev,
-            email: parsedUser.email
+            email: userData.email
           }));
         }
       } catch (error) {
@@ -77,7 +68,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const response = await userApi.updateProfile({
+      const response = await UserApi.updateProfile({
         email: formData.email,
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,

@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Shield, CheckCircle, XCircle, AlertTriangle, ClipboardList } from "lucide-react"
-import { taskHazardApi } from "@/services/api"
-import type { TaskHazardWithApprovals } from "@/services/api"
+import { TaskHazardApi } from "@/services"
+import type { TaskHazardWithApprovals } from "@/types"
 import { BackButton } from "@/components/ui/back-button"
 
 type ViewType = 'dashboard' | 'approval-requests' | 'approved-tasks' | 'rejected-tasks'
@@ -62,7 +62,7 @@ export default function SupervisorDashboard() {
     const fetchTasks = async () => {
       try {
         setIsLoading(true)
-        const response = await taskHazardApi.getApprovals({includeInvalidated: true})
+        const response = await TaskHazardApi.getApprovals({includeInvalidated: true})
         
         if (response && response.status && response.data) {
           // Get the user data from localStorage
@@ -141,7 +141,7 @@ export default function SupervisorDashboard() {
       setRemovingTaskId(taskId)
       
       // Update task status
-      await taskHazardApi.approveOrRejectTaskHazard(taskId, action)
+      await TaskHazardApi.approveOrRejectTaskHazard(taskId, action)
       
       const isApproved = action === 'Approved'
       

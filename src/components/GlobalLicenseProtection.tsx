@@ -71,13 +71,12 @@ export default function GlobalLicenseProtection({
           try {
             const licenseResponse = await Promise.race([
               LicenseAllocationService.getUserLicenseStatus(userId),
-              new Promise((_, reject) => 
+              new Promise<never>((_, reject) => 
                 setTimeout(() => reject(new Error('License check timeout')), 10000)
               )
             ]);
             
             if (!licenseResponse?.status) {
-              console.log("License API returned error status");
               router.push("/unauthorized")
               return
             }
@@ -85,14 +84,12 @@ export default function GlobalLicenseProtection({
             const hasActiveLicense = licenseResponse.data?.hasActiveLicense;
             
             if (!hasActiveLicense) {
-              console.log("No active license found - redirecting to unauthorized");
               router.push("/unauthorized")
               return
             }
             
           } catch (licenseError) {
             console.error("License check failed:", licenseError);
-            console.log("License check error - redirecting to unauthorized");
             router.push("/unauthorized")
             return
           }

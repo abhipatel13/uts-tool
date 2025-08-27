@@ -1,12 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { riskAssessmentApi } from "@/services/api"
-import type { RiskAssessment } from "@/services/api"
+import { RiskAssessmentApi } from "@/services"
+import type { RiskAssessment, TaskHazard } from "@/types"
 import RiskAssessmentForm from "@/components/RiskAssessmentForm"
 import { MapInfoDialog } from "@/components/analytics/MapInfoDialog"
 import { AnalyticsPageWrapper } from "@/components/analytics/AnalyticsPageWrapper"
-import { TaskHazard } from "@/services/api";
 
 type RiskAssessmentData = RiskAssessment;
 
@@ -25,7 +24,7 @@ export default function RiskAssessmentAnalytics() {
 
   // Consolidated fetchRiskAssessments function
   const fetchRiskAssessments = async () => {
-    const response = await riskAssessmentApi.getRiskAssessments()
+    const response = await RiskAssessmentApi.getRiskAssessments()
     if (response && response.status && Array.isArray(response.data)) {
       setRiskAssessments(response.data)
     } else {

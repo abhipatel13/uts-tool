@@ -1,0 +1,27 @@
+full name,e-mail,role type,dept,phone number,notes,location,employee_id
+John Carter,john.carter@example.com,admin,Operations,385-555-2001,New hire,Salt Lake City,E1001
+Jane Carter,jane.carter@example.com,supervisor,"Sales, West",385-555-2002,,Denver,E1002
+Bob Stone,bob.stone@example.com,MANAGER,Finance,385-555-2003,Role invalid,Phoenix,E1003
+Alice Stone,alice.stone@example,admin,HR,385-555-2004,Invalid email,Reno,E1004
+Mark Lee,mark.lee@example.com,user,Operations,,Missing phone ok,Provo,E1005
+Emily Lee,emily.lee@example.com,universal_user,Safety,385-555-2006,Disallowed role,Boise,E1006
+Chris Kim,chris.kim@example.com,supervisor ,Logistics,385-555-2007,Trailing space role,Austin,E1007
+Chris Kim Duplicate,chris.kim@example.com,supervisor,Logistics,385-555-2008,Duplicate email,Austin,E1008
+Bad Email,bademail,user,Support,385-555-2009,Not an email,,E1009
+Missing Email,,user,Support,385-555-2010,Missing email,,E1010
+Caps Role,sara.owens@example.com,ADMIN,HR,385-555-2011,Should normalize,,E1011
+Space padded, tom.jones@example.com ,supervisor,Support,385-555-2012,Email has space,,E1012
+"O'Neil, Patrick",oneil.patrick@example.com,user,Engineering,385-555-2013,Name contains comma,New York,E1013
+Extra Cols,extra.cols@example.com,user,R&D,385-555-2014,Extra fields,"San Jose",E1014
+Wrong Role Spelling,mia.chan@example.com,superviser,QA,385-555-2015,Role misspelled,,E1015
+Duplicate 2,bob.stone@example.com,user,Finance,385-555-2016,Another duplicate email (row 3),,E1016
+Strange Role,luke.gray@example.com,Director,Strategy,385-555-2017,Not allowed,,E1017
+Blank Role,kate.li@example.com,,Marketing,385-555-2018,Missing role,,E1018
+Multi space,ann  parker@example.com,user,Support,385-555-2019,Email has spaces,,E1019
+Valid User,peter.rivera@example.com,user,Ops,385-555-2020,,,E1020
+Valid Supervisor,sofia.gomez@example.com,supervisor,Field,385-555-2021,,,E1021
+Valid Admin,omar.khan@example.com,admin,HQ,385-555-2022,,,E1022
+Valid Superuser,zara.patel@example.com,superuser,Corporate,385-555-2023,,,E1023
+Mixed Case Email,Mary.Jane@Example.COM,user,Lab,385-555-2024,Should lowercase email,,E1024
+Role With Tabs,"ethan	.ross@example.com","	user	",Lab,385-555-2025,Tabs in fields,,E1025
+
