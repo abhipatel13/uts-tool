@@ -258,17 +258,17 @@ export default function TaskHazard() {
                   })
                   .map(task => {
                     // Calculate highest unmitigated risk score
-                    let highestUnmitigatedScore = 0;
-                    let highestUnmitigatedType = "";
+                    let highestMitigatedScore = 0;
+                    let highestMitigatedType = "";
                     
                     if (task.risks && task.risks.length > 0) {
                       task.risks.forEach(risk => {
                         const consequenceLabels = getConsequenceLabels(risk.riskType);
                         
-                        const score = getRiskScore(risk.asIsLikelihood, risk.asIsConsequence, consequenceLabels);
-                        if (score > highestUnmitigatedScore) {
-                          highestUnmitigatedScore = score;
-                          highestUnmitigatedType = risk.riskType;
+                        const score = getRiskScore(risk.mitigatedLikelihood, risk.mitigatedConsequence, consequenceLabels);
+                        if (score > highestMitigatedScore) {
+                          highestMitigatedScore = score;
+                          highestMitigatedType = risk.riskType;
                         }
                       });
                     }
@@ -291,9 +291,9 @@ export default function TaskHazard() {
                         <td className="p-3 sm:p-4 text-sm">{task.date} {task.time}</td>
                         <td className="p-3 sm:p-4 hidden lg:table-cell text-sm break-words">{highlightMatch(task.location, searchTerm)}</td>
                         <td className="p-3 sm:p-4">
-                          {highestUnmitigatedScore > 0 ? (
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRiskColor(highestUnmitigatedScore, highestUnmitigatedType)}`}>
-                              {highestUnmitigatedScore}
+                          {highestMitigatedScore > 0 ? (
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRiskColor(highestMitigatedScore, highestMitigatedType)}`}>
+                              {highestMitigatedScore}
                             </span>
                           ) : (
                             <span className="text-sm text-gray-500">N/A</span>

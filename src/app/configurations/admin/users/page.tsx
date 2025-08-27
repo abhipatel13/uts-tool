@@ -10,6 +10,8 @@ import { useState, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast";
 import { UserApi } from "@/services";
 import { User } from '@/types/user';
+import Link from "next/link"
+import { Plus } from "lucide-react"
 
 interface NewUser {
   email: string;
@@ -364,6 +366,12 @@ export default function UserManagement() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <Link href="/configurations/admin/users/bulk-upload">
+            <CommonButton variant="info">
+              <Plus className="w-4 h-4 mr-2" />
+              Bulk Upload
+            </CommonButton>
+          </Link>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <CommonButton>

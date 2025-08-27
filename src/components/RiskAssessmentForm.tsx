@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RiskAssessmentApi } from "@/services"
 import type { RiskAssessment, RiskType } from "@/types"
-import { riskCategories, getConsequenceLabels, getRiskScore, getRiskColor } from "@/lib/risk-utils"
+import { riskCategories, getConsequenceLabels, getRiskScore, getRiskColor, getRiskColorText } from "@/lib/risk-utils"
 import { AssetSelector } from './AssetSelector'
 import { UserSelector } from './UserSelector'
 import { LocationSelector } from './LocationSelector'
@@ -571,16 +571,16 @@ export default function RiskAssessmentForm({
                           <Button
                             type="button"
                             variant="outline"
-                            className="w-full h-11 mt-1"
+                            className={`w-full h-11 mt-1 ${getRiskColor(asIsScore || 0, risk.riskType || '')} hover:${getRiskColor(asIsScore || 0, risk.riskType || '')}`}
                             disabled={!risk.riskType}
                             onClick={() => risk.id && openRiskMatrix(risk.id, true)}
                           >
                             {asIsScore !== null ? (
                               <div className="flex items-center gap-2">
-                                <span className={`px-2 py-1 rounded text-xs ${getRiskColor(asIsScore, risk.riskType || '')}`}>
-                                  {risk.asIsLikelihood} x {risk.asIsConsequence}
+                                <span className={`px-2 py-1 rounded text-xs ${getRiskColorText(asIsScore, risk.riskType || '')}`}>
+                                  {risk.asIsLikelihood} and {risk.asIsConsequence}
                                 </span>
-                                <span className="text-gray-500 text-xs">Score {asIsScore}</span>
+                                <span className={`text-gray-500 text-xs ${getRiskColorText(asIsScore || 0, risk.riskType || '')}`}>Score {asIsScore}</span>
                               </div>
                             ) : (
                               <div className="text-gray-500 text-xs">
@@ -632,16 +632,16 @@ export default function RiskAssessmentForm({
                           <Button
                             type="button"
                             variant="outline"
-                            className="w-full h-11 mt-1"
+                            className={`w-full h-11 mt-1 ${getRiskColor(mitigatedScore || 0, risk.riskType || '')} hover:${getRiskColor(mitigatedScore || 0, risk.riskType || '')}`}
                             disabled={!risk.mitigatingActionType}
                             onClick={() => risk.id && openRiskMatrix(risk.id, false)}
                           >
                             {mitigatedScore !== null ? (
                               <div className="flex items-center gap-2">
-                                <span className={`px-2 py-1 rounded text-xs ${getRiskColor(mitigatedScore, risk.riskType || '')}`}>
-                                  {risk.mitigatedLikelihood} x {risk.mitigatedConsequence}
+                                <span className={`px-2 py-1 rounded text-xs ${getRiskColorText(mitigatedScore, risk.riskType || '')}`}>
+                                  {risk.mitigatedLikelihood} and {risk.mitigatedConsequence}
                                 </span>
-                                <span className="text-gray-500 text-xs">Score {mitigatedScore}</span>
+                                <span className={`text-gray-500 text-xs ${getRiskColorText(mitigatedScore, risk.riskType || '')}`}>Score {mitigatedScore}</span>
                               </div>
                             ) : (
                               <div className="text-gray-500 text-xs">

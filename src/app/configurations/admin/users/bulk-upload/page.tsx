@@ -13,8 +13,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { Trash2, Upload } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User } from "@/types";
-import { BulkUserService, BulkUserSubmissionResult, BulkUserSubmissionItem } from "@/services";
-import { UniversalUserApi } from "@/services/universalUserApi";
+import { BulkUserService, BulkUserSubmissionResult, BulkUserSubmissionItem, } from "@/services";
+import { getCurrentUser } from "@/utils/auth"
 
 type DraftUser = {
   name?: string;
@@ -36,7 +36,7 @@ const VALID_ROLE_VALUES = new Set(ROLE_OPTIONS.map(r => r.value));
 export default function BulkUploadUsersPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [companies, setCompanies] = useState<Array<{ id: number; name: string }>>([]);
+  // const [companies, setCompanies] = useState<Array<{ id: number; name: string }>>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | undefined>(undefined);
   const [drafts, setDrafts] = useState<DraftUser[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -56,12 +56,14 @@ export default function BulkUploadUsersPage() {
   useEffect(() => {
     (async () => {
       try {
-        const response = await UniversalUserApi.getAllCompanies();
-        if (response.status) {
-          const raw = (response.data || []) as Array<{ id: number; name: string }>;
-          const list = raw.map((c) => ({ id: c.id, name: c.name }));
-          setCompanies(list);
-        }
+        const user = await getCurrentUser();
+        setSelectedCompanyId(user?.company_id || user?.company?.id);
+        // const response = await UniversalUserApi.getAllCompanies();
+        // if (response.status) {
+        //   const raw = (response.data || []) as Array<{ id: number; name: string }>;
+        //   const list = raw.map((c) => ({ id: c.id, name: c.name }));
+        //   setCompanies(list);
+        // }
       } catch {
         // non-blocking
       }
@@ -289,7 +291,7 @@ export default function BulkUploadUsersPage() {
                   <p className="text-xs text-gray-500 mt-2">Expected columns: email, name, role, department, phone</p>
                 </div>
 
-                <div className="w-full md:w-80">
+                {/* <div className="w-full md:w-80">
                   <Label className="block">Company for upload</Label>
                   <Select value={selectedCompanyId !== undefined ? String(selectedCompanyId) : undefined} onValueChange={(v) => {
                     const id = v ? Number(v) : undefined;
@@ -308,7 +310,7 @@ export default function BulkUploadUsersPage() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-500 mt-2">All users will be assigned to this company.</p>
-                </div>
+                </div> */}
               </div>
 
               {/* Status Summary (separate row to avoid shifting controls) */}
@@ -316,9 +318,6 @@ export default function BulkUploadUsersPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Label className="mr-2">Status:</Label>
                   <Badge variant="outline">Rows: {drafts.length}</Badge>
-                  {selectedCompanyId !== undefined && (
-                    <Badge variant="outline">Company ID: {selectedCompanyId}</Badge>
-                  )}
                   {results && (
                     <>
                       <Badge variant="secondary">Created {results.created.length}</Badge>
