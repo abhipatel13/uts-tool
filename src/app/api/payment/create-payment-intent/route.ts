@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 
 // Validate environment variable
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -7,7 +6,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 // const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-//   apiVersion: '2025-05-28.basil',
+//   apiVersion: '2025-06-30.basil',
 // }) : null;
 
 const stripe = null
@@ -31,16 +30,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
-      automatic_payment_methods: {
-        enabled: true,
-      },
-    });
+    // const paymentIntent = await stripe.paymentIntents.create({
+    //   amount: Math.round(amount * 100),
+    //   currency: 'usd',
+    //   automatic_payment_methods: {
+    //     enabled: true,
+    //   },
+    // });
 
+    // return NextResponse.json({
+    //   clientSecret: paymentIntent.client_secret,
+    // });
     return NextResponse.json({
-      clientSecret: paymentIntent.client_secret,
+      clientSecret: 'test',
     });
   } catch (error) {
     console.error('Payment intent creation error:', error);
