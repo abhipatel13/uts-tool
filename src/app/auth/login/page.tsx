@@ -65,7 +65,9 @@ export default function Login() {
         email: user.email,
         name: (user as { _id: string; email: string; name?: string; role: string; company: string }).name,
         role: user.role,
-        company: user.company,
+        company: {
+          name: user.company
+        },
         isAuthenticated: true
       })
       

@@ -20,10 +20,13 @@ interface User {
   name?: string;
   role: string;
   company?: {
-    id: number;
+    id?: number;
     name: string;
+    createdAt?: string;
+    updatedAt?: string;
+    deletedAt?: string | null;
   };
-  companyId?: number;
+  company_id?: number;
   phone?: string;
   joiningDate?: string;
   department?: string;
@@ -189,7 +192,7 @@ export default function UniversalUsers() {
     // Calculate stats by company
     companiesList.forEach(company => {
       newStats.byCompany[company.name] = usersList.filter(u => 
-        u.company?.id === company.id || u.companyId === company.id
+        (u.company?.id && u.company.id === company.id) || u.company_id === company.id
       ).length;
     });
     

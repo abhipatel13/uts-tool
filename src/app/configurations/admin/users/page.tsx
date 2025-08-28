@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast";
 import { UserApi } from "@/services";
 import { User } from '@/types/user';
@@ -46,6 +47,7 @@ export default function UserManagement() {
     confirmPassword: '' 
   });
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUsers = async () => {

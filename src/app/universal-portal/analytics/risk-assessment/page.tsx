@@ -38,7 +38,7 @@ interface RiskAssessment {
   location: string;
   createdBy?: string;
   createdOn?: string;
-  companyId?: number;
+  company_id?: number;
   company?: {
     id: number;
     name: string;
@@ -182,7 +182,7 @@ export default function RiskAssessmentAnalyticsPage() {
           const allRiskAssessments = await RiskAssessmentApi.getRiskAssessmentsUniversal();
           if (allRiskAssessments.status && allRiskAssessments.data) {
             const filteredRiskAssessments = allRiskAssessments.data.filter((assessment: RiskAssessment) => 
-              assessment.companyId === parseInt(companyFilter) || assessment.company?.id === parseInt(companyFilter)
+              assessment.company_id === parseInt(companyFilter) || assessment.company?.id === parseInt(companyFilter)
             );
             setRiskAssessments(filteredRiskAssessments);
             calculateStats(filteredRiskAssessments);
@@ -215,7 +215,7 @@ export default function RiskAssessmentAnalyticsPage() {
       setRiskAssessments([]);
       calculateStats([]);
     }
-  }, [companyFilter, companies, calculateStats]);
+  }, [companyFilter, calculateStats]);
 
   // Apply filters
   const filteredRiskAssessments = riskAssessments.filter(assessment => {
@@ -225,7 +225,7 @@ export default function RiskAssessmentAnalyticsPage() {
     const matchesLocation = locationFilter === 'all' || assessment.location === locationFilter;
     const matchesStatus = statusFilter === 'all' || assessment.status === statusFilter;
     const matchesCompany = companyFilter === 'all' || 
-      assessment.companyId === parseInt(companyFilter) || 
+      assessment.company_id === parseInt(companyFilter) || 
       assessment.company?.id === parseInt(companyFilter);
     const matchesSearch = searchTerm === '' || 
       assessment.scopeOfWork.toLowerCase().includes(searchTerm.toLowerCase()) ||

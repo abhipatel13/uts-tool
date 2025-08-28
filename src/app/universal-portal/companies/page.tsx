@@ -19,10 +19,13 @@ interface User {
   name?: string;
   role: string;
   company?: {
-    id: number;
+    id?: number;
     name: string;
+    createdAt?: string;
+    updatedAt?: string;
+    deletedAt?: string | null;
   };
-  companyId?: number;
+  company_id?: number;
   phone?: string;
   joiningDate?: string;
   department?: string;
@@ -83,7 +86,7 @@ export default function UniversalCompanies() {
         const companiesWithUserCount = companiesData.map(company => ({
           ...company,
           userCount: usersData.filter(user => 
-            user.company?.id === company.id || user.companyId === company.id
+            (user.company?.id && user.company.id === company.id) || user.company_id === company.id
           ).length
         }));
         
