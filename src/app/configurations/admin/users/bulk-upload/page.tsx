@@ -166,6 +166,7 @@ export default function BulkUploadUsersPage() {
     const parsed = parseWithMapping(pendingCsvText, headerMap);
     const withCompany = selectedCompanyId ? parsed.map(d => ({ ...d, companyId: selectedCompanyId })) : parsed;
     setDrafts(withCompany);
+    setRowErrors([]);
     setIsMappingOpen(false);
     setPendingCsvText(null);
     toast({ title: "CSV parsed", description: `Loaded ${withCompany.length} rows.` });
@@ -323,7 +324,9 @@ export default function BulkUploadUsersPage() {
                       <Badge variant="secondary">Created {results.created.length}</Badge>
                       <Badge variant="secondary">Updated {results.updated.length}</Badge>
                       <Badge variant="secondary">Existing {results.existing.length}</Badge>
-                      <Badge variant="destructive">Failed {results.failed.length}</Badge>
+                      {results.failed && results.failed.length > 0 && (
+                        <Badge variant="destructive">Failed {results.failed.length}</Badge>
+                      )}
                     </>
                   )}
                 </div>
