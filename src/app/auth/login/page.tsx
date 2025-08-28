@@ -63,11 +63,9 @@ export default function Login() {
       setUserData({
         id: user._id,
         email: user.email,
-        name: (user as { _id: string; email: string; name?: string; role: string; company: string }).name,
+        name: user.name,
         role: user.role,
-        company: {
-          name: user.company
-        },
+        company: user.company,
         isAuthenticated: true
       })
       
