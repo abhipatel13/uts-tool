@@ -22,7 +22,7 @@ interface NewUser {
 }
 
 export default function UserManagement() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]); 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +108,7 @@ export default function UserManagement() {
 
     fetchUsers();
     fetchCurrentUser();
-  }, [toast]);
+  }, [toast, router]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 
 // Validate environment variable
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -31,17 +30,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
-      automatic_payment_methods: {
-        enabled: true,
-      },
-    });
-
-    return NextResponse.json({
-      clientSecret: paymentIntent.client_secret,
-    });
+    // Since Stripe is disabled, return a mock response or error
+    return NextResponse.json(
+      { error: 'Payment processing is temporarily disabled' },
+      { status: 503 }
+    );
   } catch (error) {
     console.error('Payment intent creation error:', error);
     if (error instanceof Error) {
