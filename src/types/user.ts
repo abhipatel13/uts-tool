@@ -32,7 +32,14 @@ export interface LoginResponse {
       _id: string;
       email: string;
       role: string;
-      company: string;
+      name?: string | undefined;
+      company: {
+        id?: number | undefined;
+        name: string;
+        createdAt?: string | undefined;
+        updatedAt?: string | undefined;
+        deletedAt?: string | null | undefined;
+      };
     };
     token: string;
   };
