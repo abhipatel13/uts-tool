@@ -20,10 +20,13 @@ interface User {
   name?: string;
   role: string;
   company?: {
-    id: number;
+    id?: number;
     name: string;
+    createdAt?: string;
+    updatedAt?: string;
+    deletedAt?: string | null;
   };
-  companyId?: number;
+  company_id?: number;
   phone?: string;
   joiningDate?: string;
   department?: string;
@@ -189,7 +192,7 @@ export default function UniversalUsers() {
     // Calculate stats by company
     companiesList.forEach(company => {
       newStats.byCompany[company.name] = usersList.filter(u => 
-        u.company?.id === company.id || u.companyId === company.id
+        (u.company?.id && u.company.id === company.id) || u.company_id === company.id
       ).length;
     });
     
@@ -240,11 +243,11 @@ export default function UniversalUsers() {
         // Refresh data
         fetchData();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating user:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create user",
+        description: (error as Error)?.message || "Failed to create user",
         variant: "destructive",
       });
     } finally {
@@ -305,11 +308,11 @@ export default function UniversalUsers() {
         setIsResetPasswordDialogOpen(false);
         setSelectedUserForReset(null);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error resetting password:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to reset password",
+        description: (error as Error)?.message || "Failed to reset password",
         variant: "destructive",
       });
     } finally {

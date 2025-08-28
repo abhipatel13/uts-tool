@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +38,7 @@ interface RiskAssessment {
   location: string;
   createdBy?: string;
   createdOn?: string;
-  companyId?: number;
+  company_id?: number;
   company?: {
     id: number;
     name: string;
@@ -80,7 +80,7 @@ export default function RiskAssessmentAnalyticsPage() {
   const { toast } = useToast();
 
   // Calculate statistics
-  const calculateStats = useCallback((data: RiskAssessment[], companiesData: { id: number; name: string }[]) => {
+  const calculateStats = useCallback((data: RiskAssessment[]) => {
     const newStats: RiskAssessmentStats = {
       total: data.length,
       byRiskType: {},
@@ -133,8 +133,7 @@ export default function RiskAssessmentAnalyticsPage() {
 
       // Fetch companies first
       const companiesResponse = await UniversalUserApi.getAllCompanies();
-      const companiesData = companiesResponse.data || [];
-      setCompanies(companiesData);
+      setCompanies(companiesResponse.data || []);
 
       // Fetch risk assessments using the universal endpoint
       try {
@@ -144,14 +143,14 @@ export default function RiskAssessmentAnalyticsPage() {
         if (riskAssessmentsResponse.status && riskAssessmentsResponse.data) {
           const riskAssessmentsData = riskAssessmentsResponse.data || [];
           setRiskAssessments(riskAssessmentsData);
-          calculateStats(riskAssessmentsData, companiesData);          
+          calculateStats(riskAssessmentsData);          
         }
       } catch (riskError: unknown) {
         console.error('Error fetching risk assessments from universal endpoint:', riskError);
         
         // Set empty data to show the interface
         setRiskAssessments([]);
-        calculateStats([], companiesData);
+        calculateStats([]);
         
         toast({
           title: "Error",
@@ -183,17 +182,17 @@ export default function RiskAssessmentAnalyticsPage() {
           const allRiskAssessments = await RiskAssessmentApi.getRiskAssessmentsUniversal();
           if (allRiskAssessments.status && allRiskAssessments.data) {
             const filteredRiskAssessments = allRiskAssessments.data.filter((assessment: RiskAssessment) => 
-              assessment.companyId === parseInt(companyFilter) || assessment.company?.id === parseInt(companyFilter)
+              assessment.company_id === parseInt(companyFilter) || assessment.company?.id === parseInt(companyFilter)
             );
             setRiskAssessments(filteredRiskAssessments);
-            calculateStats(filteredRiskAssessments, companies);
+            calculateStats(filteredRiskAssessments);
             return;
           }
         } catch (error) {
           console.error('Error fetching risk assessments for company filter:', error);
           // Set empty data to show the interface
           setRiskAssessments([]);
-          calculateStats([], companies);
+          calculateStats([]);
         }
       } else {
         try {
@@ -201,22 +200,22 @@ export default function RiskAssessmentAnalyticsPage() {
           response = await RiskAssessmentApi.getRiskAssessmentsUniversal();
           if (response.status && response.data) {
             setRiskAssessments(response.data);
-            calculateStats(response.data, companies);
+            calculateStats(response.data);
           }
         } catch (error) {
           console.error('Error fetching all risk assessments:', error);
           // Set empty data to show the interface
           setRiskAssessments([]);
-          calculateStats([], companies);
+          calculateStats([]);
         }
       }
     } catch (error) {
       console.error('Error in fetchRiskAssessments:', error);
       // Set empty data to show the interface
       setRiskAssessments([]);
-      calculateStats([], companies);
+      calculateStats([]);
     }
-  }, [companyFilter, companies, calculateStats]);
+  }, [companyFilter, calculateStats]);
 
   // Apply filters
   const filteredRiskAssessments = riskAssessments.filter(assessment => {
@@ -226,7 +225,7 @@ export default function RiskAssessmentAnalyticsPage() {
     const matchesLocation = locationFilter === 'all' || assessment.location === locationFilter;
     const matchesStatus = statusFilter === 'all' || assessment.status === statusFilter;
     const matchesCompany = companyFilter === 'all' || 
-      assessment.companyId === parseInt(companyFilter) || 
+      assessment.company_id === parseInt(companyFilter) || 
       assessment.company?.id === parseInt(companyFilter);
     const matchesSearch = searchTerm === '' || 
       assessment.scopeOfWork.toLowerCase().includes(searchTerm.toLowerCase()) ||

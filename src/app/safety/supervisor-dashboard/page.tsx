@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Shield, CheckCircle, XCircle, AlertTriangle, ClipboardList } from "lucide-react"
 import { TaskHazardApi } from "@/services"
 import type { TaskHazardWithApprovals } from "@/types"
-import { BackButton } from "@/components/ui/back-button"
+
 
 type ViewType = 'dashboard' | 'approval-requests' | 'approved-tasks' | 'rejected-tasks'
 

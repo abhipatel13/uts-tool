@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { BackButton } from "@/components/ui/back-button"
+
 import { AlertTriangle, Shield, Settings, Save } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -27,7 +27,7 @@ export default function MitigatingActionTriggerPage() {
   const { toast } = useToast()
 
   // Default triggers for different risk types
-  const defaultTriggers: MitigatingActionTrigger[] = [
+  const defaultTriggers: MitigatingActionTrigger[] = useMemo(() => [
     {
       id: "1",
       riskType: "Personnel",
@@ -73,7 +73,7 @@ export default function MitigatingActionTriggerPage() {
       notificationEnabled: true,
       description: "Triggers when maintenance risk score reaches 16 or higher"
     }
-  ]
+  ], [])
 
   useEffect(() => {
     // Load triggers from localStorage or use defaults
@@ -84,7 +84,7 @@ export default function MitigatingActionTriggerPage() {
       setTriggers(defaultTriggers)
     }
     setLoading(false)
-  }, [])
+  }, [defaultTriggers])
 
   const updateTrigger = (id: string, updates: Partial<MitigatingActionTrigger>) => {
     setTriggers(prev => prev.map(trigger => 

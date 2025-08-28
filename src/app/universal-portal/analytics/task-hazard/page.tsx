@@ -36,7 +36,7 @@ interface TaskHazard {
   supervisor: string;
   status: string;
   location: string;
-  companyId?: number;
+  company_id?: number;
   company?: {
     id: number;
     name: string;
@@ -159,7 +159,7 @@ export default function TaskHazardAnalyticsPage() {
         const allTaskHazards = await TaskHazardApi.getTaskHazardsUniversal();
         if (allTaskHazards.status && allTaskHazards.data) {
           const filteredTaskHazards = allTaskHazards.data.filter((taskHazard: TaskHazard) => 
-            taskHazard.companyId === parseInt(companyFilter) || taskHazard.company?.id === parseInt(companyFilter)
+            taskHazard.company_id === parseInt(companyFilter) || taskHazard.company?.id === parseInt(companyFilter)
           );
           setTaskHazards(filteredTaskHazards);
           calculateStats(filteredTaskHazards);
@@ -192,7 +192,7 @@ export default function TaskHazardAnalyticsPage() {
       setTaskHazards([]);
       calculateStats([]);
     }
-  }, [companyFilter, companies, calculateStats]);
+  }, [companyFilter, calculateStats]);
 
   // Apply filters
   const filteredTaskHazards = taskHazards.filter(taskHazard => {
@@ -202,7 +202,7 @@ export default function TaskHazardAnalyticsPage() {
     const matchesRiskType = riskTypeFilter === 'all' || 
       taskHazard.risks.some(risk => risk.riskType === riskTypeFilter);
     const matchesCompany = companyFilter === 'all' || 
-      taskHazard.companyId === parseInt(companyFilter) || 
+      taskHazard.company_id === parseInt(companyFilter) || 
       taskHazard.company?.id === parseInt(companyFilter);
     const matchesSearch = searchTerm === '' || 
       taskHazard.scopeOfWork.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -10,8 +10,26 @@ import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Search, Filter, Building2, Users, Calendar, MapPin, Mail, Phone } from "lucide-react"
+import { Search, Filter, Building2, Users, Calendar, Mail, Phone } from "lucide-react"
 import { UniversalUserApi } from "@/services/universalUserApi"
+
+interface User {
+  id: string | number;
+  email: string;
+  name?: string;
+  role: string;
+  company?: {
+    id?: number;
+    name: string;
+    createdAt?: string;
+    updatedAt?: string;
+    deletedAt?: string | null;
+  };
+  company_id?: number;
+  phone?: string;
+  joiningDate?: string;
+  department?: string;
+}
 
 interface Company {
   id: number;
@@ -34,7 +52,7 @@ interface CompanyStats {
 
 export default function UniversalCompanies() {
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<CompanyStats>({
     totalCompanies: 0,
@@ -68,12 +86,12 @@ export default function UniversalCompanies() {
         const companiesWithUserCount = companiesData.map(company => ({
           ...company,
           userCount: usersData.filter(user => 
-            user.company?.id === company.id || user.companyId === company.id
+            (user.company?.id && user.company.id === company.id) || user.company_id === company.id
           ).length
         }));
         
         setCompanies(companiesWithUserCount);
-        setUsers(usersData);
+
         calculateStats(companiesWithUserCount, usersData);
       }
     } catch (error) {
@@ -122,7 +140,7 @@ export default function UniversalCompanies() {
     }
   }, [router, fetchData]);
 
-  const calculateStats = (companiesList: Company[], usersList: any[]) => {
+  const calculateStats = (companiesList: Company[], usersList: User[]) => {
     const totalCompanies = companiesList.length;
     const totalUsers = usersList.length;
     const averageUsersPerCompany = totalCompanies > 0 ? Math.round(totalUsers / totalCompanies) : 0;
@@ -146,8 +164,8 @@ export default function UniversalCompanies() {
       company.contactEmail?.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
-      let aValue: any = a[sortBy as keyof Company];
-      let bValue: any = b[sortBy as keyof Company];
+      let aValue: string | number | undefined = a[sortBy as keyof Company];
+      let bValue: string | number | undefined = b[sortBy as keyof Company];
       
       // Handle undefined values
       if (aValue === undefined) aValue = '';
