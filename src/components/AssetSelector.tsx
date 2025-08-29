@@ -31,7 +31,9 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
         const directMatches = assets.filter(asset => 
           (asset.name && asset.name.toLowerCase().includes(searchAsset.toLowerCase())) ||
           (asset.description && asset.description.toLowerCase().includes(searchAsset.toLowerCase())) ||
-          (asset.id && asset.id.toLowerCase().includes(searchAsset.toLowerCase()))
+          (asset.id && asset.id.toLowerCase().includes(searchAsset.toLowerCase())) ||
+          (asset.cmmsInternalId && asset.cmmsInternalId.toLowerCase().includes(searchAsset.toLowerCase())) ||
+          (asset.functionalLocation && asset.functionalLocation.toLowerCase().includes(searchAsset.toLowerCase()))
         );
         
         // Create a set to track which assets should be included
@@ -129,13 +131,24 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
               </button>
             )}
             {!hasChildren && <span className="w-4 mr-2"></span>}
-            <div className="flex items-center">
-              <span className="font-medium min-w-[100px]">
-                {highlightMatch(asset.name, searchAsset)}
-              </span>
-              <span className="ml-2 text-gray-600 text-sm">
-                {highlightMatch(asset.description, searchAsset)}
-              </span>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center">
+                <span className="text-black font-mono text-sm font-medium min-w-[120px]">
+                  {highlightMatch(asset.id, searchAsset)}
+                </span>
+              </div>
+              <div className="flex items-center flex-1 ml-4">
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm">
+                    {highlightMatch(asset.name, searchAsset)}
+                  </span>
+                  {asset.description && (
+                    <span className="text-gray-500 text-xs">
+                      {highlightMatch(asset.description, searchAsset)}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           {hasChildren && isExpanded && (
@@ -212,7 +225,9 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
       const matchingAssets = assets.filter(asset => 
         (asset.name && asset.name.toLowerCase().includes(searchAsset.toLowerCase())) ||
         (asset.description && asset.description.toLowerCase().includes(searchAsset.toLowerCase())) ||
-        (asset.id && asset.id.toLowerCase().includes(searchAsset.toLowerCase()))
+        (asset.id && asset.id.toLowerCase().includes(searchAsset.toLowerCase())) ||
+        (asset.cmmsInternalId && asset.cmmsInternalId.toLowerCase().includes(searchAsset.toLowerCase())) ||
+        (asset.functionalLocation && asset.functionalLocation.toLowerCase().includes(searchAsset.toLowerCase()))
       );
       
       const parentsWithMatchingChildren = new Set<string>();
@@ -266,13 +281,24 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
           onClick={() => setAssetDropdownOpen(!assetDropdownOpen)}
         >
           {value ? (
-            <div className="flex items-center">
-              <span className="font-medium">
-                {assets.find(a => a.id === value)?.name || 'Unknown Asset'}
-              </span>
-              <span className="ml-2 text-muted-foreground">
-                {assets.find(a => a.id === value)?.description || ''}
-              </span>
+            <div className="flex items-center justify-between w-full min-h-[40px]">
+              <div className="flex items-center">
+                <span className="text-black font-mono text-sm font-medium min-w-[120px]">
+                  {assets.find(a => a.id === value)?.id || 'Unknown ID'}
+                </span>
+              </div>
+              <div className="flex items-center flex-1 ml-4">
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm">
+                    {assets.find(a => a.id === value)?.name || 'Unknown Asset'}
+                  </span>
+                  {assets.find(a => a.id === value)?.description && (
+                    <span className="text-gray-500 text-xs">
+                      {assets.find(a => a.id === value)?.description}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <span className="text-muted-foreground">{placeholder || 'Select asset or system'}</span>
@@ -287,7 +313,7 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
           <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg">
             <div className="p-2 pb-0">
               <Input
-                placeholder="Search assets..."
+                placeholder="Search by name, ID, description, or location..."
                 value={searchAsset}
                 onChange={(e) => setSearchAsset(e.target.value)}
                 className="mb-2"

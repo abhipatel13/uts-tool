@@ -50,7 +50,7 @@ export default function TaskHazardForm({
   open,
   onOpenChange,
   mode,
-  task,
+  task: initialTask,
   onSuccess
 }: TaskHazardFormProps) {
   const { toast } = useToast() as { toast: (params: { title: string; description: string; variant?: "default" | "destructive" }) => void }
@@ -60,6 +60,7 @@ export default function TaskHazardForm({
   const [showRiskMatrix, setShowRiskMatrix] = useState(false)
   const [activeRiskId, setActiveRiskId] = useState<string | null>(null)
   const [isAsIsMatrix, setIsAsIsMatrix] = useState(true)
+  const [task, setTask] = useState<TaskHazard | null>(initialTask || null)
 
   // Memoize the role filter to prevent unnecessary re-renders
   const supervisorRoleFilter = useMemo(() => ['supervisor'], [])
@@ -80,6 +81,17 @@ export default function TaskHazardForm({
   const handleLocationChange = useCallback((location: string) => {
     setFormData(prev => ({...prev, location: location}))
   }, [])
+
+  useEffect(() => {
+    if (initialTask) {
+      const fetchTask = async () => {
+        const response = await TaskHazardApi.getTaskHazard(initialTask.id)
+        console.log(response.data)
+        setTask(response.data)
+      }
+      fetchTask();
+    }
+  }, [initialTask])
 
   // Convert API risks to local format
   const convertApiRisksToLocal = (apiRisks: TaskHazard['risks']): FormRisk[] => {
@@ -125,7 +137,7 @@ export default function TaskHazardForm({
       scopeOfWork: "",
       assetSystem: "",
       systemLockoutRequired: false,
-      trainedWorkforce: "",
+      trainedWorkforce: false,
       risks: [] as FormRisk[],
       individuals: [] as string[],
       supervisor: "",
@@ -188,7 +200,7 @@ export default function TaskHazardForm({
     if (!formData.individuals || formData.individuals.length === 0) errors.individuals = "At least one individual/team member is required";
     if (!formData.supervisor) errors.supervisor = "Supervisor is required";
     if (!formData.location?.trim()) errors.location = "Location is required";
-    if (!formData.trainedWorkforce?.trim()) errors.trainedWorkforce = "Trained workforce is required";
+    if (formData.trainedWorkforce === false) errors.trainedWorkforce = "Trained workforce is required";
     
     // Validate risks
     if (formData.risks.length === 0) {
@@ -436,13 +448,15 @@ export default function TaskHazardForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="trainedWorkforce" className="text-sm font-medium">Trained Workforce</Label>
-              <Input
+              <select
                 id="trainedWorkforce"
-                value={formData.trainedWorkforce}
-                onChange={(e) => setFormData(prev => ({...prev, trainedWorkforce: e.target.value}))}
-                placeholder="Enter trained workforce"
-                className="h-11"
-              />
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={formData.trainedWorkforce.toString()}
+                onChange={(e) => setFormData(prev => ({...prev, trainedWorkforce: e.target.value === 'true'}))}
+              >
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
             </div>
             <div className="space-y-2">
                <UserSelector
@@ -500,21 +514,32 @@ export default function TaskHazardForm({
               />
             </div>
             {mode === 'edit' && (
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="status" className="text-sm font-medium">Status</Label>
-                <select
-                  id="status"
-                  className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={formData.status}
-                  onChange={(e) => setFormData(prev => ({...prev, status: e.target.value}))}
-                >
-                  <option value="Active">Active</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Rejected">Rejected</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-              </div>
+              <>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+                  <select
+                    id="status"
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={formData.status}
+                    onChange={(e) => setFormData(prev => ({...prev, status: e.target.value}))}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+                {task?.latestApproval && task.latestApproval.status === 'rejected' && (
+                <div className="space-y-2">
+                  <Label htmlFor="Comments" className="text-sm font-medium">Comments</Label>
+                  <p>{(() => {
+                    const comments = task?.latestApproval?.comments || "No comments"
+                    return comments.split('Comments: ').at(-1);
+                  })()}</p>
+                </div>
+                )}
+              </>
             )}
           </div>
           

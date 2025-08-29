@@ -14,43 +14,11 @@ import { useRouter } from "next/navigation"
 import { Search, Filter, Building2, Shield, User, AlertTriangle, Layers, Trash2 } from "lucide-react"
 import { UniversalUserApi } from "@/services/universalUserApi"
 import { RiskAssessmentApi } from "@/services/riskAssessmentApi"
+import type { RiskAssessment } from "@/types"
 
 interface Company {
   id: number;
   name: string;
-}
-
-interface RiskAssessment {
-  id: string;
-  date: string;
-  time: string;
-  scopeOfWork: string;
-  assetSystem: string;
-  systemLockoutRequired: boolean;
-  trainedWorkforce: boolean;
-  risks: {
-    id?: string;
-    riskDescription: string;
-    riskType: string;
-    asIsLikelihood: string;
-    asIsConsequence: string;
-    mitigatingAction: string;
-    mitigatedLikelihood: string;
-    mitigatedConsequence: string;
-    mitigatingActionType: string;
-    requiresSupervisorSignature: boolean;
-  }[];
-  individuals: string;
-  supervisor: string;
-  status: string;
-  location: string;
-  createdBy?: string;
-  createdOn?: string;
-  companyId?: number;
-  company?: {
-    id: number;
-    name: string;
-  };
 }
 
 interface RiskAssessmentStats {
@@ -145,7 +113,7 @@ export default function UniversalRiskAssessment() {
           const allRiskAssessments = await RiskAssessmentApi.getRiskAssessmentsUniversal();
           if (allRiskAssessments.status && allRiskAssessments.data) {
             const filteredRiskAssessments = allRiskAssessments.data.filter((assessment: RiskAssessment) => 
-              assessment.companyId === parseInt(companyFilter) || assessment.company?.id === parseInt(companyFilter)
+              assessment.company_id === parseInt(companyFilter) || assessment.company?.id === parseInt(companyFilter)
             );
             setRiskAssessments(filteredRiskAssessments);
             calculateStats(filteredRiskAssessments, companies);
@@ -283,7 +251,7 @@ export default function UniversalRiskAssessment() {
     // Calculate stats by company
     companiesList.forEach(company => {
       newStats.byCompany[company.name] = assessmentsList.filter(assessment => 
-        assessment.companyId === company.id || assessment.company?.id === company.id
+        assessment.company_id === company.id || assessment.company?.id === company.id
       ).length;
     });
     

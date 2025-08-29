@@ -15,6 +15,7 @@ export const LicensePoolService = {
     poolExpiryDate?: string;
     notes?: string;
     companyId?: number;
+    stripePaymentIntentId?: string;
   }) => {
     return api.post<ApiResponse<LicensePool>>('/api/licenses/pools', data);
   },

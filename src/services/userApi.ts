@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import { User, ApiResponse, CreateUserRequest, UpdateProfileRequest } from '@/types';
+import { User, ApiResponse, CreateUserRequest, UpdateProfileRequest, UpdatePasswordRequest } from '@/types';
 
 export const UserApi = {
   // Get all users and supervisors
@@ -33,8 +33,18 @@ export const UserApi = {
     return api.delete<ApiResponse<void>>(`/api/users/deleteUser/${userId}`);
   },
 
+  // Get current user profile
+  getProfile: async (): Promise<ApiResponse<User>> => {
+    return api.get<ApiResponse<User>>('/api/auth/profile');
+  },
+
   // Update profile
   updateProfile: async (data: UpdateProfileRequest): Promise<ApiResponse<User>> => {
     return api.put<ApiResponse<User>>('/api/auth/profile', data);
+  },
+
+  // Update password
+  updatePassword: async (data: UpdatePasswordRequest): Promise<ApiResponse<void>> => {
+    return api.put<ApiResponse<void>>('/api/auth/password', data);
   }
 }; 

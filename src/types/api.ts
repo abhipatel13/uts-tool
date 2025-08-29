@@ -38,4 +38,3 @@ export interface BaseFilters {
 
 // Status types used across different entities
 export type EntityStatus = 'active' | 'inactive' | 'pending' | 'suspended' | 'expired';
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected';

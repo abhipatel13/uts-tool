@@ -11,39 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { UniversalUserApi } from "@/services/universalUserApi";
 import { RiskAssessmentApi } from "@/services/riskAssessmentApi";
-
-interface RiskAssessment {
-  id: string;
-  date: string;
-  time: string;
-  scopeOfWork: string;
-  assetSystem: string;
-  systemLockoutRequired: boolean;
-  trainedWorkforce: boolean;
-  risks: {
-    id?: string;
-    riskDescription: string;
-    riskType: string;
-    asIsLikelihood: string;
-    asIsConsequence: string;
-    mitigatingAction: string;
-    mitigatedLikelihood: string;
-    mitigatedConsequence: string;
-    mitigatingActionType: string;
-    requiresSupervisorSignature: boolean;
-  }[];
-  individuals: string;
-  supervisor: string;
-  status: string;
-  location: string;
-  createdBy?: string;
-  createdOn?: string;
-  company_id?: number;
-  company?: {
-    id: number;
-    name: string;
-  };
-}
+import type { RiskAssessment } from "@/types";
 
 interface RiskAssessmentStats {
   total: number;

@@ -18,6 +18,7 @@ export interface LicensePool {
   status: EntityStatus;
   companyId?: number;
   notes?: string;
+  stripePaymentIntentId?: string;
   createdAt: string;
   updatedAt: string;
   purchaser?: {

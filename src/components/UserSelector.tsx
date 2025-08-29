@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { X } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { X, Search, ChevronDown } from "lucide-react"
 import { UserApi } from "@/services"
 import type { User } from "@/types"
 import { useToast } from "@/components/ui/use-toast"
@@ -34,7 +34,9 @@ export function UserSelector({
   const { toast } = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(true)
-  const [selectedValue, setSelectedValue] = useState<string>("")
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Normalize value to always work with arrays internally for consistency
   const normalizedValue = multiple 
@@ -72,6 +74,17 @@ export function UserSelector({
     fetchUsers()
   }, [toast, roleFilter])
 
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => {
+    const searchLower = searchTerm.toLowerCase()
+    return (
+      user.email.toLowerCase().includes(searchLower) ||
+      (user.name && user.name.toLowerCase().includes(searchLower)) ||
+      user.role.toLowerCase().includes(searchLower) ||
+      (user.department && user.department.toLowerCase().includes(searchLower))
+    )
+  })
+
   const handleAddUser = (userEmail: string) => {
     if (!userEmail) return
 
@@ -80,13 +93,13 @@ export function UserSelector({
       if (!normalizedValue.includes(userEmail)) {
         const newValue = [...normalizedValue, userEmail]
         onChange(newValue)
-        setSelectedValue("") // Reset the select
       }
     } else {
       // Single-select mode
       onChange(userEmail)
-      setSelectedValue("")
+      setIsOpen(false)
     }
+    setSearchTerm("") // Clear search after selection
   }
 
   const handleRemoveUser = (userEmail: string) => {
@@ -100,12 +113,27 @@ export function UserSelector({
 
   const getDisplayName = (email: string) => {
     const user = users.find(u => u.email === email)
-    return user ? `${user.email} (${user.role})` : email
+    return user ? `${user.name || 'No Name'} (${user.email})` : email
   }
 
-  const availableUsers = users.filter(user => !normalizedValue.includes(user.email))
+  const availableUsers = filteredUsers.filter(user => !normalizedValue.includes(user.email))
 
   const displayValue = multiple ? normalizedValue : (normalizedValue[0] || "")
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+        setSearchTerm("")
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   return (
     <div className="space-y-2">
@@ -133,32 +161,76 @@ export function UserSelector({
         </div>
       )}
 
-      {/* Add new user selector */}
-      {(multiple || !displayValue) && (
-        <Select
-          value={selectedValue}
-          onValueChange={handleAddUser}
+      {/* Custom dropdown for user selection */}
+      <div className="relative" ref={dropdownRef}>
+        <Button
+          type="button"
+          variant="outline"
+          className={`w-full justify-between ${error ? "border-red-500" : ""}`}
+          onClick={() => setIsOpen(!isOpen)}
         >
-          <SelectTrigger className={error ? "border-red-500" : ""}>
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
-          <SelectContent>
-            {isLoadingUsers ? (
-              <SelectItem value="loading" disabled>Loading users...</SelectItem>
-            ) : availableUsers.length === 0 ? (
-              <SelectItem value="none" disabled>
-                {users.length === 0 ? "No users found" : (multiple ? "All users selected" : "No available users")}
-              </SelectItem>
-            ) : (
-              availableUsers.map((user) => (
-                <SelectItem key={user.id} value={user.email}>
-                  {user.email} ({user.role})
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-      )}
+          <span className="text-left">
+            {isLoadingUsers ? "Loading users..." : placeholder}
+          </span>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+
+        {isOpen && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
+            {/* Search input */}
+            <div className="p-2 border-b">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by name, email, role, or department..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+
+            {/* User list */}
+            <div className="max-h-60 overflow-y-auto">
+              {isLoadingUsers ? (
+                <div className="p-3 text-center text-gray-500">Loading users...</div>
+              ) : availableUsers.length === 0 ? (
+                <div className="p-3 text-center text-gray-500">
+                  {users.length === 0 ? "No users found" : (multiple ? "All users selected" : "No available users")}
+                </div>
+              ) : (
+                availableUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                    onClick={() => handleAddUser(user.email)}
+                  >
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">
+                          {user.name || 'No Name'}
+                        </span>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                          {user.role}
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {user.email}
+                      </span>
+                      {user.department && (
+                        <span className="text-xs text-gray-500">
+                          {user.department}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {error && (
         <span className="text-red-500 text-xs">{error}</span>

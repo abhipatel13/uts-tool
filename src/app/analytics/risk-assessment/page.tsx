@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { RiskAssessmentApi } from "@/services"
-import type { RiskAssessment, TaskHazard } from "@/types"
+import type { RiskAssessment } from "@/types"
 import RiskAssessmentForm from "@/components/RiskAssessmentForm"
 import { MapInfoDialog } from "@/components/analytics/MapInfoDialog"
 import { AnalyticsPageWrapper } from "@/components/analytics/AnalyticsPageWrapper"
@@ -67,25 +67,6 @@ export default function RiskAssessmentAnalytics() {
     
   }, [riskAssessments, filterAssessmentsBy, searchQuery])
 
-
-  const riskAssessmentToTaskHazard = (assessment: RiskAssessmentData): TaskHazard => {
-    return {
-      id: assessment.id,
-      date: assessment.date,
-      time: assessment.time,
-      scopeOfWork: assessment.scopeOfWork,
-      assetSystem: assessment.assetSystem,
-      systemLockoutRequired: assessment.systemLockoutRequired,
-      trainedWorkforce: assessment.trainedWorkforce.toString(),
-      risks: assessment.risks,
-      individual: assessment.individuals,
-      supervisor: assessment.supervisor,
-      status: assessment.status,
-      location: assessment.location,
-    }
-  }
-
-
   const handleFormSuccess = () => {
     // Refresh the risk assessments data after successful edit
     fetchRiskAssessments()
@@ -117,7 +98,7 @@ export default function RiskAssessmentAnalytics() {
 
       <MapInfoDialog
         title="Risk Assessment Details"
-        data={selectedAssessment ? riskAssessmentToTaskHazard(selectedAssessment) : null}
+        data={selectedAssessment ? selectedAssessment : null}
         isOpen={isAssessmentDialogOpen}
         onClose={() => {
           setIsAssessmentDialogOpen(false);

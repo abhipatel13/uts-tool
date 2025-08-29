@@ -19,7 +19,7 @@ interface TaskHazard {
   scopeOfWork: string;
   assetSystem: string;
   systemLockoutRequired: boolean;
-  trainedWorkforce: string;
+  trainedWorkforce: boolean;
   risks: {
     id?: string;
     riskDescription: string;

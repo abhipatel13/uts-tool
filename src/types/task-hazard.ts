@@ -1,7 +1,6 @@
 // Centralized task hazard types (updated to use centralized Risk interface)
 
 import { Risk } from "./risk";
-import { ApiResponse, ApprovalStatus } from "./api";
 
 // Main TaskHazard interface (consolidated from api.ts and task-hazard.ts)
 export interface TaskHazard {
@@ -11,7 +10,7 @@ export interface TaskHazard {
   scopeOfWork: string;
   assetSystem: string;
   systemLockoutRequired: boolean;
-  trainedWorkforce: string;
+  trainedWorkforce: boolean;
   risks: Risk[];
   individual: string;
   supervisor: string;
@@ -23,6 +22,7 @@ export interface TaskHazard {
     id: number;
     name: string;
   };
+  latestApproval?: Approval;
 }
 
 // Supervisor interface
@@ -65,6 +65,8 @@ export interface Approval {
   taskHazardData: TaskHazardSnapshot;
 }
 
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
 // Task hazard with approvals
 export interface TaskHazardWithApprovals extends TaskHazard {
   approvals: Approval[];
@@ -81,10 +83,4 @@ export interface ApprovalsResponse {
   };
 }
 
-// Task hazard response wrapper
-export type TaskHazardResponse = ApiResponse<TaskHazard>;
 
-// Task hazard with geo fence (for specific pages)
-export interface TaskHazardWithGeoFence extends TaskHazard {
-  geoFenceLimit?: number;
-}
