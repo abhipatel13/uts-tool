@@ -15,6 +15,7 @@ import { Edit2, Trash2, Plus, Users, Building2, Shield, Crown, UserCheck, Lock, 
 import { UniversalUserApi } from "@/services/universalUserApi"
 import { TaskHazardApi } from "@/services/taskHazardApi"
 import { User } from "@/types/user"
+import { CompanySelector } from "@/components/CompanySelector"
 
 interface NewUser {
   name: string;
@@ -964,22 +965,13 @@ export default function UniversalPortal() {
                       </p>
                     </div>
                     <div>
-                            <Label htmlFor="company">Company *</Label>
-                      <Select 
-                              value={newUser.companyId > 0 ? newUser.companyId.toString() : ""} 
-                              onValueChange={(value) => setNewUser({...newUser, companyId: parseInt(value)})}
-                      >
-                        <SelectTrigger>
-                                <SelectValue placeholder="Select company" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {companies.map((company) => (
-                            <SelectItem key={company.id} value={company.id.toString()}>
-                              {company.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <CompanySelector
+                        value={newUser.companyId || null}
+                        onChange={(val) => setNewUser({ ...newUser, companyId: typeof val === 'number' ? val : 0 })}
+                        label="Company"
+                        placeholder="Search companies..."
+                        required
+                      />
                     </div>
                     <div>
                             <Label htmlFor="phone">Phone</Label>
