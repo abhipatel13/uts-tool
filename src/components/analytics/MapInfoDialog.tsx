@@ -6,7 +6,7 @@ import {
     DialogTitle,
   } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import type { TaskHazard } from "@/types";
+import type { TaskHazard, RiskAssessment } from "@/types";
 import { getRiskColorPastel, getRiskScore, getConsequenceLabels } from "@/lib/risk-utils";
 
 
@@ -18,13 +18,31 @@ export const MapInfoDialog = ({
     onEdit
   }: {
     title: string;
-    data: TaskHazard | null;
+    data: TaskHazard | RiskAssessment | null;
     isOpen: boolean;
     onClose: () => void;
     onEdit: () => void;
   }) => {
     if (!data) return null;
-  
+
+    const individuals = () => {
+      if (typeof data === 'object' && 'individual' in data) {
+        return (
+          <div>
+            <span className="font-medium text-gray-600 text-xs sm:text-sm">Individuals:</span>
+            <div className="text-gray-900 break-words mt-1">{data.individual || 'N/A'}</div>
+          </div>
+        )} else if (typeof data === 'object' && 'individuals' in data) {
+          return (
+            <div>
+              <span className="font-medium text-gray-600 text-xs sm:text-sm">Individuals:</span>
+              <div className="text-gray-900 break-words mt-1">{data.individuals || 'N/A'}</div>
+            </div>
+          )
+        }
+        return (<></>);
+      }
+
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="w-[90vw] max-w-[500px] max-h-[85vh] overflow-y-auto rounded-lg mx-auto my-auto">
@@ -84,10 +102,7 @@ export const MapInfoDialog = ({
   
             {/* Personnel */}
             <div className="space-y-3">
-              <div>
-                <span className="font-medium text-gray-600 text-xs sm:text-sm">Individual:</span>
-                <div className="text-gray-900 break-words mt-1">{data.individual || 'N/A'}</div>
-              </div>
+              {individuals()}
               <div>
                 <span className="font-medium text-gray-600 text-xs sm:text-sm">Supervisor:</span>
                 <div className="text-gray-900 break-words mt-1">{data.supervisor || 'N/A'}</div>

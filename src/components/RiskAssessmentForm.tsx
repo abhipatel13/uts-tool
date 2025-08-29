@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RiskAssessmentApi } from "@/services"
-import type { RiskAssessment, RiskType } from "@/types"
+import type { RiskAssessment, RiskType, Risk } from "@/types"
 import { riskCategories, getConsequenceLabels, getRiskScore, getRiskColor, getRiskColorText } from "@/lib/risk-utils"
 import { AssetSelector } from './AssetSelector'
 import { UserSelector } from './UserSelector'
@@ -23,18 +23,8 @@ import { LocationSelector } from './LocationSelector'
 import { RiskMatrix } from './RiskMatrix'
 
 // Form-specific Risk type that allows empty strings
-interface FormRisk {
-  id: string;
-  riskDescription: string;
-  riskType: string; // Allow empty string in form
-  asIsLikelihood: string;
-  asIsConsequence: string;
-  mitigatingAction: string;
-  mitigatedLikelihood: string;
-  mitigatedConsequence: string;
-  mitigatingActionType: string;
-  requiresSupervisorSignature: boolean;
-}
+type FormRisk = Partial<Risk>
+
 
 interface RiskAssessmentFormProps {
   open: boolean;
@@ -59,7 +49,7 @@ export default function RiskAssessmentForm({
   const [isAsIsMatrix, setIsAsIsMatrix] = useState(true)
 
   // Memoize the role filter to prevent unnecessary re-renders
-  const supervisorRoleFilter = useMemo(() => ['supervisor'], [])
+  const supervisorRoleFilter = useMemo(() => ['supervisor', 'admin', 'superuser'], [])
 
   // Memoize the onChange callbacks to prevent unnecessary re-renders
   const handleIndividualsChange = useCallback((individuals: string | string[]) => {
@@ -84,7 +74,7 @@ export default function RiskAssessmentForm({
     return apiRisks.map(risk => ({
       id: risk.id || Date.now().toString(),
       riskDescription: risk.riskDescription || "",
-      riskType: risk.riskType || "",
+      riskType: risk.riskType || undefined,
       asIsLikelihood: risk.asIsLikelihood || "",
       asIsConsequence: risk.asIsConsequence || "",
       mitigatingAction: risk.mitigatingAction || "",
@@ -104,8 +94,6 @@ export default function RiskAssessmentForm({
         time: assessment.time,
         scopeOfWork: assessment.scopeOfWork,
         assetSystem: assessment.assetSystem,
-        systemLockoutRequired: assessment.systemLockoutRequired,
-        trainedWorkforce: assessment.trainedWorkforce,
         risks: convertApiRisksToLocal(assessment.risks),
         individuals: Array.isArray(assessment.individuals) 
           ? assessment.individuals 
@@ -139,8 +127,6 @@ export default function RiskAssessmentForm({
         time: assessment.time,
         scopeOfWork: assessment.scopeOfWork,
         assetSystem: assessment.assetSystem,
-        systemLockoutRequired: assessment.systemLockoutRequired,
-        trainedWorkforce: assessment.trainedWorkforce,
         risks: convertApiRisksToLocal(assessment.risks),
         individuals: Array.isArray(assessment.individuals) 
           ? assessment.individuals 
@@ -298,7 +284,7 @@ export default function RiskAssessmentForm({
     const newRisk: FormRisk = {
       id: Date.now().toString(),
       riskDescription: "",
-      riskType: "",
+      riskType: undefined,
       asIsLikelihood: "",
       asIsConsequence: "",
       mitigatingAction: "",
@@ -416,38 +402,12 @@ export default function RiskAssessmentForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="systemLockout" className="text-sm font-medium">System Lockout Required</Label>
-              <select
-                id="systemLockout"
-                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={formData.systemLockoutRequired.toString()}
-                onChange={(e) => setFormData(prev => ({...prev, systemLockoutRequired: e.target.value === 'true'}))}
-              >
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="trainedWorkforce" className="text-sm font-medium">Trained Workforce</Label>
-              <select
-                id="trainedWorkforce"
-                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={formData.trainedWorkforce.toString()}
-                onChange={(e) => setFormData(prev => ({...prev, trainedWorkforce: e.target.value === 'true'}))}
-              >
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
             <UserSelector
                 value={formData.individuals || []}
                 onChange={handleIndividualsChange}
                 error={validationErrors.individuals}
-                label="Individual/Team"
-                placeholder="Select individual/team member"
+                label="Assessment Team"
+                placeholder="Select team members"
                 multiple={true}
             />
             </div>
@@ -457,14 +417,13 @@ export default function RiskAssessmentForm({
                 value={formData.supervisor || ""}
                 onChange={handleSupervisorChange}
                 error={validationErrors.supervisor}
-                label="Supervisor"
-                placeholder="Select supervisor"
+                label="Lead"
+                placeholder="Select lead"
                 multiple={false}
                 roleFilter={supervisorRoleFilter}
             />
             </div>
 
-            
             <div className="md:col-span-2">
               <LocationSelector
                 value={formData.location}
@@ -548,7 +507,7 @@ export default function RiskAssessmentForm({
                           <Label className="text-sm font-medium">Risk Type</Label>
                           <Select
                             value={risk.riskType || ""}
-                            onValueChange={(value) => risk.id && updateRisk(risk.id, { riskType: value })}
+                            onValueChange={(value) => risk.id && updateRisk(risk.id, { riskType: value as RiskType })}
                           >
                             <SelectTrigger className={`h-11 mt-1 ${validationErrors[`risk_${index}_type`] ? "border-red-500" : ""}`}>
                               <SelectValue placeholder="Select risk type" />
@@ -696,10 +655,7 @@ export default function RiskAssessmentForm({
         onOpenChange={setShowRiskMatrix}
         riskId={activeRiskId}
         isAsIsMatrix={isAsIsMatrix}
-        risk={formData.risks.find(r => r.id === activeRiskId) ? {
-          ...formData.risks.find(r => r.id === activeRiskId)!,
-          riskType: formData.risks.find(r => r.id === activeRiskId)!.riskType as RiskType
-        } : null}
+        risk={formData.risks.find(r => r.id === activeRiskId) || null}
         onRiskUpdate={handleRiskUpdate}
       />
     </Dialog>

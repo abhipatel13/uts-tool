@@ -25,7 +25,7 @@ interface RiskMatrixProps {
   onOpenChange: (open: boolean) => void;
   riskId: string | null;
   isAsIsMatrix: boolean;
-  risk: Risk | null;
+  risk: Risk | Partial<Risk> | null;
   onRiskUpdate: (riskId: string, updates: Partial<Risk>) => void;
 }
 
@@ -43,7 +43,7 @@ export function RiskMatrix({
   // Update consequence labels when risk type changes
   useEffect(() => {
     if (risk) {
-      setActiveConsequenceLabels(getConsequenceLabels(risk.riskType));
+      setActiveConsequenceLabels(getConsequenceLabels(risk.riskType || "Personnel"));
     }
   }, [risk]);
 

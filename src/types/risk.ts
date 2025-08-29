@@ -1,5 +1,7 @@
 // Centralized risk-related types and interfaces
 
+import { Company } from "@/services/universalUserApi";
+
 // Risk level types
 export type RiskLevel = 'Very Unlikely' | 'Unlikely' | 'Likely' | 'Very Likely';
 export type ConsequenceLevel = 'Minor' | 'Significant' | 'Serious' | 'Major' | 'Catastrophic';
@@ -26,8 +28,6 @@ export interface RiskAssessment {
   time: string;
   scopeOfWork: string;
   assetSystem: string;
-  systemLockoutRequired: boolean;
-  trainedWorkforce: boolean;
   risks: Risk[];
   individuals: string;
   supervisor: string;
@@ -35,6 +35,8 @@ export interface RiskAssessment {
   location: string;
   createdBy?: string;
   createdOn?: string;
+  company_id?: number;
+  company?: Company
 }
 
 // Risk matrix related types

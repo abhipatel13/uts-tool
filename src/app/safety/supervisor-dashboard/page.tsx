@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import { Shield, CheckCircle, XCircle, AlertTriangle, ClipboardList } from "lucide-react"
 import { TaskHazardApi } from "@/services"
 import type { TaskHazardWithApprovals } from "@/types"
@@ -47,6 +49,10 @@ export default function SupervisorDashboard() {
   const [selectedTask, setSelectedTask] = useState<TaskHazardWithApprovals | null>(null)
   const [removingTaskId, setRemovingTaskId] = useState<string | null>(null)
   const [isAdminOrSuperUser, setIsAdminOrSuperUser] = useState(false)
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [rejectComment, setRejectComment] = useState("")
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null)
+  const [isSubmittingReject, setIsSubmittingReject] = useState(false)
   
   // Get current tasks list based on view
   const currentTasks = currentView === 'dashboard' 
@@ -135,13 +141,13 @@ export default function SupervisorDashboard() {
     setSelectedTask(null)
   }
   
-  const handleTaskAction = async (taskId: string, action: 'Approved' | 'Rejected') => {
+  const handleTaskAction = async (taskId: string, action: 'Approved' | 'Rejected', comments?: string) => {
     try {
       // Set the removing task ID to trigger the fade-out animation
       setRemovingTaskId(taskId)
       
       // Update task status
-      await TaskHazardApi.approveOrRejectTaskHazard(taskId, action)
+      await TaskHazardApi.approveOrRejectTaskHazard(taskId, action, comments || '')
       
       const isApproved = action === 'Approved'
       
@@ -173,7 +179,7 @@ export default function SupervisorDashboard() {
             ...updatedTask,
             approvals: updatedTask.approvals.map(approval => 
               approval.isLatest 
-                ? { ...approval, status: isApproved ? 'approved' as const : 'rejected' as const, processedAt: new Date().toISOString() }
+                ? { ...approval, status: isApproved ? 'approved' as const : 'rejected' as const, processedAt: new Date().toISOString(), comments: comments || '' }
                 : approval
             )
           }
@@ -207,7 +213,42 @@ export default function SupervisorDashboard() {
   
   // Wrapper functions for backwards compatibility
   const handleApprove = (taskId: string) => handleTaskAction(taskId, 'Approved')
-  const handleReject = (taskId: string) => handleTaskAction(taskId, 'Rejected')
+  const handleReject = (taskId: string) => {
+    setRejectTargetId(taskId)
+    setRejectComment("")
+    setIsRejectDialogOpen(true)
+  }
+
+  const handleRejectOpenChange = (open: boolean) => {
+    setIsRejectDialogOpen(open)
+    if (!open) {
+      setRejectComment("")
+      setRejectTargetId(null)
+      setIsSubmittingReject(false)
+    }
+  }
+
+  const confirmReject = async () => {
+    if (!rejectTargetId) return
+    const comment = rejectComment.trim()
+    if (comment.length === 0) {
+      toast({
+        title: "Reason required",
+        description: "Please provide a brief reason for rejection.",
+        variant: "destructive",
+      })
+      return
+    }
+    try {
+      setIsSubmittingReject(true)
+      await handleTaskAction(rejectTargetId, 'Rejected', comment)
+      setIsRejectDialogOpen(false)
+      setRejectComment("")
+      setRejectTargetId(null)
+    } finally {
+      setIsSubmittingReject(false)
+    }
+  }
 
   // Helper function to get task status display info
   const getTaskStatusInfo = (task: TaskHazardWithApprovals) => {
@@ -248,6 +289,34 @@ export default function SupervisorDashboard() {
         }
     }
   }
+
+  const latestApprovalSection = useMemo(() => {
+    if (!selectedTask) return null
+    const latestApproval = selectedTask.approvals.find(approval => approval.isLatest)
+    if (!latestApproval) return 'No approvals'
+    let status = '';
+    let statusClass = '';
+    switch (latestApproval.status) {
+      case 'approved': status = 'Approved'; statusClass = 'bg-green-100 text-green-800'; break;
+      case 'rejected': status = 'Rejected'; statusClass = 'bg-red-100 text-red-800'; break;
+      case 'pending': status = 'Pending Approval'; statusClass = 'bg-amber-100 text-amber-800'; break;
+      default: status = 'Unknown Status'; statusClass = 'bg-gray-100 text-gray-800'; break;
+    }
+    return (
+      <>
+      <div>
+        <h3 className="text-sm font-medium text-gray-500">Status</h3>
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}`}>
+          {status}
+        </span>
+      </div>
+      <div>
+        <h3 className="text-sm font-medium text-gray-500">Comments</h3>
+        <p>{latestApproval.comments}</p>
+      </div>
+      </>
+    )
+  }, [selectedTask])
   
   return (
     <div className="flex h-screen bg-gray-50">
@@ -519,32 +588,7 @@ export default function SupervisorDashboard() {
                     <h3 className="text-sm font-medium text-gray-500">Scope of Work</h3>
                     <p>{selectedTask.scopeOfWork}</p>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Status</h3>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      (() => {
-                        const latestApproval = selectedTask.approvals.find(approval => approval.isLatest)
-                        if (!latestApproval) return 'bg-gray-100 text-gray-800'
-                        switch (latestApproval.status) {
-                          case 'approved': return 'bg-green-100 text-green-800'
-                          case 'rejected': return 'bg-red-100 text-red-800'
-                          case 'pending': return 'bg-amber-100 text-amber-800'
-                          default: return 'bg-gray-100 text-gray-800'
-                        }
-                      })()
-                    }`}>
-                      {(() => {
-                        const latestApproval = selectedTask.approvals.find(approval => approval.isLatest)
-                        if (!latestApproval) return 'No approvals'
-                        switch (latestApproval.status) {
-                          case 'approved': return 'Approved'
-                          case 'rejected': return 'Rejected'
-                          case 'pending': return 'Pending Approval'
-                          default: return 'Unknown Status'
-                        }
-                      })()}
-                    </span>
-                  </div>
+                  {latestApprovalSection}
                 </div>
                 
                 <div>
@@ -628,19 +672,11 @@ export default function SupervisorDashboard() {
                                 const latestApproval = selectedTask.approvals.find(approval => approval.isLatest)
                                 if (!latestApproval) return '❓ No approval data'
                                 
-                                if (currentView === 'approval-requests') {
-                                  return '⚠️ High risk activity requires supervisor approval'
-                                } else if (currentView === 'approved-tasks') {
-                                  return '✅ High risk activity - supervisor approved'
-                                } else if (currentView === 'rejected-tasks') {
-                                  return '❌ High risk activity - supervisor rejected'
-                                } else {
-                                  switch (latestApproval.status) {
-                                    case 'approved': return '✅ High risk activity - supervisor approved'
-                                    case 'rejected': return '❌ High risk activity - supervisor rejected'
-                                    case 'pending': return '⚠️ High risk activity requires supervisor approval'
-                                    default: return '❓ Unknown approval status'
-                                  }
+                                switch (latestApproval.status) {
+                                  case 'approved': return '✅ High risk activity - supervisor approved'
+                                  case 'rejected': return '❌ High risk activity - supervisor rejected'
+                                  case 'pending': return '⚠️ High risk activity requires supervisor approval'
+                                  default: return '❓ Unknown approval status'
                                 }
                               })()}
                             </span>
@@ -822,6 +858,43 @@ export default function SupervisorDashboard() {
               </CardContent>
             </Card>
           )}
+          <Dialog open={isRejectDialogOpen} onOpenChange={handleRejectOpenChange}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reject task approval</DialogTitle>
+                <DialogDescription>
+                  Provide a brief reason for rejecting this task hazard approval.
+                </DialogDescription>
+              </DialogHeader>
+              <div>
+                <Textarea
+                  autoFocus
+                  placeholder="Enter rejection reason..."
+                  value={rejectComment}
+                  onChange={(e) => setRejectComment(e.target.value)}
+                />
+                <div className="mt-2 text-xs text-gray-500">
+                  {Math.max(0, rejectComment.trim().length)} characters
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => handleRejectOpenChange(false)}
+                  disabled={isSubmittingReject}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={confirmReject}
+                  disabled={isSubmittingReject || rejectComment.trim().length === 0}
+                >
+                  {isSubmittingReject ? 'Rejecting…' : 'Reject Task'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
