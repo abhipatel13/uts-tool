@@ -63,7 +63,7 @@ export default function TaskHazardForm({
   const [task, setTask] = useState<TaskHazard | null>(initialTask || null)
 
   // Memoize the role filter to prevent unnecessary re-renders
-  const supervisorRoleFilter = useMemo(() => ['supervisor', 'admin', 'superuser'], [])
+  const supervisorRoleFilter = useMemo(() => ['supervisor'], [])
 
   // Memoize the onChange callbacks to prevent unnecessary re-renders
   const handleIndividualsChange = useCallback((individuals: string | string[]) => {
@@ -137,7 +137,7 @@ export default function TaskHazardForm({
       scopeOfWork: "",
       assetSystem: "",
       systemLockoutRequired: false,
-      trainedWorkforce: "",
+      trainedWorkforce: false,
       risks: [] as FormRisk[],
       individuals: [] as string[],
       supervisor: "",
@@ -200,7 +200,7 @@ export default function TaskHazardForm({
     if (!formData.individuals || formData.individuals.length === 0) errors.individuals = "At least one individual/team member is required";
     if (!formData.supervisor) errors.supervisor = "Supervisor is required";
     if (!formData.location?.trim()) errors.location = "Location is required";
-    if (!formData.trainedWorkforce?.trim()) errors.trainedWorkforce = "Trained workforce is required";
+    if (formData.trainedWorkforce === false) errors.trainedWorkforce = "Trained workforce is required";
     
     // Validate risks
     if (formData.risks.length === 0) {
@@ -448,13 +448,15 @@ export default function TaskHazardForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="trainedWorkforce" className="text-sm font-medium">Trained Workforce</Label>
-              <Input
+              <select
                 id="trainedWorkforce"
-                value={formData.trainedWorkforce}
-                onChange={(e) => setFormData(prev => ({...prev, trainedWorkforce: e.target.value}))}
-                placeholder="Enter trained workforce"
-                className="h-11"
-              />
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={formData.trainedWorkforce.toString()}
+                onChange={(e) => setFormData(prev => ({...prev, trainedWorkforce: e.target.value === 'true'}))}
+              >
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
             </div>
             <div className="space-y-2">
                <UserSelector

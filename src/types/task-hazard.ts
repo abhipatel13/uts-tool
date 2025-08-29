@@ -10,7 +10,7 @@ export interface TaskHazard {
   scopeOfWork: string;
   assetSystem: string;
   systemLockoutRequired: boolean;
-  trainedWorkforce: string;
+  trainedWorkforce: boolean;
   risks: Risk[];
   individual: string;
   supervisor: string;
