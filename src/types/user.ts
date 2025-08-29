@@ -53,7 +53,15 @@ export interface CreateUserRequest {
 }
 
 export interface UpdateProfileRequest {
+  name?: string;
   email: string;
+  department?: string;
+  phone?: string;
   currentPassword: string;
   newPassword?: string;
+}
+
+export interface UpdatePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }

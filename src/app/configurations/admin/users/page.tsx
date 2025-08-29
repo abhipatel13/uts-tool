@@ -15,9 +15,12 @@ import Link from "next/link"
 import { Plus } from "lucide-react"
 
 interface NewUser {
+  name: string;
   email: string;
   password: string;
   role: string;
+  department: string;
+  phone: string;
   company: string;
 }
 
@@ -28,9 +31,12 @@ export default function UserManagement() {
   const [error, setError] = useState<string | null>(null);
   const [isUniversalUser, setIsUniversalUser] = useState(false);
   const [newUser, setNewUser] = useState<NewUser>({ 
+    name: '',
     email: '', 
     password: '', 
     role: 'user',
+    department: '',
+    phone: '',
     company: ''
   });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -38,9 +44,11 @@ export default function UserManagement() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editFormData, setEditFormData] = useState({ 
+    name: '',
     email: '', 
-    role: '', 
-    name: '' 
+    role: '',
+    department: '',
+    phone: ''
   });
   const [passwordFormData, setPasswordFormData] = useState({ 
     newPassword: '', 
@@ -91,9 +99,12 @@ export default function UserManagement() {
           
           // Set the company in newUser state when current user is loaded
           setNewUser({ 
+            name: '',
             email: '', 
             password: '', 
             role: user.role === 'universal_user' ? 'superuser' : 'user', // Universal users default to creating superusers
+            department: '',
+            phone: '',
             company: typeof user.company === 'string' 
               ? user.company 
               : (user.company && typeof user.company === 'object' && 'name' in user.company)
@@ -142,9 +153,12 @@ export default function UserManagement() {
         });
         setIsCreateDialogOpen(false);
         setNewUser({ 
+          name: '',
           email: '', 
           password: '', 
           role: currentUser?.role === 'universal_user' ? 'superuser' : 'user', // Universal users default to creating superusers
+          department: '',
+          phone: '',
           company: typeof currentUser?.company === 'string' 
           ? currentUser.company 
           : (currentUser?.company && typeof currentUser.company === 'object' && 'name' in currentUser.company)
@@ -223,9 +237,11 @@ export default function UserManagement() {
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setEditFormData({
+      name: user.name || '',
       email: user.email,
       role: user.role,
-      name: ''
+      department: user.department || '',
+      phone: user.phone || ''
     });
     setIsEditDialogOpen(true);
   };
@@ -235,15 +251,18 @@ export default function UserManagement() {
 
     try {
       const response = await UserApi.update(selectedUser.id.toString(), {
+        name: editFormData.name,
         email: editFormData.email,
-        role: editFormData.role
+        role: editFormData.role,
+        department: editFormData.department,
+        phone: editFormData.phone
       });
 
       if (response.status) {
         // Update the user in the local state
         setUsers(users.map(user => 
           user.id === selectedUser.id 
-            ? { ...user, email: editFormData.email, role: editFormData.role }
+            ? { ...user, name: editFormData.name, email: editFormData.email, role: editFormData.role, department: editFormData.department, phone: editFormData.phone }
             : user
         ));
 
@@ -386,6 +405,16 @@ export default function UserManagement() {
               </DialogHeader>
               <form onSubmit={handleCreateUser} className="space-y-4">
                 <div>
+                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <Input
+                    type="text"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    required
+                    placeholder="Enter full name"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-1">Email</label>
                   <Input
                     type="email"
@@ -432,6 +461,24 @@ export default function UserManagement() {
                   )}
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-1">Department</label>
+                  <Input
+                    type="text"
+                    value={newUser.department}
+                    onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                    placeholder="Enter department"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone Number</label>
+                  <Input
+                    type="tel"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-1">Company</label>
                   <Input
                     type="text"
@@ -457,6 +504,15 @@ export default function UserManagement() {
             <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <Input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  placeholder="Enter full name"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
                 <Input
@@ -487,6 +543,24 @@ export default function UserManagement() {
                     )}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Department</label>
+                <Input
+                  type="text"
+                  value={editFormData.department}
+                  onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                  placeholder="Enter department"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Phone Number</label>
+                <Input
+                  type="tel"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                  placeholder="Enter phone number"
+                />
               </div>
               <div className="flex gap-2">
                 <CommonButton 
@@ -555,8 +629,11 @@ export default function UserManagement() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Phone</TableHead>
               <TableHead>Company</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -564,6 +641,7 @@ export default function UserManagement() {
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.id}>
+                <TableCell>{user.name || '-'}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <Badge 
@@ -573,6 +651,8 @@ export default function UserManagement() {
                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </Badge>
                 </TableCell>
+                <TableCell>{user.department || '-'}</TableCell>
+                <TableCell>{user.phone || '-'}</TableCell>
                 <TableCell>
                   {typeof user.company === 'string' 
                     ? user.company 

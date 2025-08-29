@@ -16,11 +16,17 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
+    department: '',
+    phone: '',
+  });
+  const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
+  const [isPasswordEditing, setIsPasswordEditing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,19 +38,46 @@ export default function ProfilePage() {
 
     const fetchUserProfile = async () => {
       try {
-        const userData = getCurrentUser()
-        if (userData) {
-          setUser(userData);
-          setFormData(prev => ({
-            ...prev,
-            email: userData.email
-          }));
+        // Fetch fresh user data from API instead of localStorage
+        const response = await UserApi.getProfile();
+        if (response.status) {
+          const freshUserData = response.data;
+          setUser(freshUserData);
+          setFormData({
+            name: freshUserData.name || '',
+            email: freshUserData.email,
+            department: freshUserData.department || '',
+            phone: freshUserData.phone || ''
+          });
+        } else {
+          // Fallback to localStorage if API fails
+          const userData = getCurrentUser()
+          if (userData) {
+            setUser(userData);
+            setFormData({
+              name: userData.name || '',
+              email: userData.email,
+              department: userData.department || '',
+              phone: userData.phone || ''
+            });
+          }
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
+        // Fallback to localStorage if API fails
+        const userData = getCurrentUser()
+        if (userData) {
+          setUser(userData);
+          setFormData({
+            name: userData.name || '',
+            email: userData.email,
+            department: userData.department || '',
+            phone: userData.phone || ''
+          });
+        }
         toast({
-          title: "Error",
-          description: "Failed to load profile",
+          title: "Warning",
+          description: "Using cached profile data. Some information may be outdated.",
           variant: "destructive",
         });
       } finally {
@@ -57,37 +90,49 @@ export default function ProfilePage() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (formData.newPassword !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "New passwords do not match",
-        variant: "destructive",
-      });
-      return;
-    }
 
     try {
       const response = await UserApi.updateProfile({
+        name: formData.name,
         email: formData.email,
-        currentPassword: formData.currentPassword,
-        newPassword: formData.newPassword,
+        department: formData.department,
+        phone: formData.phone,
+        currentPassword: '', // Not needed for profile update
+        newPassword: '', // Not needed for profile update
       });
 
-      if (response.status) {
-        // Update local storage with new user data
-        const updatedUser = { ...user, email: formData.email };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        setUser(updatedUser as User);
+            if (response.status) {
+        // Fetch fresh user data from API after successful update
+        const freshResponse = await UserApi.getProfile();
+        if (freshResponse.status) {
+          const updatedUser = freshResponse.data;
+          setUser(updatedUser);
+          setFormData({
+            name: updatedUser.name || '',
+            email: updatedUser.email,
+            department: updatedUser.department || '',
+            phone: updatedUser.phone || '',
+          });
+        } else {
+          // Fallback: update with form data
+          const updatedUser = { 
+            ...user, 
+            name: formData.name,
+            email: formData.email,
+            department: formData.department,
+            phone: formData.phone
+          };
+          setUser(updatedUser as User);
+          setFormData({
+            name: formData.name,
+            email: formData.email,
+            department: formData.department,
+            phone: formData.phone,
+          });
+        }
         
         setIsEditing(false);
-        setFormData(prev => ({
-          ...prev,
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: '',
-        }));
-
+        
         toast({
           title: "Success",
           description: "Profile updated successfully",
@@ -103,6 +148,56 @@ export default function ProfilePage() {
     }
   };
 
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!passwordData.currentPassword || !passwordData.newPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all password fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await UserApi.updatePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+
+      if (response.status) {
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+        setIsPasswordEditing(false);
+        
+        toast({
+          title: "Success",
+          description: "Password updated successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update password",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!mounted || loading) {
     return <div>Loading...</div>;
   }
@@ -112,12 +207,13 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto py-10 space-y-8">
       
+      {/* Profile Information Card */}
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Profile Settings</CardTitle>
+            <CardTitle>Profile Information</CardTitle>
             <Badge 
               variant={
                 user.role === 'admin' ? 'outline' : 
@@ -148,6 +244,18 @@ export default function ProfilePage() {
                 className="bg-gray-100"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Name</label>
+              <Input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                disabled={!isEditing}
+                className={!isEditing ? 'bg-gray-100' : ''}
+                placeholder="Enter full name"
+              />
+            </div>
             
             <div>
               <label className="block text-sm font-medium mb-1">Email</label>
@@ -160,37 +268,31 @@ export default function ProfilePage() {
               />
             </div>
 
-            {isEditing && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Current Password</label>
-                  <Input
-                    type="password"
-                    value={formData.currentPassword}
-                    onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                    required
-                  />
-                </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Department</label>
+              <Input
+                type="text"
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                disabled={!isEditing}
+                className={!isEditing ? 'bg-gray-100' : ''}
+                placeholder="Enter department"
+              />
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">New Password</label>
-                  <Input
-                    type="password"
-                    value={formData.newPassword}
-                    onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                  />
-                </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Phone Number</label>
+              <Input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                disabled={!isEditing}
+                className={!isEditing ? 'bg-gray-100' : ''}
+                placeholder="Enter phone number"
+              />
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Confirm New Password</label>
-                  <Input
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  />
-                </div>
-              </>
-            )}
+
 
             <div className="flex justify-end gap-4">
               {!isEditing ? (
@@ -207,12 +309,12 @@ export default function ProfilePage() {
                     variant="outline"
                     onClick={() => {
                       setIsEditing(false);
-                      setFormData(prev => ({
-                        ...prev,
-                        currentPassword: '',
-                        newPassword: '',
-                        confirmPassword: '',
-                      }));
+                      setFormData({
+                        name: user?.name || '',
+                        email: user?.email || '',
+                        department: user?.department || '',
+                        phone: user?.phone || '',
+                      });
                     }}
                   >
                     Cancel
@@ -221,6 +323,85 @@ export default function ProfilePage() {
                     type="submit"
                   >
                     Save Changes
+                  </CommonButton>
+                </>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Password Change Card */}
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Change Password</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleUpdatePassword} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium mb-1">Current Password</label>
+              <Input
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                disabled={!isPasswordEditing}
+                className={!isPasswordEditing ? 'bg-gray-100' : ''}
+                placeholder="Enter current password"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">New Password</label>
+              <Input
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                disabled={!isPasswordEditing}
+                className={!isPasswordEditing ? 'bg-gray-100' : ''}
+                placeholder="Enter new password"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Confirm New Password</label>
+              <Input
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                disabled={!isPasswordEditing}
+                className={!isPasswordEditing ? 'bg-gray-100' : ''}
+                placeholder="Confirm new password"
+              />
+            </div>
+
+            <div className="flex justify-end gap-4">
+              {!isPasswordEditing ? (
+                <CommonButton 
+                  type="button" 
+                  onClick={() => setIsPasswordEditing(true)}
+                >
+                  Change Password
+                </CommonButton>
+              ) : (
+                <>
+                  <CommonButton 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => {
+                      setIsPasswordEditing(false);
+                      setPasswordData({
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: '',
+                      });
+                    }}
+                  >
+                    Cancel
+                  </CommonButton>
+                  <CommonButton 
+                    type="submit"
+                  >
+                    Update Password
                   </CommonButton>
                 </>
               )}
