@@ -60,7 +60,7 @@ export const PaymentService = {
         testMode: false
       };
 
-    } catch (error) {
+    } catch {
       // Fallback to test mode if real payment fails
       const mockPaymentIntentId = `pi_test_fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
