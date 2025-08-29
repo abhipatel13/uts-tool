@@ -63,7 +63,7 @@ export default function TaskHazardForm({
   const [task, setTask] = useState<TaskHazard | null>(initialTask || null)
 
   // Memoize the role filter to prevent unnecessary re-renders
-  const supervisorRoleFilter = useMemo(() => ['supervisor'], [])
+  const supervisorRoleFilter = useMemo(() => ['supervisor', 'admin', 'superuser'], [])
 
   // Memoize the onChange callbacks to prevent unnecessary re-renders
   const handleIndividualsChange = useCallback((individuals: string | string[]) => {
@@ -200,7 +200,6 @@ export default function TaskHazardForm({
     if (!formData.individuals || formData.individuals.length === 0) errors.individuals = "At least one individual/team member is required";
     if (!formData.supervisor) errors.supervisor = "Supervisor is required";
     if (!formData.location?.trim()) errors.location = "Location is required";
-    if (formData.trainedWorkforce === false) errors.trainedWorkforce = "Trained workforce is required";
     
     // Validate risks
     if (formData.risks.length === 0) {
