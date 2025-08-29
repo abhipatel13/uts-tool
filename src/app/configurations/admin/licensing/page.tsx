@@ -25,6 +25,10 @@ import {
   LicenseAllocationService, 
   LicenseAdminService
 } from "@/services";
+
+import PoolPaymentForm from "@/components/stripe/PoolPaymentForm";
+import { Elements } from '@stripe/react-stripe-js';
+import stripePromise from '@/config/stripe';
 import type { LicensePool, LicenseAllocation, LicenseAnalytics } from "@/types";
 import { UserApi } from "@/services";
 import type { User as ApiUser } from "@/types";
@@ -49,6 +53,8 @@ const LicensingAdminPage = () => {
   const [deletePoolId, setDeletePoolId] = useState<number | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'pools' | 'allocations' | 'analytics'>('pools');
+  const [showPaymentStep, setShowPaymentStep] = useState(false);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
   // Form states
   const [createPoolForm, setCreatePoolForm] = useState({
@@ -120,9 +126,14 @@ const LicensingAdminPage = () => {
     }
   };
 
-  const handleCreatePool = async () => {
+  const handleCreatePool = async (paymentIntentId?: string) => {
     try {
-      await LicensePoolService.createLicensePool(createPoolForm);
+      const poolData = {
+        ...createPoolForm,
+        stripePaymentIntentId: paymentIntentId
+      };
+
+      await LicensePoolService.createLicensePool(poolData);
 
       toast({
         title: "Success",
@@ -130,6 +141,7 @@ const LicensingAdminPage = () => {
       });
 
       setShowCreatePoolDialog(false);
+      setShowPaymentStep(false);
       setCreatePoolForm({
         poolName: '',
         licenseType: 'monthly',
@@ -151,6 +163,32 @@ const LicensingAdminPage = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handlePaymentSuccess = (paymentIntentId: string) => {
+    handleCreatePool(paymentIntentId);
+  };
+
+  const handlePaymentError = (error: string) => {
+    toast({
+      title: "Payment Error",
+      description: error,
+      variant: "destructive"
+    });
+    setIsPaymentProcessing(false);
+  };
+
+  const handleProceedToPayment = () => {
+    // Validate form before proceeding to payment
+    if (!createPoolForm.poolName || !createPoolForm.totalLicenses || !createPoolForm.totalAmount) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowPaymentStep(true);
   };
 
   const handleAllocateLicense = async () => {
@@ -322,7 +360,13 @@ const LicensingAdminPage = () => {
               />
             </div>
             <div className="flex space-x-2 order-1 sm:order-2">
-              <Dialog open={showCreatePoolDialog} onOpenChange={setShowCreatePoolDialog}>
+              <Dialog open={showCreatePoolDialog} onOpenChange={(open) => {
+                setShowCreatePoolDialog(open);
+                if (!open) {
+                  setShowPaymentStep(false);
+                  setIsPaymentProcessing(false);
+                }
+              }}>
                 <DialogTrigger asChild>
                   <CommonButton>
                     <Package className="w-4 h-4 mr-2" />
@@ -331,103 +375,145 @@ const LicensingAdminPage = () => {
                 </DialogTrigger>
                 <DialogContent className="max-w-lg">
                   <DialogHeader>
-                    <DialogTitle>Create License Pool</DialogTitle>
+                    <DialogTitle>
+                      {showPaymentStep ? 'Complete Payment' : 'Create License Pool'}
+                    </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="poolName">Pool Name</Label>
-                      <Input
-                        id="poolName"
-                        value={createPoolForm.poolName}
-                        onChange={(e) => setCreatePoolForm({...createPoolForm, poolName: e.target.value})}
-                        placeholder="Enter pool name"
-                      />
-                    </div>
+                    {!showPaymentStep ? (
+                      <>
+                        <div>
+                          <Label htmlFor="poolName">Pool Name</Label>
+                          <Input
+                            id="poolName"
+                            value={createPoolForm.poolName}
+                            onChange={(e) => setCreatePoolForm({...createPoolForm, poolName: e.target.value})}
+                            placeholder="Enter pool name"
+                          />
+                        </div>
 
-                    <div>
-                      <Label htmlFor="licenseType">License Type</Label>
-                      <Select
-                        value={createPoolForm.licenseType}
-                        onValueChange={(value) => setCreatePoolForm({...createPoolForm, licenseType: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="quarterly">Quarterly</SelectItem>
-                          <SelectItem value="semi_annual">Semi-Annual</SelectItem>
-                          <SelectItem value="annual">Annual</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                        <div>
+                          <Label htmlFor="licenseType">License Type</Label>
+                          <Select
+                            value={createPoolForm.licenseType}
+                            onValueChange={(value) => setCreatePoolForm({...createPoolForm, licenseType: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="quarterly">Quarterly</SelectItem>
+                              <SelectItem value="semi_annual">Semi-Annual</SelectItem>
+                              <SelectItem value="annual">Annual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="totalLicenses">Total Licenses</Label>
-                        <Input
-                          id="totalLicenses"
-                          type="number"
-                          min="1"
-                          value={createPoolForm.totalLicenses}
-                          onChange={(e) => setCreatePoolForm({...createPoolForm, totalLicenses: parseInt(e.target.value)})}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="validityPeriodMonths">Validity (Months)</Label>
-                        <Input
-                          id="validityPeriodMonths"
-                          type="number"
-                          min="1"
-                          value={createPoolForm.validityPeriodMonths}
-                          onChange={(e) => setCreatePoolForm({...createPoolForm, validityPeriodMonths: parseInt(e.target.value)})}
-                        />
-                      </div>
-                    </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="totalLicenses">Total Licenses</Label>
+                            <Input
+                              id="totalLicenses"
+                              type="number"
+                              min="1"
+                              value={createPoolForm.totalLicenses}
+                              onChange={(e) => setCreatePoolForm({...createPoolForm, totalLicenses: parseInt(e.target.value)})}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="validityPeriodMonths">Validity (Months)</Label>
+                            <Input
+                              id="validityPeriodMonths"
+                              type="number"
+                              min="1"
+                              value={createPoolForm.validityPeriodMonths}
+                              onChange={(e) => setCreatePoolForm({...createPoolForm, validityPeriodMonths: parseInt(e.target.value)})}
+                            />
+                          </div>
+                        </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="totalAmount">Total Amount ($)</Label>
-                        <Input
-                          id="totalAmount"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={createPoolForm.totalAmount}
-                          onChange={(e) => setCreatePoolForm({...createPoolForm, totalAmount: parseFloat(e.target.value)})}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="pricePerLicense">Price per License ($)</Label>
-                        <Input
-                          id="pricePerLicense"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={createPoolForm.pricePerLicense}
-                          onChange={(e) => setCreatePoolForm({...createPoolForm, pricePerLicense: parseFloat(e.target.value)})}
-                        />
-                      </div>
-                    </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="totalAmount">Total Amount ($)</Label>
+                            <Input
+                              id="totalAmount"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={createPoolForm.totalAmount}
+                              onChange={(e) => setCreatePoolForm({...createPoolForm, totalAmount: parseFloat(e.target.value)})}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="pricePerLicense">Price per License ($)</Label>
+                            <Input
+                              id="pricePerLicense"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={createPoolForm.pricePerLicense}
+                              onChange={(e) => setCreatePoolForm({...createPoolForm, pricePerLicense: parseFloat(e.target.value)})}
+                            />
+                          </div>
+                        </div>
 
-                    <div>
-                      <Label htmlFor="notes">Notes (optional)</Label>
-                      <Textarea
-                        id="notes"
-                        placeholder="Additional notes about this license pool"
-                        value={createPoolForm.notes}
-                        onChange={(e) => setCreatePoolForm({...createPoolForm, notes: e.target.value})}
-                      />
-                    </div>
+                        <div>
+                          <Label htmlFor="notes">Notes (optional)</Label>
+                          <Textarea
+                            id="notes"
+                            placeholder="Additional notes about this license pool"
+                            value={createPoolForm.notes}
+                            onChange={(e) => setCreatePoolForm({...createPoolForm, notes: e.target.value})}
+                          />
+                        </div>
 
-                    <div className="flex justify-end space-x-2 pt-4">
-                      <Button variant="outline" onClick={() => setShowCreatePoolDialog(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={handleCreatePool}>
-                        Create Pool
-                      </Button>
-                    </div>
+                        <div className="flex justify-end space-x-2 pt-4">
+                          <Button variant="outline" onClick={() => setShowCreatePoolDialog(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleProceedToPayment}>
+                            Proceed to Payment
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h3 className="font-medium mb-2">Pool Details</h3>
+                          <div className="text-sm space-y-1">
+                            <div><strong>Name:</strong> {createPoolForm.poolName}</div>
+                            <div><strong>Type:</strong> {createPoolForm.licenseType}</div>
+                            <div><strong>Licenses:</strong> {createPoolForm.totalLicenses}</div>
+                            <div><strong>Validity:</strong> {createPoolForm.validityPeriodMonths} months</div>
+                            <div><strong>Total Amount:</strong> ${createPoolForm.totalAmount.toFixed(2)}</div>
+                          </div>
+                        </div>
+
+                        <Elements stripe={stripePromise}>
+                          <PoolPaymentForm
+                            amount={createPoolForm.totalAmount}
+                            poolName={createPoolForm.poolName}
+                            totalLicenses={createPoolForm.totalLicenses}
+                            licenseType={createPoolForm.licenseType}
+                            onSuccess={handlePaymentSuccess}
+                            onError={handlePaymentError}
+                            isProcessing={isPaymentProcessing}
+                            setIsProcessing={setIsPaymentProcessing}
+                          />
+                        </Elements>
+
+                        <div className="flex justify-end space-x-2 pt-4">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setShowPaymentStep(false)}
+                            disabled={isPaymentProcessing}
+                          >
+                            Back
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </DialogContent>
               </Dialog>
