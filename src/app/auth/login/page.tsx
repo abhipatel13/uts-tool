@@ -80,6 +80,23 @@ export default function Login() {
     }
   }
 
+  // const handleForgotPassword = async (e: React.FormEvent) => {
+  //   e.preventDefault()
+  //   setError("")
+  //   setIsLoading(true)
+  //   try {
+  //     const response = await AuthApi.forgotPassword({
+  //       email: formData.email
+  //     })
+  //     console.log(response)
+  //   } catch (apiError: unknown) {
+  //     console.error("API forgot password error:", apiError)
+  //   }
+  //   finally {
+  //     setIsLoading(false)
+  //   }
+  // }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
@@ -129,6 +146,13 @@ export default function Login() {
               disabled={isLoading}
             />
           </div>
+          <div className="flex justify-between">
+          {/* <CommonButton
+            type="button"
+            onClick={handleForgotPassword}
+            >
+              Forgot Password
+            </CommonButton> */}
 
           <CommonButton
             type="submit"
@@ -136,6 +160,7 @@ export default function Login() {
           >
             {isLoading ? "Logging in..." : "Login"}
           </CommonButton>
+          </div>
         </form>
       </div>
     </div>
