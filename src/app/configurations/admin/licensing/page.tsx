@@ -62,10 +62,20 @@ const LicensingAdminPage = () => {
     licenseType: 'monthly',
     totalLicenses: 5,
     validityPeriodMonths: 1,
-    totalAmount: 99.99,
+
+    totalAmount: 99.95, // Will be auto-calculated
     pricePerLicense: 19.99,
     notes: ''
   });
+
+  // Auto-calculate total amount when totalLicenses or pricePerLicense changes
+  useEffect(() => {
+    const calculatedTotal = createPoolForm.totalLicenses * createPoolForm.pricePerLicense;
+    setCreatePoolForm(prev => ({
+      ...prev,
+      totalAmount: calculatedTotal
+    }));
+  }, [createPoolForm.totalLicenses, createPoolForm.pricePerLicense]);
 
   const [allocationForm, setAllocationForm] = useState({
     licensePoolId: '',
@@ -147,7 +157,7 @@ const LicensingAdminPage = () => {
         licenseType: 'monthly',
         totalLicenses: 5,
         validityPeriodMonths: 1,
-        totalAmount: 99.99,
+        totalAmount: 5 * 19.99, // Auto-calculated: totalLicenses * pricePerLicense
         pricePerLicense: 19.99,
         notes: ''
       });
@@ -441,9 +451,13 @@ const LicensingAdminPage = () => {
                               type="number"
                               step="0.01"
                               min="0"
-                              value={createPoolForm.totalAmount}
-                              onChange={(e) => setCreatePoolForm({...createPoolForm, totalAmount: parseFloat(e.target.value)})}
+                              value={createPoolForm.totalAmount.toFixed(2)}
+                              readOnly
+                              className="bg-gray-50 cursor-not-allowed"
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Automatically calculated: {createPoolForm.totalLicenses} × ${createPoolForm.pricePerLicense.toFixed(2)}
+                            </p>
                           </div>
                           <div>
                             <Label htmlFor="pricePerLicense">Price per License ($)</Label>

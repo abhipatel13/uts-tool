@@ -2,6 +2,7 @@
 
 import { CommonButton } from "@/components/ui/common-button"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { setAuthToken, setUserData } from "@/utils/auth"
@@ -16,6 +17,7 @@ export default function Login() {
   })
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isResetEmailDialogOpen, setIsResetEmailDialogOpen] = useState(false)
 
   // Check if user is already logged in
   useEffect(() => {
@@ -80,6 +82,37 @@ export default function Login() {
     }
   }
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
+    try {
+      // Basic email validation
+      if (!formData.email) {
+        setError("Please enter your email to reset your password")
+        return
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.email)) {
+        setError("Please enter a valid email address")
+        return
+      }
+      const response = await AuthApi.forgotPassword({
+        email: formData.email
+      })
+      if (!response || !response.status) {
+        throw new Error(response?.message || "Failed to send reset email")
+      }
+      setIsResetEmailDialogOpen(true)
+    } catch (apiError: unknown) {
+      console.error("API forgot password error:", apiError)
+      setError(apiError instanceof Error ? apiError.message : "An unexpected error occurred")
+    }
+    finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
@@ -129,6 +162,14 @@ export default function Login() {
               disabled={isLoading}
             />
           </div>
+          <div className="flex justify-between">
+          <CommonButton
+          type="button"
+          disabled={isLoading}
+          onClick={handleForgotPassword}
+          >
+            Forgot Password
+          </CommonButton>
 
           <CommonButton
             type="submit"
@@ -136,8 +177,29 @@ export default function Login() {
           >
             {isLoading ? "Logging in..." : "Login"}
           </CommonButton>
+          </div>
         </form>
       </div>
+
+      {/* Forgot Password Confirmation Dialog */}
+      <Dialog open={isResetEmailDialogOpen} onOpenChange={setIsResetEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Check your email</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-700">
+              If an account exists for <span className="font-medium">{formData.email}</span>, we sent a password reset link.
+              Please check your inbox and spam folder. The link will expire after a short time.
+            </p>
+            <div className="flex justify-end">
+              <CommonButton onClick={() => setIsResetEmailDialogOpen(false)}>
+                OK
+              </CommonButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 
