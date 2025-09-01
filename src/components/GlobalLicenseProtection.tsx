@@ -22,8 +22,12 @@ export default function GlobalLicenseProtection({
     const checkAuth = async () => {
       try {
         // Skip license check on auth and unauthorized pages
-        const publicPages = ["/auth/login", "/unauthorized"]
-        if (publicPages.includes(pathname || "")) {
+        const publicPages = ["/auth/login", "/unauthorized", "/auth/resetpassword"]
+        // Some public routes use dynamic segments (e.g., /auth/resetpassword/[token])
+        const publicPrefixes = ["/auth/resetpassword"]
+        const isPublicRoute = publicPages.includes(pathname || "") ||
+          (!!pathname && publicPrefixes.some(prefix => pathname.startsWith(prefix)))
+        if (isPublicRoute) {
           setIsAuthorized(true)
           setIsLoading(false)
           return

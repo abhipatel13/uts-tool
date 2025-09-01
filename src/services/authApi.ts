@@ -16,4 +16,9 @@ export const AuthApi = {
   forgotPassword: async (data: {email: string}): Promise<ApiResponse<User>> => {
     return api.post<ApiResponse<User>>('/api/auth/forgot-password', data, { requireAuth: false });
   },
+
+  // Reset password using token received via email
+  resetPasswordByToken: async (data: { token: string; newPassword: string }): Promise<ApiResponse<void>> => {
+    return api.post<ApiResponse<void>>('/api/auth/reset-password', data, { requireAuth: false });
+  },
 }; 
