@@ -9,24 +9,8 @@ export const PaymentService = {
     totalLicenses: number;
     licenseType: string;
   }) => {
-    // Check if we're in test mode (no Stripe keys configured)
-    const isTestMode = !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 
-                      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.includes('your_publishable_key_here') ||
-                      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.startsWith('pk_test_');
-    
-    if (isTestMode) {
-      console.log('🧪 Using test payment mode');
-      const mockPaymentIntentId = `pi_test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      return {
-        clientSecret: 'pi_test_success',
-        paymentIntentId: mockPaymentIntentId,
-        testMode: true
-      };
-    }
-
-    // Real Stripe payment intent creation
-    try {      
+    // Always use real Stripe API calls
+    try {
       const response = await fetch('/api/payment/create-payment-intent', {
         method: 'POST',
         headers: {
@@ -45,7 +29,8 @@ export const PaymentService = {
       });
 
       if (!response.ok) {
-        throw new Error(`Payment intent creation failed: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Payment intent creation failed: ${response.status}`);
       }
 
       const result = await response.json();
@@ -57,18 +42,12 @@ export const PaymentService = {
       return {
         clientSecret: result.clientSecret,
         paymentIntentId: result.paymentIntentId,
-        testMode: false
+        testMode: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_') || false
       };
 
-    } catch {
-      // Fallback to test mode if real payment fails
-      const mockPaymentIntentId = `pi_test_fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      return {
-        clientSecret: 'pi_test_success',
-        paymentIntentId: mockPaymentIntentId,
-        testMode: true
-      };
+    } catch (error) {
+      console.error('Payment intent creation error:', error);
+      throw error;
     }
   },
 

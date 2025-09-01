@@ -74,16 +74,7 @@ export default function PoolPaymentForm({
         throw new Error('Failed to create payment intent - no client secret received');
       }
 
-      // Handle test mode
-      if (response.testMode) {
-        console.log('🧪 Test payment mode - simulating successful payment');
-        // Simulate a successful payment in test mode
-        setTimeout(() => {
-          onSuccess(response.paymentIntentId);
-        }, 1000);
-        return;
-      }
-
+      // Always use real Stripe payment processing
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
         response.clientSecret,
         {
@@ -112,30 +103,8 @@ export default function PoolPaymentForm({
     }
   };
 
-  // Check if we're in test mode
-  const isTestMode = !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 
-                    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.includes('your_publishable_key_here') ||
-                    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.startsWith('pk_test_');
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {isTestMode ? (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <div className="text-yellow-800 text-sm">
-              <strong>Test Mode:</strong> Payment processing is in test mode. No real charges will be made.
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <div className="text-green-800 text-sm">
-              <strong>Live Payment:</strong> This is a real payment. You will be charged the full amount.
-            </div>
-          </div>
-        </div>
-      )}
       
       <div className="p-4 border rounded-lg">
         <CardElement options={CARD_ELEMENT_OPTIONS} />

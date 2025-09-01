@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 // Validate environment variable
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.error('STRIPE_SECRET_KEY environment variable is not set');
+if (!process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY) {
+  console.error('NEXT_PUBLIC_STRIPE_SECRET_KEY environment variable is not set');
 }
 
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY ? new Stripe(process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY, {
   apiVersion: '2025-08-27.basil',
 }) : null;
 
@@ -40,8 +40,6 @@ export async function POST(request: Request) {
       metadata: metadata || {},
       description: description || 'License Pool Purchase',
     });
-
-    console.log('✅ Payment intent created:', paymentIntent.id);
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
