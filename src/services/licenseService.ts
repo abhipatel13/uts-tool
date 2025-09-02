@@ -50,6 +50,11 @@ export const LicensePoolService = {
     poolExpiryDate?: string;
   }) => {
     return api.put<ApiResponse<LicensePool>>(`/api/licenses/pools/${poolId}`, data);
+  },
+
+  // Delete license pool
+  deleteLicensePool: async (poolId: number) => {
+    return api.delete<ApiResponse<void>>(`/api/licenses/pools/${poolId}`);
   }
 };
 

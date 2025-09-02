@@ -275,8 +275,7 @@ const LicensingAdminPage = () => {
     if (!deletePoolId) return;
     
     try {
-      // Note: You'll need to implement delete functionality in the API
-      // await LicensePoolService.delete(deletePoolId);
+      await LicensePoolService.deleteLicensePool(deletePoolId);
       await loadData();
       toast({
         title: "Success",
@@ -573,13 +572,36 @@ const LicensingAdminPage = () => {
                           <SelectValue placeholder="Select user" />
                         </SelectTrigger>
                         <SelectContent>
-                          {users.map(user => (
-                            <SelectItem key={user.id} value={String(user.id)}>
-                              {user.email}
-                            </SelectItem>
-                          ))}
+                          {users.map(user => {
+                            // Check if user has any active license allocation
+                            const hasActiveLicense = allocations.some(allocation => 
+                              allocation.userId === user.id && 
+                              (allocation.status === 'allocated' || allocation.status === 'active')
+                            );
+                            
+                            return (
+                              <SelectItem 
+                                key={user.id} 
+                                value={String(user.id)}
+                                disabled={hasActiveLicense}
+                                className={hasActiveLicense ? "opacity-50 cursor-not-allowed" : ""}
+                              >
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{user.email}</span>
+                                  {hasActiveLicense && (
+                                    <Badge variant="secondary" className="ml-2 text-xs">
+                                      Licensed
+                                    </Badge>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Users with existing active licenses are disabled. Revoke their current license first to allocate a new one.
+                      </p>
                     </div>
 
                     <div>
