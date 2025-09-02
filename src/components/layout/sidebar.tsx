@@ -165,25 +165,25 @@ export function Sidebar() {
         { title: "Admin", href: "/configurations/admin", subItems: adminItems }
       ];
 
-      if (hasPermission(Permissions.PREFERENCE_MANAGEMENT)) {
-        configItems.push({
-          title: "Preferences",
-          href: "/configurations/preferences",
-          subItems: [{ title: "Mitigating Action Trigger", href: "/configurations/preferences/mitigating-action-trigger" }]
-        });
-      }
+      // if (hasPermission(Permissions.PREFERENCE_MANAGEMENT)) {
+      //   configItems.push({
+      //     title: "Preferences",
+      //     href: "/configurations/preferences",
+      //     subItems: [{ title: "Mitigating Action Trigger", href: "/configurations/preferences/mitigating-action-trigger" }]
+      //   });
+      // }
 
-      if (hasPermission(Permissions.TEMPLATE_MANAGEMENT)) {
-        configItems.push({
-          title: "Templates",
-          href: "/configurations/templates",
-          subItems: [
-            { title: "Risk Matrix", href: "/configurations/template/risk-matrix" },
-            { title: "Mitigating Action Type", href: "/configurations/template/mitigating-action-type" },
-            { title: "General Risks", href: "/configurations/template/general-risks" }
-          ]
-        });
-      }
+      // if (hasPermission(Permissions.TEMPLATE_MANAGEMENT)) {
+      //   configItems.push({
+      //     title: "Templates",
+      //     href: "/configurations/templates",
+      //     subItems: [
+      //       { title: "Risk Matrix", href: "/configurations/template/risk-matrix" },
+      //       { title: "Mitigating Action Type", href: "/configurations/template/mitigating-action-type" },
+      //       { title: "General Risks", href: "/configurations/template/general-risks" }
+      //     ]
+      //   });
+      // }
 
       items.push({
         title: "Configurations",
