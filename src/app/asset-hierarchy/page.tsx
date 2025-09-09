@@ -51,7 +51,8 @@ export default function DataLoader() {
     manufacturer: '',
     serialNumber: ''
   })
-
+  const [showAutoFillDialog, setShowAutoFillDialog] = useState(false)
+  const [autoFillParent, setAutoFillParent] = useState<Asset | null>(null)
   // Check if user has permission to create assets
   const canCreateAssets = hasPermission("create_asset_hierarchy");
   const canViewAssets = hasPermission("view_asset_hierarchy") || canCreateAssets;
@@ -125,10 +126,27 @@ export default function DataLoader() {
   }
 
   const handleParentChange = (assetId: string) => {
+    const parentAsset = assets.find(asset => asset.id === assetId)
+    if (parentAsset) {
+      setAutoFillParent(parentAsset)
+      setShowAutoFillDialog(true)
+    }
     setFormData(prev => ({
       ...prev,
       parent: assetId || null
     }))
+  }
+
+  const handleAutoFillParent = (parent: Asset) => {
+    setFormData(prev => ({
+      ...prev,
+      maintenancePlant: parent.maintenancePlant || '',
+      cmmsSystem: parent.cmmsSystem || '',
+      make: parent.make || '',
+      manufacturer: parent.manufacturer || ''
+    }))
+    setAutoFillParent(null)
+    setShowAutoFillDialog(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -632,6 +650,50 @@ export default function DataLoader() {
           </div>
         </DialogContent>
       </Dialog>
+      {autoFillParent && (
+        <Dialog open={showAutoFillDialog} onOpenChange={setShowAutoFillDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Auto Fill From Parent</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Maintenance Plant</Label>
+              <p className="text-sm">{autoFillParent.maintenancePlant}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>CMMS System</Label>
+              <p className="text-sm">{autoFillParent.cmmsSystem}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Make</Label>
+              <p className="text-sm">{autoFillParent.make}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Manufacturer</Label>
+              <p className="text-sm">{autoFillParent.manufacturer}</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-4 mt-4 pt-4 border-t">
+            <CommonButton 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowAutoFillDialog(false)}
+            >
+              No
+            </CommonButton>
+            <CommonButton 
+              type="button" 
+              variant="outline" 
+              onClick={() => handleAutoFillParent(autoFillParent)}
+            >
+              Yes
+            </CommonButton>
+          </div>
+        </DialogContent>
+      </Dialog>
+      )}
     </div>
   )
 } 
+
