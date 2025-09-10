@@ -348,6 +348,13 @@ const LicensingAdminPage = () => {
     );
   }
 
+  if (analytics && analytics?.poolStatistics.length !== 0) {
+    console.log("Pool Statistics length:", analytics.poolStatistics.length);
+    {analytics.poolStatistics.forEach(pool =>{
+      console.log(pool);
+    })}
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-4 sm:mb-6">
@@ -674,6 +681,7 @@ const LicensingAdminPage = () => {
             <CardContent>
               <div className="text-2xl font-bold">
                 {analytics.poolStatistics.reduce((sum: number, stat: { count: number }) => sum + stat.count, 0)}
+                
               </div>
               <p className="text-xs text-muted-foreground">
                 Active pools: {analytics.poolStatistics.find((s: { status: string }) => s.status === 'active')?.count || 0}
@@ -688,10 +696,11 @@ const LicensingAdminPage = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {analytics.poolStatistics.reduce((sum: number, stat: { totalLicenses: number }) => sum + (stat.totalLicenses || 0), 0)}
+                {/* {analytics.poolStatistics.reduce((sum: number, stat: { totalLicenses: number }) => sum + stat.totalLicenses, 0)} */}
+                {analytics.poolStatistics[0].totalLicenses ?? 0}
               </div>
               <p className="text-xs text-muted-foreground">
-                Allocated: {analytics.poolStatistics.reduce((sum: number, stat: { allocatedLicenses: number }) => sum + (stat.allocatedLicenses || 0), 0)}
+                Allocated: {analytics.poolStatistics[0].allocatedLicenses ?? 0}
               </p>
             </CardContent>
           </Card>
