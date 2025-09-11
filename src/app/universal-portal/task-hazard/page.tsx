@@ -58,7 +58,7 @@ export default function UniversalTaskHazard() {
     setLoading(true);
     try {
       const [taskHazardsResponse, companiesResponse] = await Promise.all([
-        TaskHazardApi.getTaskHazards(),
+        TaskHazardApi.getTaskHazardsUniversal(),
         UniversalUserApi.getAllCompanies()
       ]);
       
@@ -89,7 +89,7 @@ export default function UniversalTaskHazard() {
       if (companyFilter !== 'all') {
         response = await TaskHazardApi.getByCompany(companyFilter);
       } else {
-        response = await TaskHazardApi.getTaskHazards();
+        response = await TaskHazardApi.getTaskHazardsUniversal();
       }
       
       if (response.status && response.data) {

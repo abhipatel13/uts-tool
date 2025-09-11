@@ -22,21 +22,18 @@ import {
 } from "@/lib/risk-utils"
 import { CommonButton } from "@/components/ui/common-button"
 
-// Define interface for task data
-type TaskHazardData = TaskHazard;
-
 export default function TaskHazard() {
   const { toast } = useToast() as { toast: (params: { title: string; description: string; variant?: "default" | "destructive" }) => void }
   const [open, setOpen] = useState(false)
 
   // Add state for API data
-  const [tasks, setTasks] = useState<TaskHazardData[]>([])  
+  const [tasks, setTasks] = useState<Partial<TaskHazard>[]>([])  
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [editTask, setEditTask] = useState<TaskHazardData | null>(null)
+  const [editTask, setEditTask] = useState<TaskHazard | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -57,7 +54,7 @@ export default function TaskHazard() {
       if (initialLoadRef.current) setIsLoading(true)
       setIsFetching(true)
       const requestId = ++requestIdRef.current
-      const response = await TaskHazardApi.getTaskHazards({
+      const response = await TaskHazardApi.getTaskHazardsMinimal({
         page: currentPage,
         limit: pageSize,
         search: searchTerm?.trim() || undefined,
@@ -251,7 +248,6 @@ export default function TaskHazard() {
                       (task.scopeOfWork && task.scopeOfWork.toLowerCase().includes(searchLower)) ||
                       (task.assetSystem && task.assetSystem.toLowerCase().includes(searchLower)) ||
                       (task.location && task.location.toLowerCase().includes(searchLower)) ||
-                      (task.individual && task.individual.toLowerCase().includes(searchLower)) ||
                       (task.supervisor && task.supervisor.toLowerCase().includes(searchLower)) ||
                       (task.id && task.id.toString().includes(searchLower))
                     );
@@ -278,7 +274,7 @@ export default function TaskHazard() {
                         key={task.id} 
                         className="border-b hover:bg-gray-50 cursor-pointer"
                         onClick={() => {
-                          setEditTask(task);
+                          setEditTask(task as TaskHazard);
                           setIsEditDialogOpen(true);
                         }}
                       >
@@ -297,7 +293,7 @@ export default function TaskHazard() {
                             </span>
                           ) : (
                             <span className="text-sm text-gray-500">N/A</span>
-                          )}
+                          )}                        
                         </td>
                         <td className="p-3 sm:p-4">
                           <span className={`px-2 py-1 rounded-full text-xs ${
@@ -320,7 +316,7 @@ export default function TaskHazard() {
                               className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 sm:h-9 sm:w-9"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setDeleteTaskId(task.id);
+                                setDeleteTaskId(task.id!);
                                 setIsDeleteDialogOpen(true);
                               }}
                               title="Delete"
@@ -443,7 +439,6 @@ export default function TaskHazard() {
                   (task.scopeOfWork && task.scopeOfWork.toLowerCase().includes(searchLower)) ||
                   (task.assetSystem && task.assetSystem.toLowerCase().includes(searchLower)) ||
                   (task.location && task.location.toLowerCase().includes(searchLower)) ||
-                  (task.individual && task.individual.toLowerCase().includes(searchLower)) ||
                   (task.supervisor && task.supervisor.toLowerCase().includes(searchLower)) ||
                   (task.id && task.id.toString().includes(searchLower))
                 );
@@ -464,13 +459,13 @@ export default function TaskHazard() {
                     }
                   });
                 }
-                
+
                 return (
                   <div 
                     key={task.id} 
                     className="bg-white rounded-lg shadow-sm border p-4 cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => {
-                      setEditTask(task);
+                      setEditTask(task as TaskHazard);
                       setIsEditDialogOpen(true);
                     }}
                   >
@@ -505,7 +500,7 @@ export default function TaskHazard() {
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 flex-shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setDeleteTaskId(task.id);
+                          setDeleteTaskId(task.id!);
                           setIsDeleteDialogOpen(true);
                         }}
                         title="Delete"

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { CommonButton } from "@/components/ui/common-button"
 import { Plus, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
@@ -32,16 +32,33 @@ export default function RiskAssessment() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editAssessment, setEditAssessment] = useState<RiskAssessmentData | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const pageSize = 20
+  // Fetching indicator to avoid full list flashing
+  const [isFetching, setIsFetching] = useState(false)
   
   // Define fetchAssessments function outside of useEffect so it can be reused
-  const fetchAssessments = async () => {
+  const fetchAssessments = useCallback(async () => {
     try {
       setIsLoading(true)
-      const response = await RiskAssessmentApi.getRiskAssessments()
+      setIsFetching(true)
+      
+      const response = await RiskAssessmentApi.getRiskAssessmentsMinimal({
+        page: currentPage,
+        limit: pageSize,
+        search: searchTerm?.trim() || undefined,
+      })
       
       // Check if response has the expected structure with data property
       if (response && response.status && Array.isArray(response.data)) {
-        setAssessments(response.data)
+        setAssessments(response.data as RiskAssessmentData[])
+        if (response.pagination) {
+          setTotalPages(response.pagination.totalPages)
+          setTotalItems(response.pagination.totalItems)
+        }
       } else {
         // Fallback if the response structure is unexpected
         setAssessments([])
@@ -54,14 +71,42 @@ export default function RiskAssessment() {
       // Set assessments to empty array on error
       setAssessments([])
     } finally {
+      setIsFetching(false)
       setIsLoading(false)
     }
-  }
+  }, [searchTerm, currentPage, pageSize])
+  
+  // Add refs for pagination handling
+  const initialLoadRef = useRef(true)
+  const requestIdRef = useRef(0)
+  const currentPageRef = useRef(currentPage)
+  useEffect(() => { currentPageRef.current = currentPage }, [currentPage])
+  const fetchAssessmentsRef = useRef<() => Promise<void>>(async () => {})
+  useEffect(() => { fetchAssessmentsRef.current = fetchAssessments }, [fetchAssessments])
   
   // Fetch all assessments when component mounts
   useEffect(() => {
     fetchAssessments()
-  }, [])
+  }, [fetchAssessments])
+
+  // Refetch when search term changes (debounced) without interfering with pagination
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      if (currentPageRef.current !== 1) {
+        setCurrentPage(1)
+      } else {
+        fetchAssessmentsRef.current()
+      }
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [searchTerm])
+
+  // Fetch when page changes
+  useEffect(() => {
+    if (!initialLoadRef.current) {
+      fetchAssessments()
+    }
+  }, [currentPage, fetchAssessments])
 
   // Highlight matching text in search results
   const highlightMatch = (text: string | undefined | null, searchTerm: string) => {
@@ -289,6 +334,28 @@ export default function RiskAssessment() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+      {/* Pagination controls - Desktop */}
+      <div className="hidden md:flex items-center justify-between bg-white rounded-lg shadow-sm border p-3 mb-6">
+        <div className="text-sm text-gray-600">
+          Page {currentPage} of {totalPages} • Showing {assessments.length} of {totalItems} items
+        </div>
+        <div className="flex gap-2">
+          <CommonButton
+            variant="outline"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1 || isFetching}
+          >
+            Previous
+          </CommonButton>
+          <CommonButton
+            variant="outline"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages || isFetching}
+          >
+            Next
+          </CommonButton>
         </div>
       </div>
 

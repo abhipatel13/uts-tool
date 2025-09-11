@@ -1,5 +1,6 @@
 import { api } from '@/lib/api-client';
-import { ApiResponse, RiskAssessment } from '@/types';
+import { ApiResponse, RiskAssessment, ApprovalsResponse, PaginatedResponse, BaseFilters } from '@/types';
+import { TaskHazardApi } from './taskHazardApi';
 
 export const RiskAssessmentApi = {
   // Create a new risk assessment
@@ -8,8 +9,35 @@ export const RiskAssessmentApi = {
   },
 
   // Get all risk assessments
-  getRiskAssessments: async (): Promise<ApiResponse<RiskAssessment[]>> => {
-    return api.get<ApiResponse<RiskAssessment[]>>('/api/risk-assessments');
+  getRiskAssessments: async (
+    params?: Pick<BaseFilters, 'page' | 'limit' | 'search'>
+  ): Promise<PaginatedResponse<RiskAssessment>> => {
+    const searchParams = new URLSearchParams();
+
+    if (params?.page) searchParams.append('page', String(params.page));
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.search) searchParams.append('search', params.search);
+
+    const queryString = searchParams.toString();
+    const endpoint = `/api/risk-assessments${queryString ? `?${queryString}` : ''}`;
+
+    return api.get<PaginatedResponse<RiskAssessment>>(endpoint);
+  },
+
+  // Get risk assessments with minimal data (optimized for tables)
+  getRiskAssessmentsMinimal: async (
+    params?: Pick<BaseFilters, 'page' | 'limit' | 'search'>
+  ): Promise<PaginatedResponse<Partial<RiskAssessment>>> => {
+    const searchParams = new URLSearchParams();
+
+    if (params?.page) searchParams.append('page', String(params.page));
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.search) searchParams.append('search', params.search);
+
+    const queryString = searchParams.toString();
+    const endpoint = `/api/risk-assessments/minimal${queryString ? `?${queryString}` : ''}`;
+
+    return api.get<PaginatedResponse<Partial<RiskAssessment>>>(endpoint);
   },
 
   // Get all risk assessments for universal users (all companies)
@@ -36,4 +64,24 @@ export const RiskAssessmentApi = {
   deleteRiskAssessmentUniversal: async (id: string): Promise<ApiResponse<void>> => {
     return api.delete<ApiResponse<void>>(`/api/risk-assessments/universal/${id}`);
   },
-}; 
+
+  // Get approvals for risk assessments
+  getApprovals: async (params?: {
+    status?: 'pending' | 'approved' | 'rejected';
+    includeInvalidated?: boolean;
+  }): Promise<ApiResponse<ApprovalsResponse>> => {
+    return TaskHazardApi.getApprovals({
+      ...params,
+      approvableType: 'risk_assessments'
+    });
+  },
+
+  // Approve or reject a risk assessment
+  approveOrRejectRiskAssessment: async (id: string, status: string, comments = ''): Promise<ApiResponse<RiskAssessment>> => {
+    return api.put<ApiResponse<RiskAssessment>>(`/api/supervisor-approvals/${id}`, { 
+      status, 
+      comments,
+      approvableType: 'risk_assessments'
+    });
+  },
+};

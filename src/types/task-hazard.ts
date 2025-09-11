@@ -1,6 +1,15 @@
 // Centralized task hazard types (updated to use centralized Risk interface)
 
-import { Risk } from "./risk";
+import { Risk, RiskAssessmentWithApprovals } from "./risk";
+import { 
+  Supervisor, 
+  Approval, 
+  ApprovalStatus, 
+  AssessmentSnapshot,
+  TaskHazardSnapshot,
+  ApprovalsResponse,
+  PolymorphicApprovalsResponse 
+} from "./supervisor-approval";
 
 // Main TaskHazard interface (consolidated from api.ts and task-hazard.ts)
 export interface TaskHazard {
@@ -12,7 +21,7 @@ export interface TaskHazard {
   systemLockoutRequired: boolean;
   trainedWorkforce: boolean;
   risks: Risk[];
-  individual: string;
+  individuals: string;
   supervisor: string;
   status: string;
   location: string;
@@ -25,62 +34,13 @@ export interface TaskHazard {
   latestApproval?: Approval;
 }
 
-// Supervisor interface
-export interface Supervisor {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
-// Task hazard snapshot for approvals
-export interface TaskHazardSnapshot {
-  id: string;
-  date: string;
-  scopeOfWork: string;
-  risks: {
-    id: string;
-    riskDescription: string;
-    riskType?: string;
-    asIsLikelihood?: string;
-    asIsConsequence?: string;
-    mitigatingAction: string;
-    mitigatingActionType?: string;
-    mitigatedLikelihood?: string;
-    mitigatedConsequence?: string;
-    requiresSupervisorSignature?: boolean;
-  }[];
-}
-
-// Approval interface
-export interface Approval {
-  id: number;
-  status: ApprovalStatus;
-  createdAt: string;
-  processedAt: string | null;
-  comments: string;
-  isInvalidated: boolean;
-  isLatest: boolean;
-  supervisor: Supervisor;
-  taskHazardData: TaskHazardSnapshot;
-}
-
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+// Supervisor approval types are now imported from supervisor-approval.ts
 
 // Task hazard with approvals
 export interface TaskHazardWithApprovals extends TaskHazard {
   approvals: Approval[];
 }
 
-// Approvals response
-export interface ApprovalsResponse {
-  taskHazards: TaskHazardWithApprovals[];
-  totalTasks: number;
-  totalApprovals: number;
-  filters: {
-    status: string;
-    includeInvalidated: boolean;
-  };
-}
+// Approval response types are now imported from supervisor-approval.ts
 
 

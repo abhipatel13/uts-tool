@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { APIProvider, Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps';
 import useSupercluster from "use-supercluster";
+import { calculateOptimalMapBounds, extractCoordinatesFromData } from '@/lib/map-utils';
 
 // Cluster Marker Component
 const ClusterMarker = ({ lat, lng, pointCount, onClick }: {
@@ -69,62 +70,21 @@ const ClusteredMap = <T extends { id?: string | number; location?: string }>({
   // Center map on filtered data when they change
   useEffect(() => {
     if (map && data.length > 0) {
-      // Calculate bounds for all data points
-      const lats = data.map(item => {
-        if (!item.location || typeof item.location !== 'string') return null;
-        const [lat] = item.location.split(',');
-        return parseFloat(lat);
-      }).filter((lat): lat is number => lat !== null && !isNaN(lat));
-
-      const lngs = data.map(item => {
-        if (!item.location || typeof item.location !== 'string') return null;
-        const [, lng] = item.location.split(',');
-        return parseFloat(lng);
-      }).filter((lng): lng is number => lng !== null && !isNaN(lng));
-
-      if (lats.length > 0 && lngs.length > 0) {
-        // Calculate bounds for all data points
-        const minLat = Math.min(...lats);
-        const maxLat = Math.max(...lats);
-        const minLng = Math.min(...lngs);
-        const maxLng = Math.max(...lngs);
-
-        // Calculate center point
-        const centerLat = (minLat + maxLat) / 2;
-        const centerLng = (minLng + maxLng) / 2;
-
-        // Pan to the center of filtered data
-        map.panTo({ lat: centerLat, lng: centerLng });
-
-        // Calculate appropriate zoom level based on the spread of points
-        const latDiff = maxLat - minLat;
-        const lngDiff = maxLng - minLng;
-        const maxDiff = Math.max(latDiff, lngDiff);
-
-        // Use more appropriate zoom calculation with better thresholds
-        let newZoom = 8; // Default zoom level
-        if (maxDiff < 0.01) {
-          // Very close points (within ~1km)
-          newZoom = 15;
-        } else if (maxDiff < 0.1) {
-          // Close points (within ~10km)
-          newZoom = 12;
-        } else if (maxDiff < 0.5) {
-          // Medium distance (within ~50km)
-          newZoom = 10;
-        } else if (maxDiff < 2) {
-          // Larger area (within ~200km)
-          newZoom = 8;
-        } else if (maxDiff < 10) {
-          // Large area (within ~1000km)
-          newZoom = 6;
-        } else {
-          // Very large area
-          newZoom = 4;
-        }
-        // Ensure zoom is within reasonable bounds
-        newZoom = Math.max(3, Math.min(15, newZoom));
-        map.setZoom(newZoom);
+      // Extract coordinates from data
+      const coordinates = extractCoordinatesFromData(data);
+      
+      if (coordinates.length > 0) {
+        // Calculate optimal bounds using the utility function
+        const optimalBounds = calculateOptimalMapBounds(coordinates, {
+          padding: 0.15, // 15% padding for better visibility
+          maxZoom: 15,
+          minZoom: 2,
+          defaultZoom: 8
+        });
+        
+        // Apply the calculated center and zoom
+        map.panTo(optimalBounds.center);
+        map.setZoom(optimalBounds.zoom);
       }
     } else if (map && data.length === 0) {
       // If no data, center on the provided mapCenter
