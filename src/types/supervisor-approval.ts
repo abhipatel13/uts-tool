@@ -1,8 +1,9 @@
 // Supervisor approval related types and interfaces
+import { Risk } from "./risk";
 
 // Supervisor interface
 export interface Supervisor {
-  id: string;
+  id: string | number; // Backend returns numeric IDs
   name: string;
   email: string;
   role: string;
@@ -10,31 +11,64 @@ export interface Supervisor {
 
 // Approval status enumeration
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+export type ApprovableType = 'task_hazards' | 'risk_assessments';
 
-// Unified assessment snapshot for approvals (used for both task hazards and risk assessments)
-export interface AssessmentSnapshot {
-  id: string;
-  date: string;
-  scopeOfWork: string;
-  risks: {
-    id: string;
-    riskDescription: string;
-    riskType?: string;
-    asIsLikelihood?: string;
-    asIsConsequence?: string;
-    mitigatingAction: string;
-    mitigatingActionType?: string;
-    mitigatedLikelihood?: string;
-    mitigatedConsequence?: string;
-    requiresSupervisorSignature?: boolean;
-  }[];
+// Individual interface for consistency across entities
+export interface Individual {
+  id: string | number; // Backend returns numeric IDs
+  email: string;
+  name: string;
+  role?: string;
 }
 
-// Legacy alias for backward compatibility
-export type TaskHazardSnapshot = AssessmentSnapshot;
+// Risk snapshot for approval history
+export interface RiskSnapshot {
+  id?: string;
+  riskDescription: string;
+  riskType?: string;
+  asIsLikelihood?: string;
+  asIsConsequence?: string;
+  mitigatingAction: string;
+  mitigatingActionType?: string;
+  mitigatedLikelihood?: string;
+  mitigatedConsequence?: string;
+  requiresSupervisorSignature?: boolean;
+}
 
-// Approval interface - Updated to support polymorphic entities
-export interface Approval {
+// Base assessment snapshot interface
+export interface BaseAssessmentSnapshot {
+  id: string | number; // Backend returns numeric IDs
+  date: string;
+  time?: string;
+  scopeOfWork: string;
+  location?: string;
+  status?: string;
+  individuals?: Individual[];
+  supervisor?: Individual;
+  snapshotTakenAt?: string;
+  risks?: RiskSnapshot[];
+}
+
+// Task hazard specific snapshot
+export interface TaskHazardSnapshot extends BaseAssessmentSnapshot {
+  type: 'task_hazards';
+  systemLockoutRequired?: boolean;
+  trainedWorkforce?: boolean;
+  geoFenceLimit?: number;
+  assetHierarchyId?: number;
+}
+
+// Risk assessment specific snapshot
+export interface RiskAssessmentSnapshot extends BaseAssessmentSnapshot {
+  type: 'risk_assessments';
+  assetHierarchyId?: number;
+}
+
+// Unified assessment snapshot (discriminated union)
+export type AssessmentSnapshot = TaskHazardSnapshot | RiskAssessmentSnapshot;
+
+// Base approval interface
+export interface BaseApproval {
   id: number;
   status: ApprovalStatus;
   createdAt: string;
@@ -43,18 +77,93 @@ export interface Approval {
   isInvalidated: boolean;
   isLatest: boolean;
   supervisor: Supervisor;
-  approvableId: number;          // New polymorphic field
-  approvableType: 'task_hazards' | 'risk_assessments';  // New polymorphic field
-  approvableSnapshot: AssessmentSnapshot;       // Uses unified snapshot structure
-  // Deprecated: kept for backward compatibility
-  taskHazardData?: AssessmentSnapshot;
+  approvableId: number;
+  risksSnapshot?: RiskSnapshot[];
 }
 
-// TaskHazardWithApprovals and RiskAssessmentWithApprovals are defined in their respective files
+// Task hazard approval
+export interface TaskHazardApproval extends BaseApproval {
+  approvableType: 'task_hazards';
+  approvableSnapshot: TaskHazardSnapshot;
+}
 
-// Approvals response
+// Risk assessment approval
+export interface RiskAssessmentApproval extends BaseApproval {
+  approvableType: 'risk_assessments';
+  approvableSnapshot: RiskAssessmentSnapshot;
+}
+
+// Discriminated union for approvals
+export type Approval = TaskHazardApproval | RiskAssessmentApproval;
+
+// Base entity with approvals interface
+export interface BaseEntityWithApprovals {
+  id: string | number; // Backend returns numeric IDs
+  date: string;
+  time: string;
+  scopeOfWork: string;
+  location: string;
+  status: string;
+  risks: Risk[];
+  individuals: Individual[];
+  supervisor: string;
+  approvals: Approval[];
+  latestApproval?: Approval;
+}
+
+// Task hazard with approvals
+export interface TaskHazardWithApprovals extends BaseEntityWithApprovals {
+  approvableType: 'task_hazards';
+  systemLockoutRequired: boolean;
+  trainedWorkforce: boolean;
+  geoFenceLimit?: number;
+  assetSystem: string;
+  companyId?: number;
+  company?: {
+    id: number;
+    name: string;
+  };
+}
+
+// Risk assessment with approvals
+export interface RiskAssessmentWithApprovals extends BaseEntityWithApprovals {
+  approvableType: 'risk_assessments';
+  assetSystem: string;
+  company_id?: number;
+  company?: {
+    id: number;
+    name: string;
+  };
+}
+
+// Discriminated union for entities with approvals
+export type EntityWithApprovals = TaskHazardWithApprovals | RiskAssessmentWithApprovals;
+
+// Polymorphic approvals response with proper typing
+export interface PolymorphicApprovalsResponse {
+  entities: EntityWithApprovals[];
+  totalEntities: number;
+  totalApprovals: number;
+  filters: {
+    status: string;
+    type: string;
+    includeInvalidated: boolean;
+  };
+}
+
+// Approval history response
+export interface ApprovalHistoryResponse {
+  approvableId: number;
+  approvableType: ApprovableType;
+  entityName: string;
+  totalApprovals: number;
+  approvals: Approval[];
+}
+
+// Legacy interfaces for backward compatibility (deprecated)
+/** @deprecated Use PolymorphicApprovalsResponse instead */
 export interface ApprovalsResponse {
-  taskHazards: any[]; // Using any[] to avoid circular dependencies - specific types are handled at runtime
+  taskHazards: TaskHazardWithApprovals[];
   totalTasks: number;
   totalApprovals: number;
   filters: {
@@ -63,14 +172,5 @@ export interface ApprovalsResponse {
   };
 }
 
-// Add polymorphic approval response
-export interface PolymorphicApprovalsResponse {
-  entities: any[]; // Using any[] to avoid circular dependencies - specific types are handled at runtime
-  totalEntities: number;
-  totalApprovals: number;
-  filters: {
-    status: string;
-    includeInvalidated: boolean;
-    approvableType?: string;
-  };
-}
+
+

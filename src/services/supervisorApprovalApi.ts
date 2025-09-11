@@ -1,13 +1,52 @@
 import { api } from '@/lib/api-client';
-import { ApiResponse } from '@/types';
+import { 
+  ApiResponse, 
+  ApprovableType, 
+  EntityWithApprovals,
+  PolymorphicApprovalsResponse,
+  ApprovalHistoryResponse,
+  isValidEntityWithApprovals
+} from '@/types';
+
+// API response validation helper
+function validateEntitiesResponse(data: unknown): data is PolymorphicApprovalsResponse {
+  return Boolean(
+    data &&
+    typeof data === 'object' &&
+    data !== null &&
+    'entities' in data &&
+    Array.isArray((data as Record<string, unknown>).entities) &&
+    'totalEntities' in data &&
+    typeof (data as Record<string, unknown>).totalEntities === 'number' &&
+    'totalApprovals' in data &&
+    typeof (data as Record<string, unknown>).totalApprovals === 'number' &&
+    'filters' in data &&
+    (data as Record<string, unknown>).filters &&
+    typeof (data as Record<string, unknown>).filters === 'object'
+  );
+}
+
+function validateHistoryResponse(data: unknown): data is ApprovalHistoryResponse {
+  return Boolean(
+    data &&
+    typeof data === 'object' &&
+    data !== null &&
+    'approvableId' in data &&
+    typeof (data as Record<string, unknown>).approvableId === 'number' &&
+    'approvableType' in data &&
+    typeof (data as Record<string, unknown>).approvableType === 'string' &&
+    'approvals' in data &&
+    Array.isArray((data as Record<string, unknown>).approvals)
+  );
+}
 
 export const SupervisorApprovalApi = {
-  // Get all approvals (polymorphic)
+  // Get all approvals (polymorphic) with proper type validation
   getApprovals: async (params?: {
     status?: 'pending' | 'approved' | 'rejected';
     includeInvalidated?: boolean;
-    approvableType?: 'task_hazards' | 'risk_assessments';
-  }): Promise<ApiResponse<any>> => {
+    approvableType?: ApprovableType;
+  }): Promise<ApiResponse<PolymorphicApprovalsResponse>> => {
     const searchParams = new URLSearchParams();
     
     if (params?.status) {
@@ -19,26 +58,65 @@ export const SupervisorApprovalApi = {
     }
     
     if (params?.approvableType) {
-      searchParams.append('approvableType', params.approvableType);
+      searchParams.append('type', params.approvableType); // Backend uses 'type' parameter
     }
     
     const queryString = searchParams.toString();
     const endpoint = `/api/supervisor-approvals${queryString ? `?${queryString}` : ''}`;
     
-    return api.get<ApiResponse<any>>(endpoint);
+    const response = await api.get<ApiResponse<unknown>>(endpoint);
+    
+    // Validate and transform response
+    if (response.status && response.data && validateEntitiesResponse(response.data)) {
+      // Filter out invalid entities and log warnings
+      const validEntities = response.data.entities.filter((entity: unknown) => {
+        const isValid = isValidEntityWithApprovals(entity);
+        if (!isValid) {
+          console.warn('Invalid entity structure received from API:', entity);
+        }
+        return isValid;
+      }) as EntityWithApprovals[];
+      
+      const typedResponse: ApiResponse<PolymorphicApprovalsResponse> = {
+        ...response,
+        data: {
+          ...response.data,
+          entities: validEntities
+        }
+      };
+      
+      return typedResponse;
+    }
+    
+    throw new Error('Invalid response format from supervisor approvals API');
   },
 
   // Approve or reject an entity
-  approveOrReject: async (id: string, status: string, comments = '', approvableType: 'task_hazards' | 'risk_assessments'): Promise<ApiResponse<any>> => {
-    return api.put<ApiResponse<any>>(`/api/supervisor-approvals/${id}`, { 
+  approveOrReject: async (
+    approvalId: string, 
+    status: 'Approved' | 'Rejected', 
+    comments: string = ''
+  ): Promise<ApiResponse<unknown>> => {
+    return api.put<ApiResponse<unknown>>(`/api/supervisor-approvals/${approvalId}`, { 
       status, 
-      comments,
-      approvableType
+      comments
     });
   },
 
   // Get approval history for an entity
-  getApprovalHistory: async (id: string, approvableType: 'task_hazards' | 'risk_assessments'): Promise<ApiResponse<any>> => {
-    return api.get<ApiResponse<any>>(`/api/supervisor-approvals/${id}/history?approvableType=${approvableType}`);
+  getApprovalHistory: async (
+    entityId: string, 
+    approvableType: ApprovableType
+  ): Promise<ApiResponse<ApprovalHistoryResponse>> => {
+    const response = await api.get<ApiResponse<unknown>>(
+      `/api/supervisor-approvals/${entityId}/history?approvableType=${approvableType}`
+    );
+    
+    // Validate response format
+    if (response.status && response.data && validateHistoryResponse(response.data)) {
+      return response as ApiResponse<ApprovalHistoryResponse>;
+    }
+    
+    throw new Error('Invalid response format from approval history API');
   }
 };

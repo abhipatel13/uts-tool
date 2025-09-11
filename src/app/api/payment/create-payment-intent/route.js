@@ -10,7 +10,7 @@ const stripe = process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY ? new Stripe(process.en
   apiVersion: '2025-08-27.basil',
 }) : null;
 
-export async function POST(request: Request) {
+export async function POST(request) {
   try {
     // Check if Stripe is properly configured
     if (!stripe) {

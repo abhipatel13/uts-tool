@@ -7,9 +7,17 @@ import { useToast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Shield, CheckCircle, XCircle, AlertTriangle, ClipboardList } from "lucide-react"
-import { TaskHazardApi, SupervisorApprovalApi } from "@/services"
-import type { TaskHazardWithApprovals, RiskAssessmentWithApprovals, Approval } from "@/types"
-
+import { SupervisorApprovalApi } from "@/services"
+import type { 
+  EntityWithApprovals, 
+  Approval, 
+  ApprovableType
+} from "@/types"
+import {
+  getEntityType,
+  getEntityDisplayName,
+  isValidEntityWithApprovals
+} from "@/types"
 
 type ViewType = 'dashboard' | 'approval-requests' | 'approved-tasks' | 'rejected-tasks'
 type EntityType = 'all' | 'task_hazards' | 'risk_assessments'
@@ -44,20 +52,20 @@ export default function SupervisorDashboard() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard')
   // Add state for entity type filtering
   const [currentEntityType, setCurrentEntityType] = useState<EntityType>('all')
-  // Update state to handle both entity types
-  const [allTasks, setAllTasks] = useState<(TaskHazardWithApprovals | RiskAssessmentWithApprovals)[]>([])
-  const [pendingApprovals, setPendingApprovals] = useState<(TaskHazardWithApprovals | RiskAssessmentWithApprovals)[]>([])
-  const [approvedTasks, setApprovedTasks] = useState<(TaskHazardWithApprovals | RiskAssessmentWithApprovals)[]>([])
-  const [rejectedTasks, setRejectedTasks] = useState<(TaskHazardWithApprovals | RiskAssessmentWithApprovals)[]>([])
+  // Update state to handle both entity types with proper typing
+  const [allTasks, setAllTasks] = useState<EntityWithApprovals[]>([])
+  const [pendingApprovals, setPendingApprovals] = useState<EntityWithApprovals[]>([])
+  const [approvedTasks, setApprovedTasks] = useState<EntityWithApprovals[]>([])
+  const [rejectedTasks, setRejectedTasks] = useState<EntityWithApprovals[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedTask, setSelectedTask] = useState<TaskHazardWithApprovals | RiskAssessmentWithApprovals | null>(null)
-  const [removingTask, setRemovingTask] = useState<TaskHazardWithApprovals | RiskAssessmentWithApprovals | null>(null)
+  const [selectedTask, setSelectedTask] = useState<EntityWithApprovals | null>(null)
+  const [removingTask, setRemovingTask] = useState<EntityWithApprovals | null>(null)
   const [isAdminOrSuperUser, setIsAdminOrSuperUser] = useState(false)
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
   const [rejectComment, setRejectComment] = useState("")
-  const [rejectTarget, setRejectTarget] = useState<TaskHazardWithApprovals | RiskAssessmentWithApprovals | null>(null)
+  const [rejectTarget, setRejectTarget] = useState<EntityWithApprovals | null>(null)
   const [isSubmittingReject, setIsSubmittingReject] = useState(false)
-  const [taskHistory, setTaskHistory] = useState<Record<string, any>>({})
+  const [taskHistory, setTaskHistory] = useState<Record<string, Approval[]>>({})
   
   // Get current tasks list based on view
   const currentTasks = currentView === 'dashboard' 
@@ -75,7 +83,7 @@ export default function SupervisorDashboard() {
         setIsLoading(true)
         
         // Fetch approvals for both entity types if 'all', or specific type
-        let allApprovals: any[] = []
+        let allApprovals: EntityWithApprovals[] = []
         
         if (currentEntityType === 'all') {
           // Fetch both types
@@ -83,26 +91,41 @@ export default function SupervisorDashboard() {
             SupervisorApprovalApi.getApprovals({ 
               includeInvalidated: true, 
               approvableType: 'task_hazards' 
+            }).catch(err => {
+              console.error('Error fetching task hazards:', err)
+              return { status: false, data: { entities: [], totalEntities: 0, totalApprovals: 0, filters: { status: 'all', type: 'all', includeInvalidated: false } } }
             }),
             SupervisorApprovalApi.getApprovals({ 
               includeInvalidated: true, 
               approvableType: 'risk_assessments' 
+            }).catch(err => {
+              console.error('Error fetching risk assessments:', err)
+              return { status: false, data: { entities: [], totalEntities: 0, totalApprovals: 0, filters: { status: 'all', type: 'all', includeInvalidated: false } } }
             })
           ])
           
           allApprovals = [
-            ...(taskHazardResponse?.data?.entities || []),
-            ...(riskAssessmentResponse?.data?.entities || [])
+            ...(taskHazardResponse?.status ? taskHazardResponse.data.entities : []),
+            ...(riskAssessmentResponse?.status ? riskAssessmentResponse.data.entities : [])
           ]
         } else {
           const response = await SupervisorApprovalApi.getApprovals({
             includeInvalidated: true,
-            approvableType: currentEntityType
+            approvableType: currentEntityType as ApprovableType
           })
-          allApprovals = response?.data?.entities || []
+          allApprovals = response?.status ? response.data.entities : []
         }
         
-        if (allApprovals.length >= 0) {
+        // Validate entities and filter out invalid ones
+        const validEntities = allApprovals.filter(entity => {
+          const isValid = isValidEntityWithApprovals(entity)
+          if (!isValid) {
+            console.warn('Invalid entity structure:', entity)
+          }
+          return isValid
+        })
+        
+        if (validEntities.length >= 0) {
           // Get the user data from localStorage
           const userData = localStorage.getItem('user')
           const user = userData ? JSON.parse(userData) : null
@@ -112,7 +135,7 @@ export default function SupervisorDashboard() {
           const isAdminOrSuper = currentUserRole === "admin" || currentUserRole === "superuser"
           setIsAdminOrSuperUser(isAdminOrSuper)
           
-          const supervisorTasks = allApprovals
+          const supervisorTasks = validEntities
           
           // Filter tasks that require approval (pending approval requests)
           const tasksRequiringApproval = supervisorTasks.filter(task => {
@@ -170,10 +193,11 @@ export default function SupervisorDashboard() {
   // Fetch task history when a task is selected
   useEffect(() => {
     if (selectedTask && selectedTask.id) {
-      const entityType = getEntityType(selectedTask)
+      const entityType = determineEntityType(selectedTask)
+      const taskId = selectedTask.id.toString() // Convert to string for consistent key usage
       // Only fetch if we don't already have the history for this task
-      if (!taskHistory[selectedTask.id]) {
-        fetchTaskHistory(selectedTask.id, entityType)
+      if (!taskHistory[taskId]) {
+        fetchTaskHistory(taskId, entityType)
       }
     }
   }, [selectedTask, taskHistory])
@@ -185,26 +209,16 @@ export default function SupervisorDashboard() {
   }
   
 
-  //UPDATE THIS
-
-
-  // Helper function to determine entity type
-  const getEntityType = (entity: any): 'task_hazards' | 'risk_assessments' => {
-    // Use approvableType if available (this is the primary method)
-    if (entity.approvableType) {
-      return entity.approvableType;
-    }
-    // Fallback: both use individuals now, so check for other distinguishing features
-    // For now, default to 'task_hazards' if no approvableType is provided
-    // This should not happen with proper backend responses
-    return 'task_hazards';
+  // Helper function to determine entity type (using imported type guard)
+  const determineEntityType = (entity: EntityWithApprovals): ApprovableType => {
+    return getEntityType(entity)
   }
   
   // Function to fetch full approval history for a task
-  const fetchTaskHistory = async (taskId: string, entityType: 'task_hazards' | 'risk_assessments') => {
+  const fetchTaskHistory = async (taskId: string, entityType: ApprovableType) => {
     try {
       const response = await SupervisorApprovalApi.getApprovalHistory(taskId, entityType)
-      if (response && response.data && response.data.approvals) {
+      if (response && response.status && response.data && response.data.approvals) {
         setTaskHistory(prev => ({
           ...prev,
           [taskId]: response.data.approvals
@@ -215,23 +229,24 @@ export default function SupervisorDashboard() {
     }
   }
   
-  const handleTaskAction = async (entity: TaskHazardWithApprovals | RiskAssessmentWithApprovals, action: 'Approved' | 'Rejected', comments?: string) => {
+  const handleTaskAction = async (entity: EntityWithApprovals, action: 'Approved' | 'Rejected', comments?: string) => {
     try {
       const entityId = entity.id
       // Set the removing task ID to trigger the fade-out animation
       setRemovingTask(entity)
       
-      const entityType = getEntityType(entity)
+      const entityType = determineEntityType(entity)
       if (!entity.latestApproval){
+        console.error('Entity has no latest approval:', entity)
         return;
       }
 
       // Update entity status using the new polymorphic API
-      await SupervisorApprovalApi.approveOrReject(entity.latestApproval.id.toString(), action, comments || '', entityType)
+      await SupervisorApprovalApi.approveOrReject(entity.latestApproval.id.toString(), action, comments || '')
       
       const isApproved = action === 'Approved'
       
-      const entityTypeName = entityType === 'task_hazards' ? 'Task' : 'Risk Assessment'
+      const entityTypeName = getEntityDisplayName(entityType)
       
       toast({
         title: "Success",
@@ -286,7 +301,7 @@ export default function SupervisorDashboard() {
       console.error(`Error ${action.toLowerCase()} entity:`, error)
       setRemovingTask(null) // Reset in case of error
       
-      const entityTypeName = entity ? (getEntityType(entity) === 'task_hazards' ? 'task' : 'risk assessment') : 'entity'
+      const entityTypeName = entity ? getEntityDisplayName(determineEntityType(entity)).toLowerCase() : 'entity'
       
       toast({
         title: "Error",
@@ -296,9 +311,9 @@ export default function SupervisorDashboard() {
     }
   }
   
-  // Wrapper functions for backwards compatibility
-  const handleApprove = (entity: TaskHazardWithApprovals | RiskAssessmentWithApprovals) => handleTaskAction(entity, 'Approved')
-  const handleReject = (entity: TaskHazardWithApprovals | RiskAssessmentWithApprovals) => {
+  // Wrapper functions for approve/reject actions
+  const handleApprove = (entity: EntityWithApprovals) => handleTaskAction(entity, 'Approved')
+  const handleReject = (entity: EntityWithApprovals) => {
     setRejectTarget(entity)
     setRejectComment("")
     setIsRejectDialogOpen(true)
@@ -336,7 +351,7 @@ export default function SupervisorDashboard() {
   }
 
   // Helper function to get task status display info
-  const getTaskStatusInfo = (task: TaskHazardWithApprovals | RiskAssessmentWithApprovals) => {
+  const getTaskStatusInfo = (task: EntityWithApprovals) => {
     const latestApproval = task.approvals.find(approval => approval.isLatest)
     
     if (!latestApproval) {
@@ -666,8 +681,8 @@ export default function SupervisorDashboard() {
               <CardHeader>
                 <CardTitle>
                   {(() => {
-                    const entityType = getEntityType(selectedTask)
-                    const entityName = entityType === 'task_hazards' ? 'Task Hazard' : 'Risk Assessment'
+                    const entityType = determineEntityType(selectedTask)
+                    const entityName = getEntityDisplayName(entityType)
                     return currentView === 'approval-requests' 
                       ? `${entityName} Approval Details` 
                       : `${entityName} Details`
@@ -687,7 +702,7 @@ export default function SupervisorDashboard() {
                   {/* Conditional fields based on entity type */}
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">
-                      {getEntityType(selectedTask) === 'task_hazards' ? 'Individual/Team' : 'Individuals'}
+                      {determineEntityType(selectedTask) === 'task_hazards' ? 'Individual/Team' : 'Individuals'}
                     </h3>
                     <p>
                       {Array.isArray(selectedTask.individuals) 
@@ -832,17 +847,17 @@ export default function SupervisorDashboard() {
                 )}
                 
                 {/* Approval History Section */}
-                {(selectedTask.approvals.length > 1 || (taskHistory[selectedTask.id] && taskHistory[selectedTask.id].length > 0)) && (
+                {(selectedTask.approvals.length > 1 || (taskHistory[selectedTask.id.toString()] && taskHistory[selectedTask.id.toString()].length > 0)) && (
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-3">Approval History</h3>
                     <div className="space-y-3">
                       {/* Use task history if available, otherwise fallback to basic approval data */}
-                      {(taskHistory[selectedTask.id] || selectedTask.approvals)
+                      {(taskHistory[selectedTask.id.toString()] || selectedTask.approvals)
                         .filter(approval => !approval.isLatest)
                         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                         .map((approval, approvalIndex) => {
-                          // Get the snapshot data - try multiple sources
-                          const snapshotData = approval.approvableSnapshot || approval.taskHazardData || approval.approvableData || null;
+                          // Get the snapshot data - use discriminated union
+                          const snapshotData = approval.approvableSnapshot || null;
                           const risksData = approval.risksSnapshot || snapshotData?.risks || [];
                           
                           return (

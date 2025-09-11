@@ -78,7 +78,6 @@ export default function RiskAssessment() {
   
   // Add refs for pagination handling
   const initialLoadRef = useRef(true)
-  const requestIdRef = useRef(0)
   const currentPageRef = useRef(currentPage)
   useEffect(() => { currentPageRef.current = currentPage }, [currentPage])
   const fetchAssessmentsRef = useRef<() => Promise<void>>(async () => {})

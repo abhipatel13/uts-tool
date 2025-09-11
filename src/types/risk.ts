@@ -63,7 +63,3 @@ export interface RiskCategory {
   color: string;
 }
 
-// Risk Assessment with approvals interface
-export interface RiskAssessmentWithApprovals extends RiskAssessment {
-  approvals: Approval[];
-}

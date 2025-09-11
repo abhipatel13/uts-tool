@@ -1,14 +1,8 @@
 // Centralized task hazard types (updated to use centralized Risk interface)
 
-import { Risk, RiskAssessmentWithApprovals } from "./risk";
+import { Risk } from "./risk";
 import { 
-  Supervisor, 
-  Approval, 
-  ApprovalStatus, 
-  AssessmentSnapshot,
-  TaskHazardSnapshot,
-  ApprovalsResponse,
-  PolymorphicApprovalsResponse 
+  Approval
 } from "./supervisor-approval";
 
 // Main TaskHazard interface (consolidated from api.ts and task-hazard.ts)
@@ -36,11 +30,5 @@ export interface TaskHazard {
 
 // Supervisor approval types are now imported from supervisor-approval.ts
 
-// Task hazard with approvals
-export interface TaskHazardWithApprovals extends TaskHazard {
-  approvals: Approval[];
-}
-
-// Approval response types are now imported from supervisor-approval.ts
 
 

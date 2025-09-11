@@ -54,7 +54,7 @@ export default function TaskHazard() {
       if (initialLoadRef.current) setIsLoading(true)
       setIsFetching(true)
       const requestId = ++requestIdRef.current
-      const response = await TaskHazardApi.getTaskHazardsMinimal({
+      const response = await TaskHazardApi.getTaskHazards({
         page: currentPage,
         limit: pageSize,
         search: searchTerm?.trim() || undefined,
@@ -256,6 +256,12 @@ export default function TaskHazard() {
                     // Calculate highest unmitigated risk score
                     let highestMitigatedScore = 0;
                     let highestMitigatedType = "";
+                    
+                    // Debug: Check what we're getting
+                    if (task.id === tasks[0]?.id) {
+                      console.log('🧐 Debug task structure:', task);
+                      console.log('🧐 Debug task risks:', task.risks);
+                    }
                     
                     if (task.risks && task.risks.length > 0) {
                       task.risks.forEach(risk => {
