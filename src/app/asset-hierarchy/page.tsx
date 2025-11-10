@@ -9,11 +9,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog"
-import { Plus, ChevronRight, ChevronDown, Info } from "lucide-react"
+import { Plus, ChevronRight, ChevronDown, Info, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { AssetHierarchyApi } from "@/services"
 import { hasPermission } from "@/utils/auth"
 import { useToast } from "@/components/ui/use-toast"
+import { ApiError } from "@/lib/api-client"
 import { AssetSelector } from "@/components/AssetSelector"
 import {
   Select,
@@ -34,6 +38,9 @@ export default function DataLoader() {
   const [error, setError] = useState<string | null>(null)
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [showDetailsDialog, setShowDetailsDialog] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState<CreateAssetRequest>({
     cmmsInternalId: '',
@@ -214,6 +221,84 @@ export default function DataLoader() {
     setShowDetailsDialog(true);
   };
 
+  const openDeleteDialog = (asset: Asset, e?: React.MouseEvent) => {
+    e?.stopPropagation(); // Prevent triggering the asset click event
+    setAssetToDelete(asset);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteAsset = async () => {
+    if (!assetToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await AssetHierarchyApi.deleteAssetUniversal(assetToDelete.id.toString());
+      
+      // Check if the response indicates success
+      if (response.status) {
+        toast({
+          title: "Success",
+          description: response.message || "Asset deleted successfully",
+          variant: "default",
+        });
+        
+        // Refresh the assets list and preserve expansion state
+        const currentExpanded = new Set(expandedAssets);
+        await fetchAssetsWithPreservedState(currentExpanded);
+        
+        // Close dialog and reset state
+        setDeleteDialogOpen(false);
+        setAssetToDelete(null);
+      } else {
+        // Handle API response with status: false
+        toast({
+          title: "Error",
+          description: response.message || "Failed to delete asset",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting asset:', error);
+      
+      // Handle different error types based on status code
+      let errorTitle = "Error";
+      let errorDescription = "Failed to delete asset";
+      
+      if (error instanceof ApiError) {
+        switch (error.status) {
+          case 403:
+            errorTitle = "Access Denied";
+            errorDescription = error.message || "You don't have permission to delete assets. Only universal users and superusers can delete assets.";
+            break;
+          case 404:
+            errorTitle = "Asset Not Found";
+            errorDescription = error.message || "The asset you're trying to delete does not exist.";
+            break;
+          case 409:
+            errorTitle = "Cannot Delete Asset";
+            errorDescription = error.message || "Cannot delete asset. It may be referenced by other records or have child assets. Please remove all references first.";
+            break;
+          case 500:
+            errorTitle = "Server Error";
+            errorDescription = error.message || "An unexpected error occurred while deleting the asset. Please try again later.";
+            break;
+          default:
+            errorDescription = error.message || errorDescription;
+        }
+      } else if (error instanceof Error) {
+        errorDescription = error.message;
+      }
+      
+      toast({
+        title: errorTitle,
+        description: errorDescription,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Handle dialog state changes
   const handleDialogChange = (open: boolean) => {
     if (!open) {
@@ -243,7 +328,7 @@ export default function DataLoader() {
     if (!mounted) {
       return (
         <tr>
-          <td colSpan={2} className="text-center py-8">
+          <td colSpan={3} className="px-6 py-8 text-center">
             <div className="animate-pulse">Loading...</div>
           </td>
         </tr>
@@ -253,7 +338,7 @@ export default function DataLoader() {
     if (isLoading) {
       return (
         <tr>
-          <td colSpan={2} className="text-center py-8">
+          <td colSpan={3} className="px-6 py-8 text-center">
             <div className="animate-pulse">Loading assets...</div>
           </td>
         </tr>
@@ -263,7 +348,7 @@ export default function DataLoader() {
     if (error) {
       return (
         <tr>
-          <td colSpan={2} className="text-center py-8 text-red-500">
+          <td colSpan={3} className="px-6 py-8 text-center text-red-500">
             {error}
           </td>
         </tr>
@@ -273,7 +358,7 @@ export default function DataLoader() {
     if (assets.length === 0) {
       return (
         <tr>
-          <td colSpan={2} className="text-center py-8 text-gray-500">
+          <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
             No assets found.
           </td>
         </tr>
@@ -301,13 +386,13 @@ export default function DataLoader() {
       return (
         <React.Fragment key={asset.id}>
           <tr className="border-b hover:bg-gray-50">
-            <td className="p-4">
+            <td className="px-6 py-4 whitespace-nowrap">
               <div className="flex items-center">
                 <div style={{ width: `${indentationLevel * 24}px` }} /> {/* Add indentation */}
                 {children.length > 0 ? (
                   <button
                     onClick={() => toggleAsset(asset.id)}
-                    className="mr-2 p-1 hover:bg-gray-200 rounded-md focus:outline-none"
+                    className="mr-2 p-1 hover:bg-gray-200 rounded-md focus:outline-none flex-shrink-0"
                   >
                     {isExpanded ? (
                       <ChevronDown className="h-4 w-4" />
@@ -316,19 +401,33 @@ export default function DataLoader() {
                     )}
                   </button>
                 ) : (
-                  <span className="w-6" />
+                  <span className="w-6 mr-2" />
                 )}
                 <span className="font-medium">{asset.id}</span>
               </div>
             </td>
-            <td className="p-4 cursor-pointer hover:text-blue-600 flex items-center gap-2" onClick={() => handleAssetClick(asset)}>
-              <div className="flex flex-col">
-                <span>{asset.name}</span>
-                <span className="text-sm text-gray-500">
-                  {asset.parent ? `Parent: ${asset.parent}` : 'Root Asset'}
-                </span>
+            <td className="px-6 py-4">
+              <div 
+                className="cursor-pointer hover:text-blue-600 flex items-start gap-2"
+                onClick={() => handleAssetClick(asset)}
+              >
+                <div className="flex flex-col min-w-0">
+                  <span className="font-medium">{asset.name}</span>
+                  <span className="text-sm text-gray-500">
+                    {asset.parent ? `Parent: ${asset.parent}` : 'Root Asset'}
+                  </span>
+                </div>
+                <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
               </div>
-              <Info className="h-4 w-4" />
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-right">
+              <button
+                onClick={(e) => openDeleteDialog(asset, e)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-md focus:outline-none transition-colors inline-flex items-center justify-center ml-auto"
+                title="Delete asset"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </td>
           </tr>
           {isExpanded && children.map(child => renderAssetRow(child))}
@@ -367,10 +466,10 @@ export default function DataLoader() {
 
       {canViewAssets && (
         <div className="bg-white rounded-lg shadow h-[calc(100vh-200px)]">
-          <div className="h-full flex flex-col">
-            <div className="flex-none">
+          <div className="h-full flex flex-col overflow-hidden">
+            <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ID
@@ -378,22 +477,21 @@ export default function DataLoader() {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Name
                     </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
-              </table>
-            </div>
-            <div className="flex-1 overflow-auto">
-              <table className="min-w-full divide-y divide-gray-200">
                 <tbody className="bg-white divide-y divide-gray-200">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={2} className="px-6 py-4 text-center">
+                      <td colSpan={3} className="px-6 py-4 text-center">
                         Loading...
                       </td>
                     </tr>
                   ) : error ? (
                     <tr>
-                      <td colSpan={2} className="px-6 py-4 text-center text-red-500">
+                      <td colSpan={3} className="px-6 py-4 text-center text-red-500">
                         {error}
                       </td>
                     </tr>
@@ -630,6 +728,53 @@ export default function DataLoader() {
               Add Asset
             </CommonButton>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Asset</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this asset? This action cannot be undone.
+              {assetToDelete && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium">Asset Details:</p>
+                  <p className="text-sm text-gray-600">ID: {assetToDelete.id}</p>
+                  <p className="text-sm text-gray-600">Name: {assetToDelete.name}</p>
+                  <p className="text-sm text-gray-600">Type: {assetToDelete.objectType || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Location: {assetToDelete.functionalLocation || 'N/A'}</p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAsset}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Asset
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
