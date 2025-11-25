@@ -76,7 +76,6 @@ export default function Login() {
       router.push("/")
     } catch (apiError: unknown) {
       console.error("API login error:", apiError)
-      setError(apiError instanceof Error ? apiError.message : "An unexpected error occurred")
     } finally {
       setIsLoading(false)
     }
@@ -106,7 +105,6 @@ export default function Login() {
       setIsResetEmailDialogOpen(true)
     } catch (apiError: unknown) {
       console.error("API forgot password error:", apiError)
-      setError(apiError instanceof Error ? apiError.message : "An unexpected error occurred")
     }
     finally {
       setIsLoading(false)

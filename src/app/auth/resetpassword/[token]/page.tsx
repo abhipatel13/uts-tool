@@ -59,7 +59,6 @@ export default function ResetPasswordPage() {
       }, 1500)
     } catch (apiError: unknown) {
       console.error("API reset password error:", apiError)
-      setError(apiError instanceof Error ? apiError.message : "An unexpected error occurred")
     } finally {
       setIsLoading(false)
     }
