@@ -7,7 +7,7 @@ export const PaymentService = {
     amount: number;
     poolName: string;
     totalLicenses: number;
-    licenseType: string;
+    validityMonths: number;
   }) => {
     // Always use real Stripe API calls
     try {
@@ -22,9 +22,9 @@ export const PaymentService = {
             type: 'license_pool_purchase',
             poolName: data.poolName,
             totalLicenses: data.totalLicenses.toString(),
-            licenseType: data.licenseType,
+            validityMonths: data.validityMonths.toString(),
           },
-          description: `License Pool Purchase: ${data.poolName} (${data.totalLicenses} ${data.licenseType} licenses)`,
+          description: `License Pool Purchase: ${data.poolName} (${data.totalLicenses} licenses, ${data.validityMonths} months)`,
         }),
       });
 

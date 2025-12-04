@@ -59,29 +59,39 @@ const LicensingAdminPage = () => {
   // Form states
   const [createPoolForm, setCreatePoolForm] = useState({
     poolName: '',
-    licenseType: 'monthly',
     totalLicenses: 5,
     validityPeriodMonths: 1,
-
     totalAmount: 99.95, // Will be auto-calculated
     pricePerLicense: 19.99,
-    notes: ''
+    notes: '',
+    fullPayment: true,
+    autoRenew: false
   });
 
-  // Auto-calculate total amount when totalLicenses or pricePerLicense changes
+  // Calculate discount based on validity months
+  const calculateDiscount = (months: number): number => {
+    if (months >= 12) return 0.10; // 10% off
+    if (months >= 6) return 0.05;  // 5% off
+    return 0; // No discount for 0-5 months
+  };
+
+  // Auto-calculate total amount when totalLicenses, pricePerLicense, or validityPeriodMonths changes
   useEffect(() => {
-    const calculatedTotal = createPoolForm.totalLicenses * createPoolForm.pricePerLicense;
+    const baseAmount = createPoolForm.totalLicenses * createPoolForm.pricePerLicense * createPoolForm.validityPeriodMonths;
+    const discount = calculateDiscount(createPoolForm.validityPeriodMonths);
+    const discountAmount = baseAmount * discount;
+    const calculatedTotal = baseAmount - discountAmount;
+    
     setCreatePoolForm(prev => ({
       ...prev,
       totalAmount: calculatedTotal
     }));
-  }, [createPoolForm.totalLicenses, createPoolForm.pricePerLicense]);
+  }, [createPoolForm.totalLicenses, createPoolForm.pricePerLicense, createPoolForm.validityPeriodMonths]);
 
   const [allocationForm, setAllocationForm] = useState({
     licensePoolId: '',
     userId: '',
     validFrom: new Date().toISOString().split('T')[0],
-    customValidityMonths: '',
     notes: '',
     autoRenew: false
   });
@@ -138,8 +148,24 @@ const LicensingAdminPage = () => {
 
   const handleCreatePool = async (paymentIntentId?: string) => {
     try {
+      // Map validity months to license type for backward compatibility
+      const getLicenseType = (months: number): 'monthly' | 'quarterly' | 'semi_annual' | 'annual' => {
+        if (months >= 12) return 'annual';
+        if (months >= 6) return 'semi_annual';
+        if (months >= 3) return 'quarterly';
+        return 'monthly';
+      };
+
       const poolData = {
-        ...createPoolForm,
+        poolName: createPoolForm.poolName,
+        totalLicenses: createPoolForm.totalLicenses,
+        validityPeriodMonths: createPoolForm.validityPeriodMonths,
+        licenseType: getLicenseType(createPoolForm.validityPeriodMonths), // For backward compatibility
+        totalAmount: createPoolForm.totalAmount,
+        pricePerLicense: createPoolForm.pricePerLicense,
+        notes: createPoolForm.notes,
+        fullPayment: createPoolForm.fullPayment,
+        autoRenew: createPoolForm.autoRenew,
         stripePaymentIntentId: paymentIntentId
       };
 
@@ -154,12 +180,13 @@ const LicensingAdminPage = () => {
       setShowPaymentStep(false);
       setCreatePoolForm({
         poolName: '',
-        licenseType: 'monthly',
         totalLicenses: 5,
         validityPeriodMonths: 1,
-        totalAmount: 5 * 19.99, // Auto-calculated: totalLicenses * pricePerLicense
+        totalAmount: 5 * 19.99, // Auto-calculated: totalLicenses * pricePerLicense * months with discount
         pricePerLicense: 19.99,
-        notes: ''
+        notes: '',
+        fullPayment: true,
+        autoRenew: false
       });
       
       loadData();
@@ -190,10 +217,18 @@ const LicensingAdminPage = () => {
 
   const handleProceedToPayment = () => {
     // Validate form before proceeding to payment
-    if (!createPoolForm.poolName || !createPoolForm.totalLicenses || !createPoolForm.totalAmount) {
+    if (!createPoolForm.poolName || !createPoolForm.totalLicenses || !createPoolForm.totalAmount || !createPoolForm.validityPeriodMonths) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (createPoolForm.validityPeriodMonths > 12) {
+      toast({
+        title: "Validation Error",
+        description: "Validity period cannot exceed 12 months",
         variant: "destructive"
       });
       return;
@@ -216,7 +251,6 @@ const LicensingAdminPage = () => {
         licensePoolId: parseInt(allocationForm.licensePoolId),
         userId: parseInt(allocationForm.userId),
         validFrom: allocationForm.validFrom,
-        customValidityMonths: allocationForm.customValidityMonths ? parseInt(allocationForm.customValidityMonths) : undefined,
         notes: allocationForm.notes || undefined,
         autoRenew: allocationForm.autoRenew
       });
@@ -231,7 +265,6 @@ const LicensingAdminPage = () => {
         licensePoolId: '',
         userId: '',
         validFrom: new Date().toISOString().split('T')[0],
-        customValidityMonths: '',
         notes: '',
         autoRenew: false
       });
@@ -401,24 +434,6 @@ const LicensingAdminPage = () => {
                           />
                         </div>
 
-                        <div>
-                          <Label htmlFor="licenseType">License Type</Label>
-                          <Select
-                            value={createPoolForm.licenseType}
-                            onValueChange={(value) => setCreatePoolForm({...createPoolForm, licenseType: value})}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                              <SelectItem value="quarterly">Quarterly</SelectItem>
-                              <SelectItem value="semi_annual">Semi-Annual</SelectItem>
-                              <SelectItem value="annual">Annual</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label htmlFor="totalLicenses">Total Licenses</Label>
@@ -427,7 +442,7 @@ const LicensingAdminPage = () => {
                               type="number"
                               min="1"
                               value={createPoolForm.totalLicenses}
-                              onChange={(e) => setCreatePoolForm({...createPoolForm, totalLicenses: parseInt(e.target.value)})}
+                              onChange={(e) => setCreatePoolForm({...createPoolForm, totalLicenses: parseInt(e.target.value) || 1})}
                             />
                           </div>
                           <div>
@@ -436,13 +451,36 @@ const LicensingAdminPage = () => {
                               id="validityPeriodMonths"
                               type="number"
                               min="1"
+                              max="12"
                               value={createPoolForm.validityPeriodMonths}
-                              onChange={(e) => setCreatePoolForm({...createPoolForm, validityPeriodMonths: parseInt(e.target.value)})}
+                              onChange={(e) => {
+                                const months = parseInt(e.target.value) || 1;
+                                if (months > 12) {
+                                  toast({
+                                    title: "Validation Error",
+                                    description: "Validity period cannot exceed 12 months",
+                                    variant: "destructive"
+                                  });
+                                  return;
+                                }
+                                setCreatePoolForm({...createPoolForm, validityPeriodMonths: months});
+                              }}
                             />
                           </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="pricePerLicense">Price per License ($)</Label>
+                            <Input
+                              id="pricePerLicense"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={createPoolForm.pricePerLicense}
+                              onChange={(e) => setCreatePoolForm({...createPoolForm, pricePerLicense: parseFloat(e.target.value) || 0})}
+                            />
+                          </div>
                           <div>
                             <Label htmlFor="totalAmount">Total Amount ($)</Label>
                             <Input
@@ -455,20 +493,22 @@ const LicensingAdminPage = () => {
                               className="bg-gray-50 cursor-not-allowed"
                             />
                             <p className="text-xs text-gray-500 mt-1">
-                              Automatically calculated: {createPoolForm.totalLicenses} × ${createPoolForm.pricePerLicense.toFixed(2)}
+                              {createPoolForm.totalLicenses} × ${createPoolForm.pricePerLicense.toFixed(2)} × {createPoolForm.validityPeriodMonths} months
+                              {calculateDiscount(createPoolForm.validityPeriodMonths) > 0 && (
+                                <span className="text-green-600"> - {Math.round(calculateDiscount(createPoolForm.validityPeriodMonths) * 100)}% discount</span>
+                              )}
                             </p>
                           </div>
-                          <div>
-                            <Label htmlFor="pricePerLicense">Price per License ($)</Label>
-                            <Input
-                              id="pricePerLicense"
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={createPoolForm.pricePerLicense}
-                              onChange={(e) => setCreatePoolForm({...createPoolForm, pricePerLicense: parseFloat(e.target.value)})}
-                            />
-                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="autoRenew"
+                            checked={createPoolForm.autoRenew}
+                            onChange={(e) => setCreatePoolForm({...createPoolForm, autoRenew: e.target.checked})}
+                            className="rounded"
+                          />
+                          <Label htmlFor="autoRenew">Automatic Renew</Label>
                         </div>
 
                         <div>
@@ -496,10 +536,17 @@ const LicensingAdminPage = () => {
                           <h3 className="font-medium mb-2">Pool Details</h3>
                           <div className="text-sm space-y-1">
                             <div><strong>Name:</strong> {createPoolForm.poolName}</div>
-                            <div><strong>Type:</strong> {createPoolForm.licenseType}</div>
                             <div><strong>Licenses:</strong> {createPoolForm.totalLicenses}</div>
                             <div><strong>Validity:</strong> {createPoolForm.validityPeriodMonths} months</div>
+                            <div><strong>Price per License:</strong> ${createPoolForm.pricePerLicense.toFixed(2)}</div>
                             <div><strong>Total Amount:</strong> ${createPoolForm.totalAmount.toFixed(2)}</div>
+                            {calculateDiscount(createPoolForm.validityPeriodMonths) > 0 && (
+                              <div className="text-green-600">
+                                <strong>Discount:</strong> {Math.round(calculateDiscount(createPoolForm.validityPeriodMonths) * 100)}% off
+                              </div>
+                            )}
+                            <div><strong>Payment:</strong> {createPoolForm.fullPayment ? 'Full Payment' : 'Partial Payment'}</div>
+                            <div><strong>Auto-renew:</strong> {createPoolForm.autoRenew ? 'Yes' : 'No'}</div>
                           </div>
                         </div>
 
@@ -508,7 +555,7 @@ const LicensingAdminPage = () => {
                             amount={createPoolForm.totalAmount}
                             poolName={createPoolForm.poolName}
                             totalLicenses={createPoolForm.totalLicenses}
-                            licenseType={createPoolForm.licenseType}
+                            validityMonths={createPoolForm.validityPeriodMonths}
                             onSuccess={handlePaymentSuccess}
                             onError={handlePaymentError}
                             isProcessing={isPaymentProcessing}
@@ -614,17 +661,6 @@ const LicensingAdminPage = () => {
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="customValidityMonths">Custom Validity (months, optional)</Label>
-                      <Input
-                        id="customValidityMonths"
-                        type="number"
-                        min="1"
-                        placeholder="Use pool default if empty"
-                        value={allocationForm.customValidityMonths}
-                        onChange={(e) => setAllocationForm({...allocationForm, customValidityMonths: e.target.value})}
-                      />
-                    </div>
 
                     <div>
                       <Label htmlFor="notes">Notes (optional)</Label>
