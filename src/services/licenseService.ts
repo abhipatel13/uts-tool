@@ -16,6 +16,8 @@ export const LicensePoolService = {
     notes?: string;
     companyId?: number;
     stripePaymentIntentId?: string;
+    fullPayment?: boolean;
+    autoRenew?: boolean;
   }) => {
     return api.post<ApiResponse<LicensePool>>('/api/licenses/pools', data);
   },
@@ -67,7 +69,6 @@ export const LicenseAllocationService = {
     userId: number;
     validFrom: string;
     validUntil?: string;
-    customValidityMonths?: number;
     autoRenew?: boolean;
     features?: string[];
     restrictions?: Record<string, unknown>;

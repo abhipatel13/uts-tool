@@ -17,13 +17,6 @@ export default function Configurations() {
       color: "bg-purple-500"
     },
     {
-      title: "Templates", 
-      description: "Configure risk matrices and action types",
-      icon: "FileText",
-      href: "/configurations/template",
-      color: "bg-blue-500"
-    },
-    {
       title: "Profile",
       description: "Manage your user profile and preferences",
       icon: "User",

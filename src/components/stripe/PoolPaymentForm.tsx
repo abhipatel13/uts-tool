@@ -7,7 +7,7 @@ interface PoolPaymentFormProps {
   amount: number;
   poolName: string;
   totalLicenses: number;
-  licenseType: string;
+  validityMonths: number;
   onSuccess: (paymentIntentId: string) => void;
   onError: (error: string) => void;
   isProcessing: boolean;
@@ -36,7 +36,7 @@ export default function PoolPaymentForm({
   amount, 
   poolName,
   totalLicenses,
-  licenseType,
+  validityMonths,
   onSuccess, 
   onError,
   isProcessing,
@@ -65,7 +65,7 @@ export default function PoolPaymentForm({
         amount,
         poolName,
         totalLicenses,
-        licenseType
+        validityMonths
       });
 
       console.log('Payment intent response:', response);
@@ -125,7 +125,7 @@ export default function PoolPaymentForm({
           </div>
           <div className="flex justify-between">
             <span>Licenses:</span>
-            <span className="font-medium">{totalLicenses} {licenseType}</span>
+            <span className="font-medium">{totalLicenses} ({validityMonths} months)</span>
           </div>
           <div className="flex justify-between border-t pt-2 mt-2">
             <span className="font-medium">Total:</span>
