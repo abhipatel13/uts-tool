@@ -12,13 +12,14 @@ export * from './license';
 export * from './notification';
 export * from './tactics';
 export * from './ui';
+export * from './validation';
 
 // Re-export commonly used types for convenience
 export type { User } from './user';
 export type { ApiResponse } from './api';
 export type { Risk, RiskType, RiskAssessment } from './risk';
 export type { TaskHazard, Supervisor, Approval } from './task-hazard';
-export type { Asset, UploadStatus } from './asset';
+export type { Asset, UploadStatus, UploadError, UploadSummary, AssetColumnMappings, AssetFieldDefinition } from './asset';
 export type { LicensePool, LicenseAllocation, UserLicenseStatus } from './license';
 export type { Notification } from './notification';
 export type { Tactic, CreateTacticRequest } from './tactics';

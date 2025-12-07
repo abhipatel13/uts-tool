@@ -76,4 +76,52 @@ export interface UploadStatus {
   uploadedAt?: string;
   updatedAt?: string;
   fileSize?: number;
+  // Enhanced error details for failed uploads
+  errors?: UploadError[];
+  summary?: UploadSummary;
+}
+
+// Detailed error information for upload validation failures
+export interface UploadError {
+  row?: number;
+  field?: string;
+  value?: string;
+  message: string;
+}
+
+// Summary of successful upload processing
+export interface UploadSummary {
+  totalRows: number;
+  created: number;
+  updated: number;
+  processingTime?: string;
+}
+
+// Column mapping configuration for asset hierarchy uploads
+export interface AssetColumnMappings {
+  // Required fields
+  id: string;           // Column header for unique identifier
+  name: string;         // Column header for asset name
+  // Optional fields
+  parent_id?: string;   // Column header for parent asset reference
+  description?: string;
+  cmms_internal_id?: string;
+  functional_location?: string;
+  functional_location_desc?: string;
+  functional_location_long_desc?: string;
+  maintenance_plant?: string;
+  cmms_system?: string;
+  object_type?: string;
+  system_status?: string;
+  make?: string;
+  manufacturer?: string;
+  serial_number?: string;
+}
+
+// System field definition for mapping UI
+export interface AssetFieldDefinition {
+  key: keyof AssetColumnMappings;
+  label: string;
+  required: boolean;
+  aliases: string[];  // Common column names to auto-guess
 }

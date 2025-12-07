@@ -18,8 +18,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { AssetHierarchyApi } from "@/services"
 import { useToast } from "@/components/ui/use-toast"
-import { UploadStatus } from '@/types'
+import { UploadStatus, AssetColumnMappings } from '@/types'
 import { Info, Download, FileDown, Database } from 'lucide-react'
+import { ColumnMappingDialog } from './ColumnMappingDialog'
+import { ValidationModal } from './ValidationModal'
+import { extractFileHeaders, getFileType, parseFileData } from '@/utils/fileParser'
+import { useAssetValidation } from './hooks/useAssetValidation'
 
 const sampleCsvContent = `id,name,cmms_internal_id,functional_location,functional_location_desc,functional_location_long_desc,parent_id,maintenance_plant,cmms_system,object_type,system_status,make,manufacturer,serial_number
 SAP001-1751172747697,Conveyor System,SAP001,Mine 2,Gold mine in Arizona,Large gold mining operation in Arizona,,Maintenance plant 1,SAP,Heavy machinery,Active,Conveyor System Model 4464,Fenner Dunlop,JKCFQSHEAQZD
@@ -44,6 +48,40 @@ export default function DataLoader() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
   const [activePolling, setActivePolling] = useState<Set<string>>(new Set())
   const hasStartedInitialPolling = useRef(false)
+  
+  // Column mapping state
+  const [showMappingDialog, setShowMappingDialog] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [headerColumns, setHeaderColumns] = useState<string[]>([])
+  
+  // Validation state
+  const [showValidationModal, setShowValidationModal] = useState(false)
+  const [isValidating, setIsValidating] = useState(false)
+  const [pendingMappings, setPendingMappings] = useState<AssetColumnMappings | null>(null)
+  
+  // Use the validation hook
+  const {
+    parsedAssets,
+    validationResult,
+    modifiedRows,
+    deletedRows,
+    hasChanges,
+    initializeValidation,
+    removeParentId,
+    changeParentId,
+    bulkRemoveOrphanParents,
+    bulkRemoveAllOrphanParents,
+    getValidParentOptions,
+    breakCycleAtRow,
+    breakAllCycles,
+    getChildrenOfAsset,
+    changeAssetId,
+    deleteRow,
+    reassignChildrenToParent,
+    resetToOriginal,
+    getModifiedCSV,
+    clearState,
+  } = useAssetValidation(headerColumns)
 
   const fetchUploadHistory = useCallback(async () => {
     try {
@@ -302,20 +340,126 @@ export default function DataLoader() {
     }
   }
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle file selection - extract headers and show mapping dialog
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
     setUploadError(null)
+    
+    // Validate file type
+    const fileType = getFileType(file)
+    if (fileType === 'unknown') {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a CSV (.csv) or Excel (.xlsx, .xls) file.",
+        variant: "destructive",
+      })
+      event.target.value = ''
+      return
+    }
+
+    try {
+      // Extract headers from the file
+      const headers = await extractFileHeaders(file)
+      
+      if (headers.length === 0) {
+        throw new Error('No columns found in file. Please ensure the file has a header row.')
+      }
+
+      // Store file and headers, show mapping dialog
+      setPendingFile(file)
+      setHeaderColumns(headers)
+      setShowUploadDialog(false)
+      setShowMappingDialog(true)
+      
+      toast({
+        title: "File Loaded",
+        description: `Found ${headers.length} columns. Please map them to the system fields.`,
+        variant: "default",
+      })
+    } catch (error) {
+      console.error('Error reading file:', error)
+      toast({
+        title: "Error Reading File",
+        description: error instanceof Error ? error.message : "Failed to read file headers.",
+        variant: "destructive",
+      })
+    }
+    
+    // Clear the file input so the same file can be selected again
+    event.target.value = ''
+  }
+
+  // Handle column mapping confirmation - run validation
+  const handleMappingConfirmed = async (mappings: AssetColumnMappings) => {
+    if (!pendingFile) return
+
+    setShowMappingDialog(false)
+    setPendingMappings(mappings)
+    setIsValidating(true)
+    setShowValidationModal(true)
+
+    try {
+      // Parse the file data and initialize validation
+      const data = await parseFileData(pendingFile)
+      const result = initializeValidation(data, headerColumns, mappings)
+      
+      if (!result.hasErrors) {
+        toast({
+          title: "Validation Passed!",
+          description: `${result.totalAssets} assets validated successfully.`,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Validation Issues Found",
+          description: `Found ${result.totalErrorCount} issue(s) that need to be resolved.`,
+          variant: "default",
+        })
+      }
+    } catch (error) {
+      console.error('Error during validation:', error)
+      toast({
+        title: "Validation Error",
+        description: error instanceof Error ? error.message : "Failed to validate file.",
+        variant: "destructive",
+      })
+      setShowValidationModal(false)
+    } finally {
+      setIsValidating(false)
+    }
+  }
+
+  // Handle cancel from validation modal
+  const handleValidationCancel = () => {
+    setShowValidationModal(false)
+    setPendingMappings(null)
+    setPendingFile(null)
+    setHeaderColumns([])
+    clearState()
+  }
+
+  // Handle proceed from validation modal - do the actual upload
+  const handleValidationProceed = async () => {
+    if (!pendingFile || !pendingMappings || !validationResult || validationResult.hasErrors) return
+
+    setShowValidationModal(false)
+    
     const tempUploadStatus = {
-      fileName: file.name,
+      fileName: pendingFile.name,
       status: 'uploading' as const,
       message: 'Uploading file...'
     }
     setUploadHistory(prev => [tempUploadStatus, ...prev])
 
     try {
-      const response = await AssetHierarchyApi.uploadCSV(file)
+      // Generate CSV from the (potentially modified) parsed assets
+      const csvContent = getModifiedCSV()
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const file = new File([blob], pendingFile.name, { type: 'text/csv' })
+
+      const response = await AssetHierarchyApi.uploadCSV(file, pendingMappings)
       
       console.log('Upload response received:', response)
       
@@ -338,12 +482,11 @@ export default function DataLoader() {
       }
       
       setUploadHistory(prev => [updatedStatus, ...prev.slice(1)])
-      setShowUploadDialog(false)
 
       // Show initial success toast
       toast({
         title: "Upload Started!",
-        description: uploadData.message || "Your CSV file is being processed in the background...",
+        description: uploadData.message || "Your file is being processed in the background...",
         variant: "default",
       })
 
@@ -357,9 +500,6 @@ export default function DataLoader() {
       } else {
         console.error('No valid uploadId found in response:', uploadData);
       }
-
-      // Clear the file input
-      event.target.value = ''
     } catch (error) {
       console.error('Error uploading file:', error)
       
@@ -377,7 +517,7 @@ export default function DataLoader() {
       
       setUploadError(errorMessage)
       const failedStatus = {
-        fileName: file.name,
+        fileName: pendingFile.name,
         status: 'error' as const,
         errorMessage: errorMessage
       }
@@ -387,9 +527,12 @@ export default function DataLoader() {
         description: errorMessage,
         variant: "destructive",
       })
-      
-      // Clear the file input
-      event.target.value = ''
+    } finally {
+      // Clear all pending state
+      setPendingFile(null)
+      setHeaderColumns([])
+      setPendingMappings(null)
+      clearState()
     }
   }
 
@@ -443,7 +586,7 @@ export default function DataLoader() {
             onClick={() => setShowUploadDialog(true)}
             className="bg-[rgb(52_73_94_/_1)] hover:bg-[rgb(52_73_94_/_1)]"
           >
-            + Upload CSV
+            + Upload File
           </Button>
         </div>
       </div>
@@ -511,16 +654,16 @@ export default function DataLoader() {
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Upload CSV File</DialogTitle>
+            <DialogTitle>Upload Asset Hierarchy File</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Select CSV File</Label>
+              <Label>Select CSV or Excel File</Label>
               <div className="mt-2">
                 <Input
                   type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileSelect}
                   className="cursor-pointer"
                 />
               </div>
@@ -529,12 +672,48 @@ export default function DataLoader() {
               <div className="text-red-500 text-sm">{uploadError}</div>
             )}
             <div className="text-sm text-gray-500">
-              <p>Please ensure your CSV file follows the required format.</p>
-              <p>Use the &ldquo;Download Options&rdquo; button to get templates or backup your current data.</p>
+              <p>Supported formats: CSV (.csv) and Excel (.xlsx, .xls)</p>
+              <p>After selecting a file, you&apos;ll be able to map your columns to the system fields.</p>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Column Mapping Dialog */}
+      <ColumnMappingDialog
+        open={showMappingDialog}
+        onOpenChange={setShowMappingDialog}
+        file={pendingFile}
+        headerColumns={headerColumns}
+        onConfirm={handleMappingConfirmed}
+      />
+
+      {/* Validation Modal */}
+      <ValidationModal
+        open={showValidationModal}
+        onOpenChange={setShowValidationModal}
+        validationResult={validationResult}
+        parsedAssets={parsedAssets}
+        isValidating={isValidating}
+        fileName={pendingFile?.name || ''}
+        modifiedRows={modifiedRows}
+        deletedRows={deletedRows}
+        hasChanges={hasChanges}
+        onCancel={handleValidationCancel}
+        onProceed={handleValidationProceed}
+        onRemoveParentId={removeParentId}
+        onChangeParentId={changeParentId}
+        onBulkRemoveOrphanParents={bulkRemoveOrphanParents}
+        onBulkRemoveAllOrphanParents={bulkRemoveAllOrphanParents}
+        onBreakCycleAtRow={breakCycleAtRow}
+        onBreakAllCycles={breakAllCycles}
+        onChangeAssetId={changeAssetId}
+        onDeleteRow={deleteRow}
+        onReassignChildren={reassignChildrenToParent}
+        getChildrenOfAsset={getChildrenOfAsset}
+        onResetChanges={resetToOriginal}
+        getValidParentOptions={getValidParentOptions}
+      />
 
       {/* Information Dialog */}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>

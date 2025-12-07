@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import { ApiResponse, Asset, UploadStatus } from '@/types';
+import { ApiResponse, Asset, UploadStatus, AssetColumnMappings } from '@/types';
 
 // Type for creating assets (excludes server-generated fields)
 export type CreateAssetRequest = Omit<Asset, 'id' | 'updatedAt' | 'createdAt' | 'level'>;
@@ -25,14 +25,14 @@ export const AssetHierarchyApi = {
     return api.get<ApiResponse<Asset>>(`/api/asset-hierarchy/${id}`);
   },
 
-  // Upload CSV file
-  uploadCSV: async (file: File): Promise<ApiResponse<UploadStatus>> => {
+  // Upload CSV or Excel file with column mappings
+  uploadCSV: async (file: File, columnMappings: AssetColumnMappings): Promise<ApiResponse<UploadStatus>> => {
     const formData = new FormData();
     formData.append('file', file);
-    
+    formData.append('columnMappings', JSON.stringify(columnMappings));
     
     // Don't manually set Content-Type for FormData - let browser set it with proper boundary
-    return api.post<ApiResponse<UploadStatus>>('/api/asset-hierarchy/upload-csv', formData);
+    return api.post<ApiResponse<UploadStatus>>('/api/asset-hierarchy/upload', formData);
   },
 
   // Get upload status by ID
