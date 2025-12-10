@@ -7,17 +7,21 @@ import { useToast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Shield, CheckCircle, XCircle, AlertTriangle, ClipboardList } from "lucide-react"
-import { SupervisorApprovalApi } from "@/services"
+import { SupervisorApprovalApi, TaskHazardApi, RiskAssessmentApi } from "@/services"
 import type { 
   EntityWithApprovals, 
   Approval, 
-  ApprovableType
+  ApprovableType,
+  TaskHazard,
+  RiskAssessment
 } from "@/types"
 import {
   getEntityType,
   getEntityDisplayName,
   isValidEntityWithApprovals
 } from "@/types"
+import { TaskHazardDialog, type TaskHazardDialogMode } from "@/components/task-hazard"
+import { RiskAssessmentDialog, type RiskAssessmentDialogMode } from "@/components/risk-assessment"
 
 type ViewType = 'dashboard' | 'approval-requests' | 'approved-tasks' | 'rejected-tasks'
 type EntityType = 'all' | 'task_hazards' | 'risk_assessments'
@@ -66,6 +70,13 @@ export default function SupervisorDashboard() {
   const [rejectTarget, setRejectTarget] = useState<EntityWithApprovals | null>(null)
   const [isSubmittingReject, setIsSubmittingReject] = useState(false)
   const [taskHistory, setTaskHistory] = useState<Record<string, Approval[]>>({})
+  
+  // View dialog state
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [viewDialogMode, setViewDialogMode] = useState<TaskHazardDialogMode | RiskAssessmentDialogMode>('view')
+  const [fullTaskHazard, setFullTaskHazard] = useState<TaskHazard | null>(null)
+  const [fullRiskAssessment, setFullRiskAssessment] = useState<RiskAssessment | null>(null)
+  const [isLoadingFullEntity, setIsLoadingFullEntity] = useState(false)
   
   // Get current tasks list based on view
   const currentTasks = currentView === 'dashboard' 
@@ -308,6 +319,41 @@ export default function SupervisorDashboard() {
         description: `Failed to ${action.toLowerCase()} ${entityTypeName}.`,
         variant: "destructive",
       })
+    }
+  }
+  
+  // Function to open full view dialog
+  const handleViewFullDetails = async (entity: EntityWithApprovals) => {
+    const entityType = determineEntityType(entity)
+    setIsLoadingFullEntity(true)
+    
+    try {
+      if (entityType === 'task_hazards') {
+        const response = await TaskHazardApi.getTaskHazard(entity.id.toString())
+        if (response && response.status && response.data) {
+          setFullTaskHazard(response.data)
+          setFullRiskAssessment(null)
+          setViewDialogMode('view')
+          setIsViewDialogOpen(true)
+        }
+      } else {
+        const response = await RiskAssessmentApi.getRiskAssessment(entity.id.toString())
+        if (response && response.status && response.data) {
+          setFullRiskAssessment(response.data)
+          setFullTaskHazard(null)
+          setViewDialogMode('view')
+          setIsViewDialogOpen(true)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching full entity details:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load full details.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoadingFullEntity(false)
     }
   }
   
@@ -621,7 +667,7 @@ export default function SupervisorDashboard() {
                       ) : (
                         <XCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
                       )}
-                      <div>
+                      <div className="overflow-hidden">
                         <p className="font-medium text-sm line-clamp-1">{task.scopeOfWork}</p>
                         <p className="text-xs text-gray-500 mt-1">ID: {task.id}...</p>
                         <p className="text-xs text-gray-500">Date: {task.date}</p>
@@ -679,15 +725,36 @@ export default function SupervisorDashboard() {
           ) : selectedTask ? (
             <Card>
               <CardHeader>
-                <CardTitle>
-                  {(() => {
-                    const entityType = determineEntityType(selectedTask)
-                    const entityName = getEntityDisplayName(entityType)
-                    return currentView === 'approval-requests' 
-                      ? `${entityName} Approval Details` 
-                      : `${entityName} Details`
-                  })()}
-                </CardTitle>
+                <div className="flex justify-between items-start">
+                  <CardTitle>
+                    {(() => {
+                      const entityType = determineEntityType(selectedTask)
+                      const entityName = getEntityDisplayName(entityType)
+                      return currentView === 'approval-requests' 
+                        ? `${entityName} Approval Details` 
+                        : `${entityName} Details`
+                    })()}
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewFullDetails(selectedTask)}
+                    disabled={isLoadingFullEntity}
+                    className="flex items-center gap-2"
+                  >
+                    {isLoadingFullEntity ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <ClipboardList className="h-4 w-4" />
+                        View Full Details
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
@@ -1042,6 +1109,32 @@ export default function SupervisorDashboard() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Task Hazard View Dialog */}
+          <TaskHazardDialog
+            open={isViewDialogOpen && fullTaskHazard !== null}
+            onOpenChange={(open) => {
+              setIsViewDialogOpen(open)
+              if (!open) {
+                setFullTaskHazard(null)
+              }
+            }}
+            initialMode={viewDialogMode as TaskHazardDialogMode}
+            task={fullTaskHazard}
+          />
+
+          {/* Risk Assessment View Dialog */}
+          <RiskAssessmentDialog
+            open={isViewDialogOpen && fullRiskAssessment !== null}
+            onOpenChange={(open) => {
+              setIsViewDialogOpen(open)
+              if (!open) {
+                setFullRiskAssessment(null)
+              }
+            }}
+            initialMode={viewDialogMode as RiskAssessmentDialogMode}
+            assessment={fullRiskAssessment}
+          />
         </div>
       </div>
     </div>
