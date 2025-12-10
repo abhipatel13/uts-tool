@@ -49,7 +49,7 @@ export default function TaskHazardAnalytics() {
             (hazard.id && hazard.id.toString().includes(query)) ||
             (hazard.scopeOfWork && hazard.scopeOfWork.toLowerCase().includes(query)) ||
             (hazard.assetSystem && hazard.assetSystem.toLowerCase().includes(query)) ||
-            (hazard.individual && hazard.individual.toLowerCase().includes(query)) ||
+            (hazard.individuals && hazard.individuals.toLowerCase().includes(query)) ||
             (hazard.supervisor && hazard.supervisor.toLowerCase().includes(query)) ||
             (hazard.location && hazard.location.toLowerCase().includes(query)) ||
             (hazard.status && hazard.status.toLowerCase().includes(query)) ||

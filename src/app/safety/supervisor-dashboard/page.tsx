@@ -7,11 +7,20 @@ import { useToast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Shield, CheckCircle, XCircle, AlertTriangle, ClipboardList } from "lucide-react"
-import { TaskHazardApi } from "@/services"
-import type { TaskHazardWithApprovals } from "@/types"
-
+import { SupervisorApprovalApi } from "@/services"
+import type { 
+  EntityWithApprovals, 
+  Approval, 
+  ApprovableType
+} from "@/types"
+import {
+  getEntityType,
+  getEntityDisplayName,
+  isValidEntityWithApprovals
+} from "@/types"
 
 type ViewType = 'dashboard' | 'approval-requests' | 'approved-tasks' | 'rejected-tasks'
+type EntityType = 'all' | 'task_hazards' | 'risk_assessments'
 
 // Helper functions to map integer values to string representations
 const getLikelihoodString = (value: string | number): string => {
@@ -41,18 +50,22 @@ const getConsequenceString = (value: string | number): string => {
 export default function SupervisorDashboard() {
   const { toast } = useToast()
   const [currentView, setCurrentView] = useState<ViewType>('dashboard')
-  const [allTasks, setAllTasks] = useState<TaskHazardWithApprovals[]>([])
-  const [pendingApprovals, setPendingApprovals] = useState<TaskHazardWithApprovals[]>([])
-  const [approvedTasks, setApprovedTasks] = useState<TaskHazardWithApprovals[]>([])
-  const [rejectedTasks, setRejectedTasks] = useState<TaskHazardWithApprovals[]>([])
+  // Add state for entity type filtering
+  const [currentEntityType, setCurrentEntityType] = useState<EntityType>('all')
+  // Update state to handle both entity types with proper typing
+  const [allTasks, setAllTasks] = useState<EntityWithApprovals[]>([])
+  const [pendingApprovals, setPendingApprovals] = useState<EntityWithApprovals[]>([])
+  const [approvedTasks, setApprovedTasks] = useState<EntityWithApprovals[]>([])
+  const [rejectedTasks, setRejectedTasks] = useState<EntityWithApprovals[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedTask, setSelectedTask] = useState<TaskHazardWithApprovals | null>(null)
-  const [removingTaskId, setRemovingTaskId] = useState<string | null>(null)
+  const [selectedTask, setSelectedTask] = useState<EntityWithApprovals | null>(null)
+  const [removingTask, setRemovingTask] = useState<EntityWithApprovals | null>(null)
   const [isAdminOrSuperUser, setIsAdminOrSuperUser] = useState(false)
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
   const [rejectComment, setRejectComment] = useState("")
-  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null)
+  const [rejectTarget, setRejectTarget] = useState<EntityWithApprovals | null>(null)
   const [isSubmittingReject, setIsSubmittingReject] = useState(false)
+  const [taskHistory, setTaskHistory] = useState<Record<string, Approval[]>>({})
   
   // Get current tasks list based on view
   const currentTasks = currentView === 'dashboard' 
@@ -63,14 +76,56 @@ export default function SupervisorDashboard() {
     ? approvedTasks
     : rejectedTasks
   
-  // Fetch task hazards based on current view
+  // Fetch entities based on current view and entity type
   useEffect(() => {
     const fetchTasks = async () => {
       try {
         setIsLoading(true)
-        const response = await TaskHazardApi.getApprovals({includeInvalidated: true})
         
-        if (response && response.status && response.data) {
+        // Fetch approvals for both entity types if 'all', or specific type
+        let allApprovals: EntityWithApprovals[] = []
+        
+        if (currentEntityType === 'all') {
+          // Fetch both types
+          const [taskHazardResponse, riskAssessmentResponse] = await Promise.all([
+            SupervisorApprovalApi.getApprovals({ 
+              includeInvalidated: true, 
+              approvableType: 'task_hazards' 
+            }).catch(err => {
+              console.error('Error fetching task hazards:', err)
+              return { status: false, data: { entities: [], totalEntities: 0, totalApprovals: 0, filters: { status: 'all', type: 'all', includeInvalidated: false } } }
+            }),
+            SupervisorApprovalApi.getApprovals({ 
+              includeInvalidated: true, 
+              approvableType: 'risk_assessments' 
+            }).catch(err => {
+              console.error('Error fetching risk assessments:', err)
+              return { status: false, data: { entities: [], totalEntities: 0, totalApprovals: 0, filters: { status: 'all', type: 'all', includeInvalidated: false } } }
+            })
+          ])
+          
+          allApprovals = [
+            ...(taskHazardResponse?.status ? taskHazardResponse.data.entities : []),
+            ...(riskAssessmentResponse?.status ? riskAssessmentResponse.data.entities : [])
+          ]
+        } else {
+          const response = await SupervisorApprovalApi.getApprovals({
+            includeInvalidated: true,
+            approvableType: currentEntityType as ApprovableType
+          })
+          allApprovals = response?.status ? response.data.entities : []
+        }
+        
+        // Validate entities and filter out invalid ones
+        const validEntities = allApprovals.filter(entity => {
+          const isValid = isValidEntityWithApprovals(entity)
+          if (!isValid) {
+            console.warn('Invalid entity structure:', entity)
+          }
+          return isValid
+        })
+        
+        if (validEntities.length >= 0) {
           // Get the user data from localStorage
           const userData = localStorage.getItem('user')
           const user = userData ? JSON.parse(userData) : null
@@ -80,23 +135,23 @@ export default function SupervisorDashboard() {
           const isAdminOrSuper = currentUserRole === "admin" || currentUserRole === "superuser"
           setIsAdminOrSuperUser(isAdminOrSuper)
           
-          const supervisorTasks = response.data.taskHazards
+          const supervisorTasks = validEntities
           
           // Filter tasks that require approval (pending approval requests)
           const tasksRequiringApproval = supervisorTasks.filter(task => {
             // Check if the task has any pending approvals
-            return task.approvals.some(approval => approval.status === 'pending' && approval.isLatest)
+            return task.approvals.some((approval: Approval) => approval.status === 'pending' && approval.isLatest)
           })
           
           // Filter approved tasks (latest approval is approved)
           const activeTasks = supervisorTasks.filter(task => {
-            const latestApproval = task.approvals.find(approval => approval.isLatest)
+            const latestApproval = task.approvals.find((approval: Approval) => approval.isLatest)
             return latestApproval && latestApproval.status === 'approved'
           })
           
           // Filter rejected tasks (latest approval is rejected)
           const rejectedTasksList = supervisorTasks.filter(task => {
-            const latestApproval = task.approvals.find(approval => approval.isLatest)
+            const latestApproval = task.approvals.find((approval: Approval) => approval.isLatest)
             return latestApproval && latestApproval.status === 'rejected'
           })
           
@@ -133,7 +188,19 @@ export default function SupervisorDashboard() {
     
     fetchTasks()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toast, currentView])
+  }, [toast, currentView, currentEntityType])
+  
+  // Fetch task history when a task is selected
+  useEffect(() => {
+    if (selectedTask && selectedTask.id) {
+      const entityType = determineEntityType(selectedTask)
+      const taskId = selectedTask.id.toString() // Convert to string for consistent key usage
+      // Only fetch if we don't already have the history for this task
+      if (!taskHistory[taskId]) {
+        fetchTaskHistory(taskId, entityType)
+      }
+    }
+  }, [selectedTask, taskHistory])
   
   // Handle view change
   const handleViewChange = (view: ViewType) => {
@@ -141,27 +208,57 @@ export default function SupervisorDashboard() {
     setSelectedTask(null)
   }
   
-  const handleTaskAction = async (taskId: string, action: 'Approved' | 'Rejected', comments?: string) => {
+
+  // Helper function to determine entity type (using imported type guard)
+  const determineEntityType = (entity: EntityWithApprovals): ApprovableType => {
+    return getEntityType(entity)
+  }
+  
+  // Function to fetch full approval history for a task
+  const fetchTaskHistory = async (taskId: string, entityType: ApprovableType) => {
     try {
+      const response = await SupervisorApprovalApi.getApprovalHistory(taskId, entityType)
+      if (response && response.status && response.data && response.data.approvals) {
+        setTaskHistory(prev => ({
+          ...prev,
+          [taskId]: response.data.approvals
+        }))
+      }
+    } catch (error) {
+      console.error('Error fetching task history:', error)
+    }
+  }
+  
+  const handleTaskAction = async (entity: EntityWithApprovals, action: 'Approved' | 'Rejected', comments?: string) => {
+    try {
+      const entityId = entity.id
       // Set the removing task ID to trigger the fade-out animation
-      setRemovingTaskId(taskId)
+      setRemovingTask(entity)
       
-      // Update task status
-      await TaskHazardApi.approveOrRejectTaskHazard(taskId, action, comments || '')
+      const entityType = determineEntityType(entity)
+      if (!entity.latestApproval){
+        console.error('Entity has no latest approval:', entity)
+        return;
+      }
+
+      // Update entity status using the new polymorphic API
+      await SupervisorApprovalApi.approveOrReject(entity.latestApproval.id.toString(), action, comments || '')
       
       const isApproved = action === 'Approved'
       
+      const entityTypeName = getEntityDisplayName(entityType)
+      
       toast({
         title: "Success",
-        description: `Task has been ${isApproved ? 'approved' : 'rejected'} and removed from pending requests.`,
+        description: `${entityTypeName} has been ${isApproved ? 'approved' : 'rejected'} and removed from pending requests.`,
         variant: "default",
       })
       
       // Wait for the animation to complete before removing from state
       setTimeout(() => {
-        // Remove the task from the pending approvals list
+        // Remove the entity from the pending approvals list
         setPendingApprovals(prevApprovals => {
-          const updatedApprovals = prevApprovals.filter(approval => approval.id !== taskId)
+          const updatedApprovals = prevApprovals.filter(approval => approval.id !== entityId)
           // If there are still approvals, select the first one
           if (updatedApprovals.length > 0) {
             setSelectedTask(updatedApprovals[0])
@@ -171,8 +268,8 @@ export default function SupervisorDashboard() {
           return updatedApprovals
         })
         
-        // Find the task in all tasks and update its approvals
-        const updatedTask = allTasks.find(t => t.id === taskId)
+        // Find the entity in all tasks and update its approvals
+        const updatedTask = allTasks.find(t => t.id === entityId)
         if (updatedTask) {
           // Update the latest approval status
           const updatedTaskWithApproval = {
@@ -193,28 +290,31 @@ export default function SupervisorDashboard() {
           
           // Update all tasks list
           setAllTasks(prevAll => 
-            prevAll.map(t => t.id === taskId ? updatedTaskWithApproval : t)
+            prevAll.map(t => t.id === entityId ? updatedTaskWithApproval : t)
           )
         }
         
         // Reset the removing task ID
-        setRemovingTaskId(null)
+        setRemovingTask(null)
       }, 300) // Animation duration
     } catch (error) {
-      console.error(`Error ${action.toLowerCase()} task:`, error)
-      setRemovingTaskId(null) // Reset in case of error
+      console.error(`Error ${action.toLowerCase()} entity:`, error)
+      setRemovingTask(null) // Reset in case of error
+      
+      const entityTypeName = entity ? getEntityDisplayName(determineEntityType(entity)).toLowerCase() : 'entity'
+      
       toast({
         title: "Error",
-        description: `Failed to ${action.toLowerCase()} task.`,
+        description: `Failed to ${action.toLowerCase()} ${entityTypeName}.`,
         variant: "destructive",
       })
     }
   }
   
-  // Wrapper functions for backwards compatibility
-  const handleApprove = (taskId: string) => handleTaskAction(taskId, 'Approved')
-  const handleReject = (taskId: string) => {
-    setRejectTargetId(taskId)
+  // Wrapper functions for approve/reject actions
+  const handleApprove = (entity: EntityWithApprovals) => handleTaskAction(entity, 'Approved')
+  const handleReject = (entity: EntityWithApprovals) => {
+    setRejectTarget(entity)
     setRejectComment("")
     setIsRejectDialogOpen(true)
   }
@@ -223,13 +323,13 @@ export default function SupervisorDashboard() {
     setIsRejectDialogOpen(open)
     if (!open) {
       setRejectComment("")
-      setRejectTargetId(null)
+      setRejectTarget(null)
       setIsSubmittingReject(false)
     }
   }
 
   const confirmReject = async () => {
-    if (!rejectTargetId) return
+    if (!rejectTarget) return
     const comment = rejectComment.trim()
     if (comment.length === 0) {
       toast({
@@ -241,17 +341,17 @@ export default function SupervisorDashboard() {
     }
     try {
       setIsSubmittingReject(true)
-      await handleTaskAction(rejectTargetId, 'Rejected', comment)
+      await handleTaskAction(rejectTarget, 'Rejected', comment)
       setIsRejectDialogOpen(false)
       setRejectComment("")
-      setRejectTargetId(null)
+      setRejectTarget(null)
     } finally {
       setIsSubmittingReject(false)
     }
   }
 
   // Helper function to get task status display info
-  const getTaskStatusInfo = (task: TaskHazardWithApprovals) => {
+  const getTaskStatusInfo = (task: EntityWithApprovals) => {
     const latestApproval = task.approvals.find(approval => approval.isLatest)
     
     if (!latestApproval) {
@@ -322,12 +422,6 @@ export default function SupervisorDashboard() {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <div className="w-72 bg-white border-r overflow-y-auto">
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-bold">
-            {isAdminOrSuperUser ? 'Task Management' : 'Supervisor Dashboard'}
-          </h2>
-        </div>
-        
         {/* Sidebar Menu */}
         <div className="py-2">
           {/* Dashboard Overview */}
@@ -398,7 +492,7 @@ export default function SupervisorDashboard() {
               <span className={`${
                 currentView === 'approved-tasks' ? 'text-green-700 font-medium' : 'text-gray-700'
               }`}>
-                Approved Tasks
+                Approved Assessments
               </span>
               {approvedTasks.length > 0 && (
                 <span className="ml-2 bg-green-100 text-green-800 text-xs font-medium py-0.5 px-2 rounded-full">
@@ -424,7 +518,7 @@ export default function SupervisorDashboard() {
               <span className={`${
                 currentView === 'rejected-tasks' ? 'text-red-700 font-medium' : 'text-gray-700'
               }`}>
-                Rejected Tasks
+                Rejected Assessments
               </span>
               {rejectedTasks.length > 0 && (
                 <span className="ml-2 bg-red-100 text-red-800 text-xs font-medium py-0.5 px-2 rounded-full">
@@ -435,16 +529,49 @@ export default function SupervisorDashboard() {
           </div>
         </div>
         
+        {/* Entity Type Filter Section */}
+        <div className="px-4 pt-4 pb-2 border-t">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Assessment Type
+          </h3>
+          <div className="space-y-1">
+            <div 
+              className={`px-3 py-2 cursor-pointer rounded-md ${
+                currentEntityType === 'all' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'
+              }`}
+              onClick={() => setCurrentEntityType('all')}
+            >
+              All Types
+            </div>
+            <div 
+              className={`px-3 py-2 cursor-pointer rounded-md ${
+                currentEntityType === 'task_hazards' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'
+              }`}
+              onClick={() => setCurrentEntityType('task_hazards')}
+            >
+              Task Hazards
+            </div>
+            <div 
+              className={`px-3 py-2 cursor-pointer rounded-md ${
+                currentEntityType === 'risk_assessments' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'
+              }`}
+              onClick={() => setCurrentEntityType('risk_assessments')}
+            >
+              Risk Assessments
+            </div>
+          </div>
+        </div>
+        
         {/* Task List Section */}
         <div className="px-4 pt-4 pb-2 border-t mt-2">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
             {currentView === 'dashboard'
-              ? isAdminOrSuperUser ? 'ALL TASKS' : 'MY TASKS'
+              ? isAdminOrSuperUser ? 'ALL Assessments' : 'MY Assessments'
               : currentView === 'approval-requests' 
               ? 'PENDING REQUESTS' 
               : currentView === 'approved-tasks'
-              ? 'APPROVED TASKS'
-              : 'REJECTED TASKS'
+              ? 'APPROVED Assessments'
+              : 'REJECTED Assessments'
             }
           </h3>
           
@@ -469,7 +596,7 @@ export default function SupervisorDashboard() {
                   <div 
                     key={task.id} 
                     className={`p-3 rounded-md cursor-pointer transition-all duration-300 ${
-                      removingTaskId === task.id 
+                      removingTask === task 
                         ? 'opacity-0 transform translate-x-4' 
                         : 'opacity-100'
                     } ${
@@ -534,50 +661,60 @@ export default function SupervisorDashboard() {
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">
-            {isAdminOrSuperUser ? 'Task Management Dashboard' : 'Supervisor Dashboard'} - {currentView === 'dashboard'
-              ? isAdminOrSuperUser ? 'All Tasks' : 'My Tasks'
+            Approval Management Dashboard - {currentView === 'dashboard'
+              ? isAdminOrSuperUser ? 'All Assessments' : 'My Assessments'
               : currentView === 'approval-requests' 
               ? 'Approval Requests' 
               : currentView === 'approved-tasks'
-              ? 'Approved Tasks'
-              : 'Rejected Tasks'
+              ? 'Approved Assessments'
+              : 'Rejected Assessments'
             }
           </h1>
-          
           {isLoading ? (
             <Card>
               <CardContent className="pt-6">
-                <div className="text-center py-8">Loading tasks...</div>
+                <div className="text-center py-8">Loading Assessments...</div>
               </CardContent>
             </Card>
           ) : selectedTask ? (
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {currentView === 'approval-requests' 
-                    ? 'Task Approval Details' 
-                    : 'Task Details'
-                  }
+                  {(() => {
+                    const entityType = determineEntityType(selectedTask)
+                    const entityName = getEntityDisplayName(entityType)
+                    return currentView === 'approval-requests' 
+                      ? `${entityName} Approval Details` 
+                      : `${entityName} Details`
+                  })()}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Task ID</h3>
+                    <h3 className="text-sm font-medium text-gray-500">ID</h3>
                     <p>{selectedTask.id}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Date & Time</h3>
                     <p>{selectedTask.date} {selectedTask.time}</p>
                   </div>
+                  {/* Conditional fields based on entity type */}
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Individual/Team</h3>
-                    <p>{selectedTask.individual}</p>
+                    <h3 className="text-sm font-medium text-gray-500">
+                      {determineEntityType(selectedTask) === 'task_hazards' ? 'Individual/Team' : 'Individuals'}
+                    </h3>
+                    <p>
+                      {Array.isArray(selectedTask.individuals) 
+                        ? selectedTask.individuals.map(ind => ind.email || ind.name || ind.id).join(', ')
+                        : selectedTask.individuals || 'N/A'
+                      }
+                    </p>
                   </div>
                   {isAdminOrSuperUser && (
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Supervisor</h3>
-                      <p>{selectedTask.supervisor}</p>
+                      <p>{selectedTask.supervisor || 'N/A'}</p>
                     </div>
                   )}
                   <div>
@@ -694,14 +831,14 @@ export default function SupervisorDashboard() {
                     <Button 
                       variant="outline" 
                       className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700"
-                      onClick={() => handleReject(selectedTask.id)}
+                      onClick={() => handleReject(selectedTask)}
                     >
                       <XCircle className="h-4 w-4 mr-2" />
                       Reject
                     </Button>
                     <Button 
                       className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => handleApprove(selectedTask.id)}
+                      onClick={() => handleApprove(selectedTask)}
                     >
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Approve
@@ -710,118 +847,128 @@ export default function SupervisorDashboard() {
                 )}
                 
                 {/* Approval History Section */}
-                {selectedTask.approvals.length > 1 && (
+                {(selectedTask.approvals.length > 1 || (taskHistory[selectedTask.id.toString()] && taskHistory[selectedTask.id.toString()].length > 0)) && (
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-3">Approval History</h3>
                     <div className="space-y-3">
-                      {selectedTask.approvals
+                      {/* Use task history if available, otherwise fallback to basic approval data */}
+                      {(taskHistory[selectedTask.id.toString()] || selectedTask.approvals)
                         .filter(approval => !approval.isLatest)
                         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                        .map((approval, approvalIndex) => (
-                          <div 
-                            key={approval.id || `approval-${approvalIndex}`} 
-                            className={`border rounded-md p-4 ${
-                              approval.isInvalidated
-                                ? 'bg-gray-50 border-gray-200 opacity-75'
-                                : approval.status === 'approved'
-                                ? 'bg-green-50 border-green-200'
-                                : approval.status === 'rejected'
-                                ? 'bg-red-50 border-red-200'
-                                : 'bg-amber-50 border-amber-200'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                {approval.status === 'approved' ? (
-                                  <CheckCircle className="h-4 w-4 text-green-500" />
-                                ) : approval.status === 'rejected' ? (
-                                  <XCircle className="h-4 w-4 text-red-500" />
-                                ) : (
-                                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                                )}
-                                <span className={`text-sm font-medium ${
-                                  approval.isInvalidated
-                                    ? 'text-gray-600'
-                                    : approval.status === 'approved'
-                                    ? 'text-green-700'
-                                    : approval.status === 'rejected'
-                                    ? 'text-red-700'
-                                    : 'text-amber-700'
-                                }`}>
-                                  {approval.status.charAt(0).toUpperCase() + approval.status.slice(1)}
-                                  {approval.isInvalidated && ' (Invalidated)'}
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-500 text-right">
-                                <div>Processed: {approval.processedAt ? new Date(approval.processedAt).toLocaleString() : 'Pending'}</div>
-                                <div>Created: {new Date(approval.createdAt).toLocaleString()}</div>
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                              <div>
-                                <span className="text-xs font-medium text-gray-600">Supervisor:</span>
-                                <p className="text-sm">{approval.supervisor.name} ({approval.supervisor.email})</p>
-                              </div>
-                              {approval.comments && (
-                                <div>
-                                  <span className="text-xs font-medium text-gray-600">Comments:</span>
-                                  <p className="text-sm">{approval.comments}</p>
+                        .map((approval, approvalIndex) => {
+                          // Get the snapshot data - use discriminated union
+                          const snapshotData = approval.approvableSnapshot || null;
+                          const risksData = approval.risksSnapshot || snapshotData?.risks || [];
+                          
+                          return (
+                            <div 
+                              key={approval.id || `approval-${approvalIndex}`} 
+                              className={`border rounded-md p-4 ${
+                                approval.isInvalidated
+                                  ? 'bg-gray-50 border-gray-200 opacity-75'
+                                  : approval.status === 'approved'
+                                  ? 'bg-green-50 border-green-200'
+                                  : approval.status === 'rejected'
+                                  ? 'bg-red-50 border-red-200'
+                                  : 'bg-amber-50 border-amber-200'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  {approval.status === 'approved' ? (
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                  ) : approval.status === 'rejected' ? (
+                                    <XCircle className="h-4 w-4 text-red-500" />
+                                  ) : (
+                                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                  )}
+                                  <span className={`text-sm font-medium ${
+                                    approval.isInvalidated
+                                      ? 'text-gray-600'
+                                      : approval.status === 'approved'
+                                      ? 'text-green-700'
+                                      : approval.status === 'rejected'
+                                      ? 'text-red-700'
+                                      : 'text-amber-700'
+                                  }`}>
+                                    {approval.status.charAt(0).toUpperCase() + approval.status.slice(1)}
+                                    {approval.isInvalidated && ' (Invalidated)'}
+                                  </span>
                                 </div>
-                              )}
-                            </div>
-                            
-                            {/* Task Snapshot at time of approval */}
-                            <div className="border-t pt-3 mt-3">
-                              <span className="text-xs font-medium text-gray-600 mb-2 block">Task State at Time of Approval:</span>
-                              <div className="text-sm space-y-1">
-                                <div><span className="font-medium">Date:</span> {approval.taskHazardData.date}</div>
-                                <div><span className="font-medium">Scope:</span> {approval.taskHazardData.scopeOfWork}</div>
-                                                                 {approval.taskHazardData.risks.length > 0 && (
-                                   <div className="mt-2">
-                                     <span className="font-medium">Risks at that time:</span>
-                                     <div className="mt-1 space-y-2">
-                                       {approval.taskHazardData.risks.map((risk, riskIndex) => (
-                                         <div key={risk.id || `history-risk-${approvalIndex}-${riskIndex}`} className="text-xs bg-white rounded p-3 border">
-                                           <div className="font-medium mb-2">{risk.riskDescription}</div>
-                                                                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-600">
-                                              <div>
-                                                <span className="font-medium text-gray-700">Risk Type:</span>
-                                                <div>{risk.riskType || 'Not specified'}</div>
-                                              </div>
-                                              <div>
-                                                <span className="font-medium text-gray-700">As-Is Assessment:</span>
-                                                <div>{getLikelihoodString(risk.asIsLikelihood || 'N/A')} / {getConsequenceString(risk.asIsConsequence || 'N/A')}</div>
-                                              </div>
-                                              <div className="sm:col-span-2">
-                                                <span className="font-medium text-gray-700">Mitigation:</span>
-                                                <div>{risk.mitigatingAction}</div>
-                                              </div>
-                                              <div>
-                                                <span className="font-medium text-gray-700">Mitigation Type:</span>
-                                                <div>{risk.mitigatingActionType || 'Not specified'}</div>
-                                              </div>
-                                              <div>
-                                                <span className="font-medium text-gray-700">Post-Mitigation:</span>
-                                                <div>{getLikelihoodString(risk.mitigatedLikelihood || 'N/A')} / {getConsequenceString(risk.mitigatedConsequence || 'N/A')}</div>
-                                              </div>
-                                              {risk.requiresSupervisorSignature && (
-                                                <div className="sm:col-span-2">
-                                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                                    ⚠️ Required Supervisor Signature
-                                                  </span>
+                                <div className="text-xs text-gray-500 text-right">
+                                  <div>Processed: {approval.processedAt ? new Date(approval.processedAt).toLocaleString() : 'Pending'}</div>
+                                  <div>Created: {new Date(approval.createdAt).toLocaleString()}</div>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                <div>
+                                  <span className="text-xs font-medium text-gray-600">Supervisor:</span>
+                                  <p className="text-sm">{approval.supervisor.name} ({approval.supervisor.email})</p>
+                                </div>
+                                {approval.comments && (
+                                  <div>
+                                    <span className="text-xs font-medium text-gray-600">Comments:</span>
+                                    <p className="text-sm">{approval.comments}</p>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Task Snapshot at time of approval */}
+                              <div className="border-t pt-3 mt-3">
+                                <span className="text-xs font-medium text-gray-600 mb-2 block">Assessment State at Time of Approval:</span>
+                                <div className="text-sm space-y-1">
+                                  <div><span className="font-medium">Date:</span> {snapshotData?.date || selectedTask.date || 'N/A'}</div>
+                                  <div><span className="font-medium">Scope:</span> {snapshotData?.scopeOfWork || selectedTask.scopeOfWork || 'N/A'}</div>
+                                  {snapshotData?.location && (
+                                    <div><span className="font-medium">Location:</span> {snapshotData.location}</div>
+                                  )}
+                                  {risksData && risksData.length > 0 && (
+                                     <div className="mt-2">
+                                       <span className="font-medium">Risks at that time:</span>
+                                       <div className="mt-1 space-y-2">
+                                         {risksData.map((risk, riskIndex) => (
+                                           <div key={risk.id || `history-risk-${approvalIndex}-${riskIndex}`} className="text-xs bg-white rounded p-3 border">
+                                             <div className="font-medium mb-2">{risk.riskDescription}</div>
+                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-600">
+                                                <div>
+                                                  <span className="font-medium text-gray-700">Risk Type:</span>
+                                                  <div>{risk.riskType || 'Not specified'}</div>
                                                 </div>
-                                              )}
-                                            </div>
-                                         </div>
-                                       ))}
+                                                <div>
+                                                  <span className="font-medium text-gray-700">As-Is Assessment:</span>
+                                                  <div>{getLikelihoodString(risk.asIsLikelihood || 'N/A')} / {getConsequenceString(risk.asIsConsequence || 'N/A')}</div>
+                                                </div>
+                                                <div className="sm:col-span-2">
+                                                  <span className="font-medium text-gray-700">Mitigation:</span>
+                                                  <div>{risk.mitigatingAction}</div>
+                                                </div>
+                                                <div>
+                                                  <span className="font-medium text-gray-700">Mitigation Type:</span>
+                                                  <div>{risk.mitigatingActionType || 'Not specified'}</div>
+                                                </div>
+                                                <div>
+                                                  <span className="font-medium text-gray-700">Post-Mitigation:</span>
+                                                  <div>{getLikelihoodString(risk.mitigatedLikelihood || 'N/A')} / {getConsequenceString(risk.mitigatedConsequence || 'N/A')}</div>
+                                                </div>
+                                                {risk.requiresSupervisorSignature && (
+                                                  <div className="sm:col-span-2">
+                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                                      ⚠️ Required Supervisor Signature
+                                                    </span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                           </div>
+                                         ))}
+                                       </div>
                                      </div>
-                                   </div>
-                                 )}
+                                   )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                     </div>
                   </div>
                 )}

@@ -11,37 +11,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { UniversalUserApi } from "@/services/universalUserApi";
 import { TaskHazardApi } from "@/services/taskHazardApi";
+import { TaskHazard } from "@/types";
 
-interface TaskHazard {
-  id: string;
-  date: string;
-  time: string;
-  scopeOfWork: string;
-  assetSystem: string;
-  systemLockoutRequired: boolean;
-  trainedWorkforce: boolean;
-  risks: {
-    id?: string;
-    riskDescription: string;
-    riskType: string;
-    asIsLikelihood: string;
-    asIsConsequence: string;
-    mitigatingAction: string;
-    mitigatingActionType: string;
-    mitigatedLikelihood: string;
-    mitigatedConsequence: string;
-    requiresSupervisorSignature: boolean;
-  }[];
-  individual: string;
-  supervisor: string;
-  status: string;
-  location: string;
-  company_id?: number;
-  company?: {
-    id: number;
-    name: string;
-  };
-}
 
 interface TaskHazardStats {
   total: number;
@@ -159,7 +130,7 @@ export default function TaskHazardAnalyticsPage() {
         const allTaskHazards = await TaskHazardApi.getTaskHazardsUniversal();
         if (allTaskHazards.status && allTaskHazards.data) {
           const filteredTaskHazards = allTaskHazards.data.filter((taskHazard: TaskHazard) => 
-            taskHazard.company_id === parseInt(companyFilter) || taskHazard.company?.id === parseInt(companyFilter)
+            taskHazard.companyId === parseInt(companyFilter) || taskHazard.company?.id === parseInt(companyFilter)
           );
           setTaskHazards(filteredTaskHazards);
           calculateStats(filteredTaskHazards);
@@ -202,7 +173,7 @@ export default function TaskHazardAnalyticsPage() {
     const matchesRiskType = riskTypeFilter === 'all' || 
       taskHazard.risks.some(risk => risk.riskType === riskTypeFilter);
     const matchesCompany = companyFilter === 'all' || 
-      taskHazard.company_id === parseInt(companyFilter) || 
+      taskHazard.companyId === parseInt(companyFilter) || 
       taskHazard.company?.id === parseInt(companyFilter);
     const matchesSearch = searchTerm === '' || 
       taskHazard.scopeOfWork.toLowerCase().includes(searchTerm.toLowerCase()) ||

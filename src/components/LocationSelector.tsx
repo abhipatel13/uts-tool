@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps'
 import type { MapMouseEvent } from '@vis.gl/react-google-maps'
+import { parseLocationString } from '@/lib/map-utils'
 
 interface LocationSelectorProps {
   value: string;
@@ -33,6 +34,7 @@ export function LocationSelector({
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
   const [showMap, setShowMap] = useState(showMapByDefault)
   const [selectedMapLocation, setSelectedMapLocation] = useState({ lat: 40.760780, lng: -111.891045 }) // Default to Salt Lake City, Utah
+  const [mapZoom, setMapZoom] = useState(8) // Default zoom level
 
   const getLocation = () => {
     setIsLoadingLocation(true);
@@ -43,11 +45,12 @@ export function LocationSelector({
             const coords = `${position.coords.latitude}, ${position.coords.longitude}`;
             onChange(coords);
             
-            // Update map location
+            // Update map location with appropriate zoom for precise GPS location
             setSelectedMapLocation({
               lat: position.coords.latitude,
               lng: position.coords.longitude
             });
+            setMapZoom(14); // Zoom in for GPS location
 
           } catch (error) {
             console.error("Error getting location name:", error);
@@ -111,9 +114,11 @@ export function LocationSelector({
   // Update map location when location value changes (for manual entry or GPS)
   useEffect(() => {
     if (value && typeof value === 'string') {
-      const [lat, lng] = value.split(',').map(coord => parseFloat(coord.trim()));
-      if (!isNaN(lat) && !isNaN(lng)) {
-        setSelectedMapLocation({ lat, lng });
+      const coords = parseLocationString(value);
+      if (coords) {
+        setSelectedMapLocation(coords);
+        // Set appropriate zoom level for manually entered coordinates
+        setMapZoom(12);
       }
     }
   }, [value]);
@@ -157,8 +162,9 @@ export function LocationSelector({
           <div className="border rounded-lg p-2 overflow-hidden">
             <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}>
               <Map
+                key={`${selectedMapLocation.lat}-${selectedMapLocation.lng}-${mapZoom}`}
                 style={{ width: '100%', height: '250px' }}
-                defaultZoom={8}
+                defaultZoom={mapZoom}
                 defaultCenter={selectedMapLocation}
                 onClick={handleMapClick}
                 mapId="location-selector-map"

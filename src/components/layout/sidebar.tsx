@@ -252,6 +252,7 @@ export function Sidebar() {
 
   const handleItemClick = (item: NavItem) => {
     if (item.subItems) {
+      setIsCollapsed(false);
       toggleMenu(item.href);
     } else {
       router.push(item.href);

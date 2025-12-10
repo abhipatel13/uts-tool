@@ -122,9 +122,9 @@ export default function TaskHazardForm({
         systemLockoutRequired: task.systemLockoutRequired,
         trainedWorkforce: task.trainedWorkforce,
         risks: convertApiRisksToLocal(task.risks),
-        individuals: Array.isArray(task.individual) 
-          ? task.individual 
-          : task.individual ? task.individual.split(',').map(email => email.trim()).filter(Boolean) : [],
+        individuals: Array.isArray(task.individuals) 
+          ? task.individuals 
+          : task.individuals ? task.individuals.split(',').map(email => email.trim()).filter(Boolean) : [],
         supervisor: task.supervisor,
         status: task.status,
         location: task.location,
@@ -159,9 +159,9 @@ export default function TaskHazardForm({
         systemLockoutRequired: task.systemLockoutRequired,
         trainedWorkforce: task.trainedWorkforce,
         risks: convertApiRisksToLocal(task.risks),
-        individuals: Array.isArray(task.individual) 
-          ? task.individual 
-          : task.individual ? task.individual.split(',').map(email => email.trim()).filter(Boolean) : [],
+        individuals: Array.isArray(task.individuals) 
+          ? task.individuals 
+          : task.individuals ? task.individuals.split(',').map(email => email.trim()).filter(Boolean) : [],
         supervisor: task.supervisor,
         status: task.status,
         location: task.location,
@@ -254,7 +254,7 @@ export default function TaskHazardForm({
       const { individuals, ...formDataWithoutIndividuals } = formData;
       const formattedData = {
         ...formDataWithoutIndividuals,
-        individual: individuals.join(', '), // Convert array to comma-separated string for API
+        individuals: individuals.join(', '), // Convert array to comma-separated string for API
         risks: formData.risks.map(risk => ({
           id: risk.id || "",
           riskDescription: risk.riskDescription || "",

@@ -38,7 +38,7 @@ export default function RiskAssessmentForm({
   open,
   onOpenChange,
   mode,
-  assessment,
+  assessment: initialAssessment,
   onSuccess
 }: RiskAssessmentFormProps) {
   const { toast } = useToast() as { toast: (params: { title: string; description: string; variant?: "default" | "destructive" }) => void }
@@ -47,6 +47,7 @@ export default function RiskAssessmentForm({
   const [showRiskMatrix, setShowRiskMatrix] = useState(false)
   const [activeRiskId, setActiveRiskId] = useState<string | null>(null)
   const [isAsIsMatrix, setIsAsIsMatrix] = useState(true)
+  const [assessment, setAssessment] = useState<RiskAssessment | null>(initialAssessment || null)
 
   // Memoize the role filter to prevent unnecessary re-renders
   const supervisorRoleFilter = useMemo(() => ['supervisor', 'admin', 'superuser'], [])
@@ -67,6 +68,17 @@ export default function RiskAssessmentForm({
   const handleLocationChange = useCallback((location: string) => {
     setFormData(prev => ({...prev, location: location}))
   }, [])
+
+  useEffect(() => {
+    if (initialAssessment) {
+      const fetchAssessment = async () => {
+        const response = await RiskAssessmentApi.getRiskAssessment(initialAssessment.id)
+        console.log(response.data)
+        setAssessment(response.data)
+      }
+      fetchAssessment();
+    }
+  }, [initialAssessment])
 
   // Convert API risks to local format
   const convertApiRisksToLocal = (apiRisks: RiskAssessment['risks']): FormRisk[] => {
@@ -113,7 +125,7 @@ export default function RiskAssessmentForm({
       risks: [] as FormRisk[],
       individuals: [] as string[],
       supervisor: "",
-      status: "Active",
+      status: "Pending", // Risk assessments always require approval
       location: "",
     }
   })
@@ -211,9 +223,6 @@ export default function RiskAssessmentForm({
     setIsSubmitting(true);
 
     try {
-      // Check if any risks require supervisor signature
-      const requiresSupervisorApproval = formData.risks.some(risk => risk.requiresSupervisorSignature);
-      
       // Convert FormRisk to Risk for API submission
       const formattedData = {
         ...formData,
@@ -238,9 +247,7 @@ export default function RiskAssessmentForm({
         await RiskAssessmentApi.createRiskAssessment(createData);
         toast({
           title: "Success",
-          description: requiresSupervisorApproval 
-            ? "Risk assessment has been created and is pending supervisor approval."
-            : "Risk assessment has been created successfully.",
+          description: "Risk assessment has been created and is pending supervisor approval.",
           variant: "default",
         })
       } else {
@@ -249,21 +256,11 @@ export default function RiskAssessmentForm({
           throw new Error('Assessment ID is required for updates');
         }
         await RiskAssessmentApi.updateRiskAssessment(assessmentId, formattedData);
-        if (formattedData.status === 'Completed') {
-          toast({
-            title: "Success",
-            description: "Risk assessment has been updated successfully.",
-            variant: "default",
-          })
-        } else {
-          toast({
-            title: "Success",
-            description: requiresSupervisorApproval 
-              ? "Risk assessment has been updated and is pending supervisor approval."
-              : "Risk assessment has been updated successfully.",
-            variant: "default",
-          })
-        }
+        toast({
+          title: "Success",
+          description: "Risk assessment has been updated successfully.",
+          variant: "default",
+        })
       }
       
       onOpenChange(false);
@@ -435,21 +432,32 @@ export default function RiskAssessmentForm({
             </div>
 
             {mode === 'edit' && (
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="status" className="text-sm font-medium">Status</Label>
-                <select
-                  id="status"
-                  className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={formData.status}
-                  onChange={(e) => setFormData(prev => ({...prev, status: e.target.value}))}
-                >
-                  <option value="Active">Active</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Rejected">Rejected</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-              </div>
+              <>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+                  <select
+                    id="status"
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={formData.status}
+                    onChange={(e) => setFormData(prev => ({...prev, status: e.target.value}))}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+                {assessment?.latestApproval && assessment.latestApproval.status === 'rejected' && (
+                <div className="space-y-2">
+                  <Label htmlFor="Comments" className="text-sm font-medium">Comments</Label>
+                  <p>{(() => {
+                    const comments = assessment?.latestApproval?.comments || "No comments"
+                    return comments.split('Comments: ').at(-1);
+                  })()}</p>
+                </div>
+                )}
+              </>
             )}
 
             <div className="space-y-4 md:col-span-2">

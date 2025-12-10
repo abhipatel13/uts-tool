@@ -1,6 +1,8 @@
 // Centralized risk-related types and interfaces
 
 import { Company } from "@/services/universalUserApi";
+// Import Approval type for RiskAssessmentWithApprovals
+import type { Approval } from './supervisor-approval';
 
 // Risk level types
 export type RiskLevel = 'Very Unlikely' | 'Unlikely' | 'Likely' | 'Very Likely';
@@ -37,6 +39,7 @@ export interface RiskAssessment {
   createdOn?: string;
   company_id?: number;
   company?: Company
+  latestApproval?: Approval;
 }
 
 // Risk matrix related types
@@ -59,3 +62,4 @@ export interface RiskCategory {
   label: string;
   color: string;
 }
+

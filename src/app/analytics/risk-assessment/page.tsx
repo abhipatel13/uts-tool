@@ -24,7 +24,7 @@ export default function RiskAssessmentAnalytics() {
 
   // Consolidated fetchRiskAssessments function
   const fetchRiskAssessments = async () => {
-    const response = await RiskAssessmentApi.getRiskAssessments()
+    const response = await RiskAssessmentApi.getRiskAssessments({limit: 1000})
     if (response && response.status && Array.isArray(response.data)) {
       setRiskAssessments(response.data)
     } else {
