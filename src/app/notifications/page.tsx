@@ -17,8 +17,10 @@ export default function NotificationsPage() {
       try {
         const response = await NotificationApi.getMyNotifications();
         setNotifications(response.data);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
-        console.error('Error fetching notifications:', error);
+        // Suppressed error logging for notifications as it is not critical
+        // console.error('Error fetching notifications:', error);
       } finally {
         setLoading(false);
       }

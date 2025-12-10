@@ -3,22 +3,20 @@
 import { useEffect, useState } from "react"
 import { TaskHazardApi } from "@/services"
 import type { TaskHazard, Risk } from "@/types"
-import TaskHazardForm from "@/components/TaskHazardForm"
-import { MapInfoDialog } from "@/components/analytics/MapInfoDialog"
+import { TaskHazardDialog, type TaskHazardDialogMode } from "@/components/task-hazard"
 import { AnalyticsPageWrapper } from "@/components/analytics/AnalyticsPageWrapper"
 
 export default function TaskHazardAnalytics() {
-  const [open, setOpen] = useState(false)
-  const [editingHazard, setEditingHazard] = useState<TaskHazard | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
 
   const [taskHazards, setTaskHazards] = useState<TaskHazard[]>([]);
   const [filterHazards, setFilterHazards] = useState<TaskHazard[]>([]);
   const [filterHazardsBy, setFilterHazardsBy] = useState<string>("Active");
   
-  // Dialog state for hazard details
+  // Dialog state - unified for view/edit
   const [selectedHazard, setSelectedHazard] = useState<TaskHazard | null>(null);
-  const [isHazardDialogOpen, setIsHazardDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<TaskHazardDialogMode>('view');
 
   // Consolidated fetchTaskHazards function
   const fetchTaskHazards = async () => {
@@ -79,33 +77,25 @@ export default function TaskHazardAnalytics() {
       onStatusFilterChange={setFilterHazardsBy}
       onMarkerClick={(hazard) => {
         setSelectedHazard(hazard);
-        setIsHazardDialogOpen(true);
+        setDialogMode('view');
+        setIsDialogOpen(true);
       }}
       mapId="task-hazard-analytics-map"
       dataKey="hazard"
       itemCountText={`Showing ${filterHazards.length} task hazard${filterHazards.length !== 1 ? 's' : ''}`}
       currentStatusFilter={filterHazardsBy}
     >
-      <TaskHazardForm
-        open={open}
-        onOpenChange={setOpen}
-        mode="edit"
-        task={editingHazard}
+      <TaskHazardDialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setSelectedHazard(null);
+          }
+        }}
+        initialMode={dialogMode}
+        task={selectedHazard}
         onSuccess={handleFormSuccess}
-      />
-
-      <MapInfoDialog
-        title="Task Hazard Details"
-        data={selectedHazard}
-        isOpen={isHazardDialogOpen}
-        onClose={() => {
-          setIsHazardDialogOpen(false);
-          setSelectedHazard(null);
-        }}
-        onEdit={() => {
-          setEditingHazard(selectedHazard)
-          setOpen(true)
-        }}
       />
     </AnalyticsPageWrapper>
   )

@@ -18,11 +18,11 @@ import type { TaskHazard, RiskType } from "@/types"
 import { riskCategories, getConsequenceLabels, getRiskScore, getRiskColor, getRiskColorText } from "@/lib/risk-utils"
 
 
-import { GeoFenceSettings } from './GeoFenceSettings'
-import { AssetSelector } from './AssetSelector'
-import { RiskMatrix } from './RiskMatrix'
-import { UserSelector } from './UserSelector'
-import { LocationSelector } from './LocationSelector'
+import { GeoFenceSettings } from '../GeoFenceSettings'
+import { AssetSelector } from '../AssetSelector'
+import { RiskMatrix } from '../RiskMatrix'
+import { UserSelector } from '../UserSelector'
+import { LocationSelector } from '../LocationSelector'
 
 // Form-specific Risk type that allows empty strings
 interface FormRisk {

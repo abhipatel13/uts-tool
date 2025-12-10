@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { RiskAssessmentApi } from "@/services"
 import type { RiskAssessment } from "@/types"
-import RiskAssessmentForm from "@/components/RiskAssessmentForm"
+import { RiskAssessmentDialog, type RiskAssessmentDialogMode } from "@/components/risk-assessment"
 
 
 // Define interface for assessment data
@@ -21,7 +21,6 @@ type RiskAssessmentData = RiskAssessment;
 
 export default function RiskAssessment() {
   const { toast } = useToast() as { toast: (params: { title: string; description: string; variant?: "default" | "destructive" }) => void }
-  const [open, setOpen] = useState(false)
 
   // Add state for API data
   const [assessments, setAssessments] = useState<RiskAssessmentData[]>([])  
@@ -30,8 +29,9 @@ export default function RiskAssessment() {
   const [searchTerm, setSearchTerm] = useState("")
   const [deleteAssessmentId, setDeleteAssessmentId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [editAssessment, setEditAssessment] = useState<RiskAssessmentData | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedAssessment, setSelectedAssessment] = useState<RiskAssessmentData | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<RiskAssessmentDialogMode>('view')
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -171,7 +171,11 @@ export default function RiskAssessment() {
             </div>
             <CommonButton 
               className="gap-2 w-full sm:w-auto sm:flex-shrink-0 order-1 sm:order-2" 
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                setSelectedAssessment(null);
+                setDialogMode('create');
+                setIsDialogOpen(true);
+              }}
             >
               <Plus className="h-4 w-4" /> ADD NEW
             </CommonButton>
@@ -202,18 +206,16 @@ export default function RiskAssessment() {
         </DialogContent>
       </Dialog>
 
-      <RiskAssessmentForm
-        open={open}
-        onOpenChange={setOpen}
-        mode="create"
-        onSuccess={fetchAssessments}
-      />
-
-      <RiskAssessmentForm
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        mode="edit"
-        assessment={editAssessment}
+      <RiskAssessmentDialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setSelectedAssessment(null);
+          }
+        }}
+        initialMode={dialogMode}
+        assessment={selectedAssessment}
         onSuccess={fetchAssessments}
       />
 
@@ -249,8 +251,9 @@ export default function RiskAssessment() {
                       key={assessment.id} 
                       className="border-b hover:bg-gray-50 cursor-pointer"
                       onClick={() => {
-                        setEditAssessment(assessment);
-                        setIsEditDialogOpen(true);
+                        setSelectedAssessment(assessment);
+                        setDialogMode('view');
+                        setIsDialogOpen(true);
                       }}
                     >
                       <td className="p-3 sm:p-4">
@@ -413,8 +416,9 @@ export default function RiskAssessment() {
                   key={assessment.id} 
                   className="bg-white rounded-lg shadow-sm border p-4 cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => {
-                    setEditAssessment(assessment);
-                    setIsEditDialogOpen(true);
+                    setSelectedAssessment(assessment);
+                    setDialogMode('view');
+                    setIsDialogOpen(true);
                   }}
                 >
                   {/* Header with ID and Actions */}

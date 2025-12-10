@@ -17,10 +17,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RiskAssessmentApi } from "@/services"
 import type { RiskAssessment, RiskType, Risk } from "@/types"
 import { riskCategories, getConsequenceLabels, getRiskScore, getRiskColor, getRiskColorText } from "@/lib/risk-utils"
-import { AssetSelector } from './AssetSelector'
-import { UserSelector } from './UserSelector'
-import { LocationSelector } from './LocationSelector'
-import { RiskMatrix } from './RiskMatrix'
+import { AssetSelector } from '../AssetSelector'
+import { UserSelector } from '../UserSelector'
+import { LocationSelector } from '../LocationSelector'
+import { RiskMatrix } from '../RiskMatrix'
 
 // Form-specific Risk type that allows empty strings
 type FormRisk = Partial<Risk>

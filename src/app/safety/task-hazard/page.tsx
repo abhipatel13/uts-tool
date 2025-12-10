@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { TaskHazardApi } from "@/services"
 import type { TaskHazard } from "@/types"
-import TaskHazardForm from "@/components/TaskHazardForm"
+import { TaskHazardDialog, type TaskHazardDialogMode } from "@/components/task-hazard"
 import {
   getRiskScore,
   getRiskColor,
@@ -24,7 +24,6 @@ import { CommonButton } from "@/components/ui/common-button"
 
 export default function TaskHazard() {
   const { toast } = useToast() as { toast: (params: { title: string; description: string; variant?: "default" | "destructive" }) => void }
-  const [open, setOpen] = useState(false)
 
   // Add state for API data
   const [tasks, setTasks] = useState<Partial<TaskHazard>[]>([])  
@@ -33,8 +32,9 @@ export default function TaskHazard() {
   const [searchTerm, setSearchTerm] = useState("")
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [editTask, setEditTask] = useState<TaskHazard | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<TaskHazard | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<TaskHazardDialogMode>('view')
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -178,7 +178,11 @@ export default function TaskHazard() {
             </div>
             <CommonButton 
               className="gap-2 w-full sm:w-auto sm:flex-shrink-0 order-1 sm:order-2" 
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                setSelectedTask(null);
+                setDialogMode('create');
+                setIsDialogOpen(true);
+              }}
             >
               <Plus className="h-4 w-4" /> ADD NEW
             </CommonButton>
@@ -209,18 +213,16 @@ export default function TaskHazard() {
         </DialogContent>
       </Dialog>
 
-      <TaskHazardForm
-        open={open}
-        onOpenChange={setOpen}
-        mode="create"
-        onSuccess={fetchTasks}
-      />
-
-      <TaskHazardForm
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        mode="edit"
-        task={editTask}
+      <TaskHazardDialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setSelectedTask(null);
+          }
+        }}
+        initialMode={dialogMode}
+        task={selectedTask}
         onSuccess={fetchTasks}
       />
 
@@ -280,8 +282,9 @@ export default function TaskHazard() {
                         key={task.id} 
                         className="border-b hover:bg-gray-50 cursor-pointer"
                         onClick={() => {
-                          setEditTask(task as TaskHazard);
-                          setIsEditDialogOpen(true);
+                          setSelectedTask(task as TaskHazard);
+                          setDialogMode('view');
+                          setIsDialogOpen(true);
                         }}
                       >
                         <td className="p-3 sm:p-4">
@@ -471,8 +474,9 @@ export default function TaskHazard() {
                     key={task.id} 
                     className="bg-white rounded-lg shadow-sm border p-4 cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => {
-                      setEditTask(task as TaskHazard);
-                      setIsEditDialogOpen(true);
+                      setSelectedTask(task as TaskHazard);
+                      setDialogMode('view');
+                      setIsDialogOpen(true);
                     }}
                   >
                     {/* Header with ID and Actions */}
