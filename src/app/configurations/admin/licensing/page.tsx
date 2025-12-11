@@ -733,10 +733,10 @@ const LicensingAdminPage = () => {
             <CardContent>
               <div className="text-2xl font-bold">
                 {/* {analytics.poolStatistics.reduce((sum: number, stat: { totalLicenses: number }) => sum + stat.totalLicenses, 0)} */}
-                {analytics.poolStatistics[0].totalLicenses ?? 0}
+                {analytics.poolStatistics[0]?.totalLicenses ?? 0}
               </div>
               <p className="text-xs text-muted-foreground">
-                Allocated: {analytics.poolStatistics[0].allocatedLicenses ?? 0}
+                Allocated: {analytics.poolStatistics[0]?.allocatedLicenses ?? 0}
               </p>
             </CardContent>
           </Card>
