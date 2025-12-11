@@ -80,6 +80,7 @@ export default function DataLoader() {
     reassignChildrenToParent,
     resetToOriginal,
     getModifiedCSV,
+    getFinalValidation,
     clearState,
   } = useAssetValidation(headerColumns)
 
@@ -444,6 +445,18 @@ export default function DataLoader() {
   const handleValidationProceed = async () => {
     if (!pendingFile || !pendingMappings || !validationResult || validationResult.hasErrors) return
 
+    // IMPORTANT: Run final validation on the actual data that will be uploaded
+    // This catches any state/timing issues where validation result doesn't match actual data
+    const finalValidation = getFinalValidation()
+    if (finalValidation.hasErrors) {
+      toast({
+        title: "Validation Failed",
+        description: `Found ${finalValidation.totalErrorCount} issue(s) in the final data. Please review and fix all errors.`,
+        variant: "destructive",
+      })
+      return
+    }
+
     setShowValidationModal(false)
     
     const tempUploadStatus = {
@@ -461,17 +474,13 @@ export default function DataLoader() {
 
       const response = await AssetHierarchyApi.uploadCSV(file, pendingMappings)
       
-      console.log('Upload response received:', response)
-      
       // Handle both possible response formats
       const isSuccess = response.status === true || ('success' in response && (response as { success: boolean }).success === true)
       if (!isSuccess || !response.data) {
-        console.error('Upload failed. Response:', response)
         throw new Error(response.message || 'Invalid response format from server')
       }
 
       const uploadData = response.data
-      console.log('Upload data:', uploadData)
       const updatedStatus = {
         id: uploadData.id,
         uploadId: uploadData.uploadId,
@@ -492,9 +501,6 @@ export default function DataLoader() {
 
       // Start polling for status updates if we have an uploadId
       const idToTrack = uploadData.uploadId || uploadData.id
-      console.log('Upload data received:', uploadData);
-      console.log('ID to track:', idToTrack);
-      
       if (idToTrack && idToTrack.trim() !== '') {
         pollUploadStatus(idToTrack)
       } else {

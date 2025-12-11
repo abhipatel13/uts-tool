@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import { AssetColumnMappings } from '@/types'
 import {
   ParsedAsset,
@@ -65,6 +65,7 @@ interface UseAssetValidationReturn {
   // Utilities
   resetToOriginal: () => void
   getModifiedCSV: () => string
+  getFinalValidation: () => ValidationResult
   
   // For clearing state
   clearState: () => void
@@ -84,6 +85,9 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
   // Validation state
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
   const [isValidating, setIsValidating] = useState(false)
+  
+  // Store the column mappings for use in fix actions
+  const columnMappingsRef = useRef<AssetColumnMappings | null>(null)
 
   // Check if there are any changes
   const hasChanges = useMemo(() => 
@@ -106,6 +110,9 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
     headersParam: string[],
     mappings: AssetColumnMappings
   ): ValidationResult => {
+    // Store the column mappings for use in fix actions
+    columnMappingsRef.current = mappings
+    
     const assets = parseAssetsFromData(data, headersParam, mappings)
     setOriginalAssets(assets)
     setParsedAssets(assets)
@@ -124,7 +131,7 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
           ? { 
               ...asset, 
               parentId: null,
-              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', '')
+              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', '', columnMappingsRef.current)
             }
           : asset
       )
@@ -142,7 +149,7 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
           ? { 
               ...asset, 
               parentId: newParentId,
-              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', newParentId)
+              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', newParentId, columnMappingsRef.current)
             }
           : asset
       )
@@ -170,7 +177,7 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
           ? { 
               ...asset, 
               parentId: null,
-              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', '')
+              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', '', columnMappingsRef.current)
             }
           : asset
       )
@@ -194,7 +201,7 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
           ? { 
               ...asset, 
               parentId: null,
-              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', '')
+              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', '', columnMappingsRef.current)
             }
           : asset
       )
@@ -212,7 +219,7 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
           ? { 
               ...asset, 
               parentId: null,
-              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', '')
+              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', '', columnMappingsRef.current)
             }
           : asset
       )
@@ -235,7 +242,7 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
           ? { 
               ...asset, 
               parentId: null,
-              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', '')
+              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', '', columnMappingsRef.current)
             }
           : asset
       )
@@ -273,7 +280,7 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
           ? { 
               ...asset, 
               id: newId,
-              originalRowData: updateRowData(asset.originalRowData, headers, 'id', newId)
+              originalRowData: updateRowData(asset.originalRowData, headers, 'id', newId, columnMappingsRef.current)
             }
           : asset
       )
@@ -285,23 +292,28 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
 
   // Delete a row (mark as deleted)
   const deleteRow = useCallback((row: number) => {
-    setDeletedRows(prev => new Set([...prev, row]))
-    // Revalidate without deleted rows
-    const remainingAssets = parsedAssets.filter(a => !deletedRows.has(a.row) && a.row !== row)
-    revalidate(remainingAssets)
-  }, [parsedAssets, deletedRows, revalidate])
+    // Use functional update to avoid stale closure issues
+    setDeletedRows(prev => {
+      const newDeletedRows = new Set([...prev, row])
+      // Revalidate with the most current data
+      // Filter using the new deletedRows set (not the stale closure value)
+      const remainingAssets = parsedAssets.filter(a => !newDeletedRows.has(a.row))
+      revalidate(remainingAssets)
+      return newDeletedRows
+    })
+  }, [parsedAssets, revalidate])
 
   // Undelete a row
   const undeleteRow = useCallback((row: number) => {
     setDeletedRows(prev => {
-      const next = new Set(prev)
-      next.delete(row)
-      return next
+      const newDeletedRows = new Set(prev)
+      newDeletedRows.delete(row)
+      // Revalidate with the updated deleted rows set
+      const remainingAssets = parsedAssets.filter(a => !newDeletedRows.has(a.row))
+      revalidate(remainingAssets)
+      return newDeletedRows
     })
-    // Revalidate with restored row
-    const remainingAssets = parsedAssets.filter(a => !deletedRows.has(a.row) || a.row === row)
-    revalidate(remainingAssets)
-  }, [parsedAssets, deletedRows, revalidate])
+  }, [parsedAssets, revalidate])
 
   // Reassign children to a new parent (or make them root assets)
   const reassignChildrenToParent = useCallback((childRows: number[], newParentId: string | null) => {
@@ -311,7 +323,7 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
           ? { 
               ...asset, 
               parentId: newParentId,
-              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', newParentId || '')
+              originalRowData: updateRowData(asset.originalRowData, headers, 'parent_id', newParentId || '', columnMappingsRef.current)
             }
           : asset
       )
@@ -335,6 +347,13 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
     return generateCSVFromAssets(activeAssets, headers)
   }, [parsedAssets, headers, deletedRows])
 
+  // Get final validation result for the actual data that will be uploaded
+  // This catches any mismatch between state validation and actual CSV data
+  const getFinalValidation = useCallback((): ValidationResult => {
+    const activeAssets = parsedAssets.filter(a => !deletedRows.has(a.row))
+    return validateParsedAssets(activeAssets)
+  }, [parsedAssets, deletedRows])
+
   // Clear all state
   const clearState = useCallback(() => {
     setOriginalAssets([])
@@ -343,6 +362,7 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
     setDeletedRows(new Set())
     setValidationResult(null)
     setIsValidating(false)
+    columnMappingsRef.current = null
   }, [])
 
   return {
@@ -367,18 +387,34 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
     reassignChildrenToParent,
     resetToOriginal,
     getModifiedCSV,
+    getFinalValidation,
     clearState,
   }
 }
 
 // Helper function to update a specific field in the original row data
+// Uses the column mappings to find the correct column, with fallback to aliases
 function updateRowData(
   rowData: string[],
   headers: string[],
   fieldName: string,
-  newValue: string
+  newValue: string,
+  columnMappings: AssetColumnMappings | null
 ): string[] {
-  // Define aliases for common field names
+  // First, try to use the column mappings (most accurate)
+  if (columnMappings) {
+    const mappedColumnName = columnMappings[fieldName as keyof AssetColumnMappings]
+    if (mappedColumnName) {
+      const fieldIndex = headers.findIndex(h => h === mappedColumnName)
+      if (fieldIndex >= 0 && fieldIndex < rowData.length) {
+        const updated = [...rowData]
+        updated[fieldIndex] = newValue
+        return updated
+      }
+    }
+  }
+
+  // Fallback: Define aliases for common field names
   const fieldAliases: Record<string, string[]> = {
     parent_id: ['parent_id', 'parent id', 'parentid', 'parent'],
     id: ['id', 'asset_id', 'assetid', 'asset id', 'identifier'],
@@ -388,7 +424,7 @@ function updateRowData(
   // Get aliases for the field (or use the field name directly)
   const aliases = fieldAliases[fieldName.toLowerCase()] || [fieldName.toLowerCase()]
   
-  // Find the column index
+  // Find the column index using aliases
   const fieldIndex = headers.findIndex(h => 
     aliases.includes(h.toLowerCase())
   )

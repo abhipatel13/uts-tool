@@ -380,15 +380,67 @@ export function countChildren(assets: ParsedAsset[], parentId: string): number {
 }
 
 /**
+ * Topologically sort assets so parents always appear before their children
+ * This ensures the backend can process them in order without missing parent references
+ */
+export function topologicalSortAssets(assets: ParsedAsset[]): ParsedAsset[] {
+  // Build lookup maps
+  const idToAsset = new Map<string, ParsedAsset>();
+  assets.forEach(a => idToAsset.set(a.id, a));
+
+  // Track which assets have been added to result
+  const added = new Set<string>();
+  const result: ParsedAsset[] = [];
+
+  // Helper function to add an asset and its ancestors first
+  function addWithAncestors(asset: ParsedAsset): void {
+    if (added.has(asset.id)) return;
+
+    // If this asset has a parent, add the parent first (recursively)
+    if (asset.parentId && idToAsset.has(asset.parentId) && !added.has(asset.parentId)) {
+      const parent = idToAsset.get(asset.parentId)!;
+      addWithAncestors(parent);
+    }
+
+    // Now add this asset
+    if (!added.has(asset.id)) {
+      added.add(asset.id);
+      result.push(asset);
+    }
+  }
+
+  // First, add all root assets (no parent or parent not in file)
+  const rootAssets = assets.filter(a => !a.parentId || !idToAsset.has(a.parentId));
+  rootAssets.forEach(asset => {
+    if (!added.has(asset.id)) {
+      added.add(asset.id);
+      result.push(asset);
+    }
+  });
+
+  // Then process remaining assets, ensuring parents come first
+  assets.forEach(asset => {
+    addWithAncestors(asset);
+  });
+
+  return result;
+}
+
+/**
  * Generate CSV content from parsed assets with original column structure
+ * Assets are topologically sorted so parents appear before children
  */
 export function generateCSVFromAssets(
   assets: ParsedAsset[],
   headers: string[]
 ): string {
+  // Topologically sort assets so parents come before children
+  const sortedAssets = topologicalSortAssets(
+    assets.filter(a => !('isDeleted' in a) || !(a as ParsedAssetWithErrors).isDeleted)
+  );
+  
   const headerLine = headers.map(h => escapeCSVValue(h)).join(',');
-  const dataLines = assets
-    .filter(a => !('isDeleted' in a) || !(a as ParsedAssetWithErrors).isDeleted)
+  const dataLines = sortedAssets
     .map(asset => asset.originalRowData.map(v => escapeCSVValue(v)).join(','));
 
   return [headerLine, ...dataLines].join('\n');
