@@ -1,41 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { NotificationApi } from '@/services';
 import { Notification } from '@/types';
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNotifications, useNotificationEventListener } from '@/hooks/useNotifications';
+import { NOTIFICATION_EVENTS } from '@/lib/notificationEvents';
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const response = await NotificationApi.getMyNotifications();
-        setNotifications(response.data);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (error) {
-        // Suppressed error logging for notifications as it is not critical
-        // console.error('Error fetching notifications:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    markAsRead,
+    refetch,
+  } = useNotifications({
+    unreadOnly: false,
+    enablePolling: true,
+  });
 
-    fetchNotifications();
-  }, []);
+  // Listen for new notifications and refetch
+  useNotificationEventListener(NOTIFICATION_EVENTS.NEW_NOTIFICATION, () => {
+    refetch();
+  });
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
       try {
-        await NotificationApi.markAsRead(notification.id);
-        setNotifications(notifications.map(n => 
-          n.id === notification.id ? { ...n, isRead: true } : n
-        ));
+        await markAsRead(notification.id);
       } catch (error) {
         console.error('Error marking notification as read:', error);
       }
@@ -43,7 +38,6 @@ export default function NotificationsPage() {
   };
 
   const unreadNotifications = notifications.filter(n => !n.isRead);
-  const unreadCount = unreadNotifications.length;
 
   const getTypeColor = (type?: string) => {
     if (!type) return 'bg-gray-100 text-gray-800';
@@ -183,7 +177,7 @@ export default function NotificationsPage() {
     );
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="bg-white rounded-lg shadow-sm border p-8 text-center text-gray-500">
@@ -238,4 +232,4 @@ export default function NotificationsPage() {
       </div>
     </div>
   );
-} 
+}

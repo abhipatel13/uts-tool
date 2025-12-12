@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,39 +9,35 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { NotificationApi } from '@/services';
-import { Notification } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import { useNotifications } from '@/hooks/useNotifications';
+import type { Notification } from '@/types';
 
+/**
+ * NotificationBell Component
+ * 
+ * Displays a bell icon with unread notification count and dropdown.
+ * Uses React Query for data fetching with automatic polling.
+ * Emits events when new notifications arrive for other pages to react.
+ */
 const NotificationBell: React.FC = () => {
   const router = useRouter();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-
-  const fetchNotifications = async () => {
-    try {
-      const response = await NotificationApi.getMyNotifications();
-      const unreadNotifications = response.data.filter(n => !n.isRead);
-      setNotifications(unreadNotifications);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      // Suppressed error logging for notifications as it is not critical
-      // console.error('Error fetching notifications:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-    // Fetch notifications every minute
-    const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+  } = useNotifications({
+    unreadOnly: true,
+    enablePolling: true,
+    emitEvents: true, // This component is responsible for emitting events
+  });
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
       try {
-        await NotificationApi.markAsRead(notification.id);
-        fetchNotifications(); // Refresh notifications
+        await markAsRead(notification.id);
       } catch (error) {
         console.error('Error marking notification as read:', error);
       }
@@ -66,8 +61,6 @@ const NotificationBell: React.FC = () => {
         break;
     }
   };
-
-  const unreadCount = notifications.length;
 
   return (
     <DropdownMenu>
@@ -125,4 +118,4 @@ const NotificationBell: React.FC = () => {
   );
 };
 
-export default NotificationBell; 
+export default NotificationBell;

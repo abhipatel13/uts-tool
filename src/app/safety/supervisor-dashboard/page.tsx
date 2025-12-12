@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -22,6 +22,8 @@ import {
 } from "@/types"
 import { TaskHazardDialog, type TaskHazardDialogMode } from "@/components/task-hazard"
 import { RiskAssessmentDialog, type RiskAssessmentDialogMode } from "@/components/risk-assessment"
+import { useNotificationEventListener } from '@/hooks/useNotifications'
+import { NOTIFICATION_EVENTS } from '@/lib/notificationEvents'
 
 type ViewType = 'dashboard' | 'approval-requests' | 'approved-tasks' | 'rejected-tasks'
 type EntityType = 'all' | 'task_hazards' | 'risk_assessments'
@@ -77,6 +79,9 @@ export default function SupervisorDashboard() {
   const [fullTaskHazard, setFullTaskHazard] = useState<TaskHazard | null>(null)
   const [fullRiskAssessment, setFullRiskAssessment] = useState<RiskAssessment | null>(null)
   const [isLoadingFullEntity, setIsLoadingFullEntity] = useState(false)
+  
+  // Refetch trigger for notification-based updates
+  const [refetchTrigger, setRefetchTrigger] = useState(0)
   
   // Get current tasks list based on view
   const currentTasks = currentView === 'dashboard' 
@@ -199,7 +204,16 @@ export default function SupervisorDashboard() {
     
     fetchTasks()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toast, currentView, currentEntityType])
+  }, [toast, currentView, currentEntityType, refetchTrigger])
+  
+  // Listen for approval notifications and refetch data
+  useNotificationEventListener(
+    NOTIFICATION_EVENTS.APPROVAL_NOTIFICATION,
+    useCallback(() => {
+      // Increment trigger to cause refetch
+      setRefetchTrigger(prev => prev + 1)
+    }, [])
+  )
   
   // Fetch task history when a task is selected
   useEffect(() => {
@@ -638,15 +652,18 @@ export default function SupervisorDashboard() {
             <div className="space-y-2">
               {currentTasks.map(task => {
                 const statusInfo = getTaskStatusInfo(task)
+                const entityType = determineEntityType(task)
+                // Create unique key combining entity type and ID to avoid collisions
+                const uniqueKey = `${entityType}-${task.id}`
                 return (
                   <div 
-                    key={task.id} 
+                    key={uniqueKey} 
                     className={`p-3 rounded-md cursor-pointer transition-all duration-300 ${
                       removingTask === task 
                         ? 'opacity-0 transform translate-x-4' 
                         : 'opacity-100'
                     } ${
-                      selectedTask?.id === task.id 
+                      selectedTask?.id === task.id && determineEntityType(selectedTask) === entityType
                         ? currentView === 'dashboard'
                           ? 'bg-blue-50 border border-blue-200'
                           : currentView === 'approval-requests'
