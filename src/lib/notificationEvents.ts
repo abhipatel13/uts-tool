@@ -62,7 +62,7 @@ export const getEventForNotificationType = (
       return NOTIFICATION_EVENTS.APPROVAL_NOTIFICATION;
     case 'risk':
       return NOTIFICATION_EVENTS.RISK_NOTIFICATION;
-    case 'task':
+    case 'hazard':
       return NOTIFICATION_EVENTS.TASK_NOTIFICATION;
     default:
       return null;

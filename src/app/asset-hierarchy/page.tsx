@@ -756,17 +756,17 @@ export default function DataLoader() {
             <DialogTitle>Delete Asset</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this asset? This action cannot be undone.
-              {assetToDelete && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                  <p className="font-medium">Asset Details:</p>
-                  <p className="text-sm text-gray-600">ID: {assetToDelete.id}</p>
-                  <p className="text-sm text-gray-600">Name: {assetToDelete.name}</p>
-                  <p className="text-sm text-gray-600">Type: {assetToDelete.objectType || 'N/A'}</p>
-                  <p className="text-sm text-gray-600">Location: {assetToDelete.functionalLocation || 'N/A'}</p>
-                </div>
-              )}
             </DialogDescription>
           </DialogHeader>
+          {assetToDelete && (
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <span className="font-medium block">Asset Details:</span>
+              <span className="text-sm text-gray-600 block">ID: {assetToDelete.id}</span>
+              <span className="text-sm text-gray-600 block">Name: {assetToDelete.name}</span>
+              <span className="text-sm text-gray-600 block">Type: {assetToDelete.objectType || 'N/A'}</span>
+              <span className="text-sm text-gray-600 block">Location: {assetToDelete.functionalLocation || 'N/A'}</span>
+            </div>
+          )}
           <DialogFooter>
             <Button 
               variant="outline" 

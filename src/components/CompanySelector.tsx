@@ -6,13 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ChevronDown, Search, X } from "lucide-react"
-import { UniversalUserApi } from "@/services/universalUserApi"
-
-interface Company {
-  id: number;
-  name: string;
-  description?: string;
-}
+import { useCompanies } from "@/hooks/useCompanies"
 
 interface CompanySelectorProps {
   value: number | number[] | null
@@ -33,38 +27,18 @@ export function CompanySelector({
   required = false,
   multiple = false,
 }: CompanySelectorProps) {
-  const [companies, setCompanies] = useState<Company[]>([])
   const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const normalizedValue: number[] = useMemo(() => {
-    if (multiple) {
-      if (Array.isArray(value)) return value
-      if (typeof value === "number") return [value]
-      return []
-    } else {
-      if (Array.isArray(value)) return value
-      if (typeof value === "number") return [value]
-      return []
-    }
-  }, [value, multiple])
+  // Use the shared companies hook
+  const { companies, isLoading, findCompany } = useCompanies()
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        setIsLoading(true)
-        const res = await UniversalUserApi.getAllCompanies()
-        if (res.status) {
-          setCompanies(res.data)
-        }
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchCompanies()
-  }, [])
+  const normalizedValue: number[] = useMemo(() => {
+    if (Array.isArray(value)) return value
+    if (typeof value === "number") return [value]
+    return []
+  }, [value])
 
   const filteredCompanies = useMemo(() => {
     const term = searchTerm.toLowerCase()
@@ -110,8 +84,8 @@ export function CompanySelector({
   }, [])
 
   const getDisplayName = (companyId: number) => {
-    const c = companies.find(c => c.id === companyId)
-    return c ? c.name : String(companyId)
+    const company = findCompany(companyId)
+    return company ? company.name : String(companyId)
   }
 
   return (
@@ -197,9 +171,7 @@ export function CompanySelector({
         )}
       </div>
 
-      {error && (
-        <span className="text-red-500 text-xs">{error}</span>
-      )}
+      {error && <span className="text-red-500 text-xs">{error}</span>}
 
       {multiple && normalizedValue.length > 0 && (
         <div className="text-sm text-gray-600">
@@ -209,5 +181,3 @@ export function CompanySelector({
     </div>
   )
 }
-
-

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import type { TaskHazard } from "@/types"
-import { TaskHazardApi } from "@/services"
 import { TaskHazardViewDialog } from './TaskHazardViewDialog'
 import TaskHazardForm from './TaskHazardForm'
+import { useTaskHazard } from '@/hooks/useTaskHazards'
 
 export type TaskHazardDialogMode = 'view' | 'edit' | 'create';
 
@@ -19,7 +19,7 @@ interface TaskHazardDialogProps {
 /**
  * Wrapper component that manages transitions between view and edit modes
  * for TaskHazard dialogs. Provides seamless UX when switching modes.
- * Automatically fetches full data when opening in view mode with partial data.
+ * Uses React Query for caching - reopening the same task is instant.
  */
 export function TaskHazardDialog({
   open,
@@ -29,48 +29,26 @@ export function TaskHazardDialog({
   onSuccess,
 }: TaskHazardDialogProps) {
   const [currentMode, setCurrentMode] = useState<TaskHazardDialogMode>(initialMode);
-  const [fullTask, setFullTask] = useState<TaskHazard | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Check if we have complete data (risks array exists)
-  const hasCompleteData = (data: TaskHazard | null | undefined): boolean => {
-    if (!data) return false;
-    // Consider data complete if risks array exists (even if empty) and is an actual array
-    return Array.isArray(data.risks);
-  };
+  // Use React Query to fetch full task data (with caching)
+  const taskId = task?.id?.toString() || null;
+  const shouldFetch = open && (currentMode === 'view' || currentMode === 'edit') && !!taskId;
+  
+  const { 
+    data: fullTaskData, 
+    isLoading,
+    isFetching,
+  } = useTaskHazard(taskId, { 
+    enabled: shouldFetch 
+  });
 
-  // Fetch full data when opening in view mode with partial data
-  useEffect(() => {
-    if (open && initialMode === 'view' && task?.id && !hasCompleteData(task)) {
-      setIsLoading(true);
-      TaskHazardApi.getTaskHazard(task.id.toString())
-        .then((response) => {
-          if (response && response.status && response.data) {
-            setFullTask(response.data);
-          } else {
-            // Fallback to partial data if fetch fails
-            setFullTask(task);
-          }
-        })
-        .catch((error) => {
-          console.error('Error fetching full task hazard data:', error);
-          // Fallback to partial data if fetch fails
-          setFullTask(task);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else if (open && task) {
-      // Use provided data if it's already complete
-      setFullTask(task);
-    }
-  }, [open, initialMode, task]);
+  // Use fetched data if available, otherwise fall back to passed task
+  const fullTask = fullTaskData || task;
 
-  // Reset mode and data when dialog closes
+  // Reset mode when dialog closes
   useEffect(() => {
     if (!open) {
       setCurrentMode(initialMode);
-      setFullTask(null);
     }
   }, [open, initialMode]);
 
@@ -93,48 +71,43 @@ export function TaskHazardDialog({
   const handleClose = (isOpen: boolean) => {
     if (!isOpen) {
       setCurrentMode(initialMode);
-      setFullTask(null);
     }
     onOpenChange(isOpen);
   };
 
-  // Loading state while fetching full data
-  if (currentMode === 'view' && isLoading) {
+  // Create mode - no need to fetch
+  if (currentMode === 'create') {
+    return (
+      <TaskHazardForm
+        open={open}
+        onOpenChange={handleClose}
+        mode="create"
+        task={null}
+        onSuccess={handleFormSuccess}
+      />
+    );
+  }
+
+  // View mode
+  if (currentMode === 'view') {
     return (
       <TaskHazardViewDialog
         open={open}
         onOpenChange={handleClose}
-        task={task || null}
+        task={isLoading ? task : (fullTask as TaskHazard | null)}
         onEdit={handleSwitchToEdit}
       />
     );
   }
 
-  // View mode with full data
-  if (currentMode === 'view' && (fullTask || task)) {
-    return (
-      <TaskHazardViewDialog
-        open={open}
-        onOpenChange={handleClose}
-        task={fullTask || task || null}
-        onEdit={handleSwitchToEdit}
-      />
-    );
-  }
-
-  // Edit or Create mode - use full data if available
+  // Edit mode
   return (
     <TaskHazardForm
       open={open}
       onOpenChange={handleClose}
-      mode={currentMode === 'create' ? 'create' : 'edit'}
-      task={fullTask || task}
+      mode="edit"
+      task={fullTask as TaskHazard | null}
       onSuccess={handleFormSuccess}
     />
   );
 }
-
-
-
-
-

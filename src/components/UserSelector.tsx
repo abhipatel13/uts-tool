@@ -1,24 +1,23 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { X, Search, ChevronDown } from "lucide-react"
-import { UserApi } from "@/services"
 import type { User } from "@/types"
-import { useToast } from "@/components/ui/use-toast"
+import { useUsers } from "@/hooks/useUsers"
 
 interface UserSelectorProps {
-  value: string | string[] // Single string for single select, array for multi-select
+  value: string | string[]
   onChange: (users: string | string[]) => void
   error?: string
   label?: string
   placeholder?: string
   required?: boolean
-  multiple?: boolean // Whether to allow multiple selections
-  roleFilter?: string[] // Filter users by specific roles
+  multiple?: boolean
+  roleFilter?: string[]
 }
 
 export function UserSelector({
@@ -31,92 +30,60 @@ export function UserSelector({
   multiple = false,
   roleFilter
 }: UserSelectorProps) {
-  const { toast } = useToast()
-  const [users, setUsers] = useState<User[]>([])
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Normalize value to always work with arrays internally for consistency
-  const normalizedValue = multiple 
-    ? (Array.isArray(value) ? value : (value ? [value] : []))
-    : (Array.isArray(value) ? value : (value ? [value] : []))
+  // Use the shared users hook with role filtering
+  const { users, isLoading: isLoadingUsers } = useUsers({ roleFilter })
 
-  // Fetch users when component mounts
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setIsLoadingUsers(true)
-        const response = await UserApi.getAllRestricted()
-        let filteredUsers = response.data
-        
-        // Apply role filter if specified
-        if (roleFilter && roleFilter.length > 0) {
-          filteredUsers = response.data.filter(user => 
-            roleFilter.includes(user.role)
-          )
-        }
-        
-        setUsers(filteredUsers)
-      } catch (error) {
-        console.error('Error fetching users:', error)
-        toast({
-          title: "Error",
-          description: "Failed to load users. Please try again later.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoadingUsers(false)
-      }
-    }
-
-    fetchUsers()
-  }, [toast, roleFilter])
+  // Normalize value to always work with arrays internally
+  const normalizedValue = useMemo(() => {
+    if (Array.isArray(value)) return value
+    return value ? [value] : []
+  }, [value])
 
   // Filter users based on search term
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = useMemo(() => {
     const searchLower = searchTerm.toLowerCase()
-    return (
+    return users.filter((user: User) => (
       user.email.toLowerCase().includes(searchLower) ||
       (user.name && user.name.toLowerCase().includes(searchLower)) ||
       user.role.toLowerCase().includes(searchLower) ||
       (user.department && user.department.toLowerCase().includes(searchLower))
-    )
-  })
+    ))
+  }, [users, searchTerm])
+
+  const availableUsers = useMemo(() => {
+    return filteredUsers.filter((user: User) => !normalizedValue.includes(user.email))
+  }, [filteredUsers, normalizedValue])
 
   const handleAddUser = (userEmail: string) => {
     if (!userEmail) return
 
     if (multiple) {
-      // Multi-select mode
       if (!normalizedValue.includes(userEmail)) {
-        const newValue = [...normalizedValue, userEmail]
-        onChange(newValue)
+        onChange([...normalizedValue, userEmail])
       }
     } else {
-      // Single-select mode
       onChange(userEmail)
       setIsOpen(false)
     }
-    setSearchTerm("") // Clear search after selection
+    setSearchTerm("")
   }
 
   const handleRemoveUser = (userEmail: string) => {
     if (multiple) {
-      const newValue = normalizedValue.filter(email => email !== userEmail)
-      onChange(newValue)
+      onChange(normalizedValue.filter(email => email !== userEmail))
     } else {
       onChange("")
     }
   }
 
   const getDisplayName = (email: string) => {
-    const user = users.find(u => u.email === email)
+    const user = users.find((u: User) => u.email === email)
     return user ? `${user.name || 'No Name'} (${user.email})` : email
   }
-
-  const availableUsers = filteredUsers.filter(user => !normalizedValue.includes(user.email))
 
   const displayValue = multiple ? normalizedValue : (normalizedValue[0] || "")
 
@@ -130,9 +97,7 @@ export function UserSelector({
     }
 
     document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   return (
@@ -141,7 +106,7 @@ export function UserSelector({
         {label} {required && "*"}
       </Label>
       
-      {/* Display selected users for multi-select or single select with value */}
+      {/* Display selected users */}
       {((multiple && normalizedValue.length > 0) || (!multiple && displayValue)) && (
         <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[2.5rem] bg-gray-50">
           {normalizedValue.map((email) => (
@@ -161,7 +126,7 @@ export function UserSelector({
         </div>
       )}
 
-      {/* Custom dropdown for user selection */}
+      {/* Custom dropdown */}
       <div className="relative" ref={dropdownRef}>
         <Button
           type="button"
@@ -200,7 +165,7 @@ export function UserSelector({
                   {users.length === 0 ? "No users found" : (multiple ? "All users selected" : "No available users")}
                 </div>
               ) : (
-                availableUsers.map((user) => (
+                availableUsers.map((user: User) => (
                   <div
                     key={user.id}
                     className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
@@ -215,13 +180,9 @@ export function UserSelector({
                           {user.role}
                         </span>
                       </div>
-                      <span className="text-sm text-gray-600">
-                        {user.email}
-                      </span>
+                      <span className="text-sm text-gray-600">{user.email}</span>
                       {user.department && (
-                        <span className="text-xs text-gray-500">
-                          {user.department}
-                        </span>
+                        <span className="text-xs text-gray-500">{user.department}</span>
                       )}
                     </div>
                   </div>
@@ -232,9 +193,7 @@ export function UserSelector({
         )}
       </div>
 
-      {error && (
-        <span className="text-red-500 text-xs">{error}</span>
-      )}
+      {error && <span className="text-red-500 text-xs">{error}</span>}
       
       {multiple && normalizedValue.length > 0 && (
         <div className="text-sm text-gray-600">
@@ -243,4 +202,4 @@ export function UserSelector({
       )}
     </div>
   )
-} 
+}

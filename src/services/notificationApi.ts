@@ -11,4 +11,9 @@ export const NotificationApi = {
   markAsRead: async (notificationId: number): Promise<ApiResponse<void>> => {
     return api.put<ApiResponse<void>>(`/api/notifications/${notificationId}/mark-read`);
   },
+
+  // Mark all notifications as read
+  markAllAsRead: async (): Promise<ApiResponse<void>> => {
+    return api.put<ApiResponse<void>>('/api/notifications/mark-all-read');
+  },
 }; 

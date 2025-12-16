@@ -2,20 +2,34 @@
 
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'next/navigation';
 import { Notification } from '@/types';
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useNotifications, useNotificationEventListener } from '@/hooks/useNotifications';
 import { NOTIFICATION_EVENTS } from '@/lib/notificationEvents';
+import { CheckCheck } from 'lucide-react';
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState('all');
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
+  const router = useRouter();
 
   const {
     notifications,
     unreadCount,
     isLoading,
     markAsRead,
+    markAllAsRead,
     refetch,
   } = useNotifications({
     unreadOnly: false,
@@ -28,12 +42,46 @@ export default function NotificationsPage() {
   });
 
   const handleNotificationClick = async (notification: Notification) => {
+    setSelectedNotification(notification);
+    
     if (!notification.isRead) {
       try {
         await markAsRead(notification.id);
       } catch (error) {
         console.error('Error marking notification as read:', error);
       }
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    setIsMarkingAllRead(true);
+    try {
+      await markAllAsRead();
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    } finally {
+      setIsMarkingAllRead(false);
+    }
+  };
+
+  const getNavigationConfig = (type?: string) => {
+    switch (type) {
+      case 'approval':
+        return { path: '/safety/supervisor-dashboard', label: 'Go to Supervisor Dashboard' };
+      case 'risk':
+        return { path: '/safety/risk-assessment', label: 'Go to Risk Assessments' };
+      case 'hazard':
+        return { path: '/safety/task-hazard', label: 'Go to Task Hazards' };
+      default:
+        return null;
+    }
+  };
+
+  const handleNavigateToPage = () => {
+    const navConfig = getNavigationConfig(selectedNotification?.type);
+    if (navConfig) {
+      setSelectedNotification(null);
+      router.push(navConfig.path);
     }
   };
 
@@ -190,6 +238,8 @@ export default function NotificationsPage() {
     );
   }
 
+  const navConfig = getNavigationConfig(selectedNotification?.type);
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
@@ -218,6 +268,22 @@ export default function NotificationsPage() {
           </TabsContent>
           
           <TabsContent value="unread" className="mt-0">
+            {/* Mark All as Read Button */}
+            {unreadCount > 0 && (
+              <div className="flex justify-end mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleMarkAllAsRead}
+                  disabled={isMarkingAllRead}
+                  className="gap-2"
+                >
+                  <CheckCheck className="h-4 w-4" />
+                  {isMarkingAllRead ? 'Marking...' : 'Mark All as Read'}
+                </Button>
+              </div>
+            )}
+            
             {/* Desktop/Tablet Table View */}
             <div className="hidden md:block">
               {renderDesktopTable(unreadNotifications)}
@@ -230,6 +296,48 @@ export default function NotificationsPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Notification Detail Modal */}
+      <Dialog open={!!selectedNotification} onOpenChange={(open) => !open && setSelectedNotification(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(selectedNotification?.type)}`}>
+                {selectedNotification?.type || 'notification'}
+              </span>
+              {selectedNotification && !selectedNotification.isRead && (
+                <Badge variant="default" className="bg-blue-500 hover:bg-blue-600 text-xs">New</Badge>
+              )}
+            </div>
+            <DialogTitle className="text-[#2C3E50]">{selectedNotification?.title}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 whitespace-pre-wrap">
+              {selectedNotification?.message}
+            </p>
+            
+            <div className="text-xs text-gray-500">
+              {selectedNotification && formatDistanceToNow(new Date(selectedNotification.createdAt), { addSuffix: true })}
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {navConfig && (
+              <Button onClick={handleNavigateToPage} className="w-full sm:w-auto">
+                {navConfig.label}
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              onClick={() => setSelectedNotification(null)}
+              className="w-full sm:w-auto"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { CommonButton } from "@/components/ui/common-button"
+import { Button } from "@/components/ui/button"
 import { Plus, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import {
@@ -11,135 +12,93 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { RiskAssessmentApi } from "@/services"
 import type { RiskAssessment } from "@/types"
 import { RiskAssessmentDialog, type RiskAssessmentDialogMode } from "@/components/risk-assessment"
+import { useRiskAssessments, useRiskAssessmentMutations } from "@/hooks/useRiskAssessments"
+import { useNotificationEventListener } from "@/hooks/useNotifications"
+import { NOTIFICATION_EVENTS } from "@/lib/notificationEvents"
 
+export default function RiskAssessmentPage() {
+  const { toast } = useToast()
 
-// Define interface for assessment data
-type RiskAssessmentData = RiskAssessment;
-
-export default function RiskAssessment() {
-  const { toast } = useToast() as { toast: (params: { title: string; description: string; variant?: "default" | "destructive" }) => void }
-
-  // Add state for API data
-  const [assessments, setAssessments] = useState<RiskAssessmentData[]>([])  
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Search and pagination state
   const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 20
+
+  // Dialog state
   const [deleteAssessmentId, setDeleteAssessmentId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedAssessment, setSelectedAssessment] = useState<RiskAssessmentData | null>(null)
+  const [selectedAssessment, setSelectedAssessment] = useState<RiskAssessment | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [dialogMode, setDialogMode] = useState<RiskAssessmentDialogMode>('view')
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalItems, setTotalItems] = useState(0)
-  const pageSize = 20
-  // Fetching indicator to avoid full list flashing
-  const [isFetching, setIsFetching] = useState(false)
-  
-  // Define fetchAssessments function outside of useEffect so it can be reused
-  const fetchAssessments = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setIsFetching(true)
-      
-      const response = await RiskAssessmentApi.getRiskAssessmentsMinimal({
-        page: currentPage,
-        limit: pageSize,
-        search: searchTerm?.trim() || undefined,
-      })
-      
-      // Check if response has the expected structure with data property
-      if (response && response.status && Array.isArray(response.data)) {
-        setAssessments(response.data as RiskAssessmentData[])
-        if (response.pagination) {
-          setTotalPages(response.pagination.totalPages)
-          setTotalItems(response.pagination.totalItems)
-        }
-      } else {
-        // Fallback if the response structure is unexpected
-        setAssessments([])
-      }
-      
-      setError(null)
-    } catch (error) {
-      console.error("Error fetching assessments:", error)
-      setError("Failed to load assessments. Please try again later.")
-      // Set assessments to empty array on error
-      setAssessments([])
-    } finally {
-      setIsFetching(false)
-      setIsLoading(false)
-    }
-  }, [searchTerm, currentPage, pageSize])
-  
-  // Add refs for pagination handling
-  const initialLoadRef = useRef(true)
-  const currentPageRef = useRef(currentPage)
-  useEffect(() => { currentPageRef.current = currentPage }, [currentPage])
-  const fetchAssessmentsRef = useRef<() => Promise<void>>(async () => {})
-  useEffect(() => { fetchAssessmentsRef.current = fetchAssessments }, [fetchAssessments])
-  
-  // Fetch all assessments when component mounts
-  useEffect(() => {
-    fetchAssessments()
-  }, [fetchAssessments])
 
-  // Refetch when search term changes (debounced) without interfering with pagination
+  // Use React Query hooks
+  const {
+    assessments,
+    totalItems,
+    totalPages,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useRiskAssessments({
+    page: currentPage,
+    limit: pageSize,
+    search: debouncedSearch,
+  })
+
+  const { deleteAssessment, invalidateRiskAssessments } = useRiskAssessmentMutations()
+
+  // Listen for risk notifications and refetch
+  useNotificationEventListener(
+    NOTIFICATION_EVENTS.RISK_NOTIFICATION,
+    useCallback(() => {
+      invalidateRiskAssessments()
+    }, [invalidateRiskAssessments])
+  )
+
+  // Debounce search term
   useEffect(() => {
     const handle = setTimeout(() => {
-      if (currentPageRef.current !== 1) {
+      setDebouncedSearch(searchTerm)
+      if (searchTerm !== debouncedSearch) {
         setCurrentPage(1)
-      } else {
-        fetchAssessmentsRef.current()
       }
     }, 300)
     return () => clearTimeout(handle)
-  }, [searchTerm])
+  }, [searchTerm, debouncedSearch])
 
-  // Fetch when page changes
-  useEffect(() => {
-    if (!initialLoadRef.current) {
-      fetchAssessments()
-    }
-  }, [currentPage, fetchAssessments])
-
-  // Highlight matching text in search results
-  const highlightMatch = (text: string | undefined | null, searchTerm: string) => {
-    // Convert text to string and handle all edge cases
-    const textStr = text != null ? String(text) : '';
-    if (!textStr || !searchTerm.trim()) return textStr;
+  // Highlight matching text
+  const highlightMatch = (text: string | undefined | null, term: string) => {
+    const textStr = text != null ? String(text) : ''
+    if (!textStr || !term.trim()) return textStr
     
-    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    const parts = textStr.split(regex);
+    const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+    const parts = textStr.split(regex)
     
     return parts.map((part, i) => 
       regex.test(part) ? <span key={i} className="bg-yellow-200">{part}</span> : part
-    );
-  };
+    )
+  }
 
   const handleDeleteAssessment = async () => {
     if (!deleteAssessmentId) return
 
     try {
-      await RiskAssessmentApi.deleteRiskAssessment(deleteAssessmentId)
+      await deleteAssessment(deleteAssessmentId)
       
       toast({
         title: "Success",
         description: "Risk assessment has been deleted successfully.",
         variant: "default",
       })
-      
-      // Refresh assessments list
-      fetchAssessments()
-    } catch (error) {
-      console.error('Error deleting assessment:', error)
+    } catch (err) {
+      console.error('Error deleting assessment:', err)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete risk assessment. Please try again.",
+        description: err instanceof Error ? err.message : "Failed to delete risk assessment.",
         variant: "destructive",
       })
     } finally {
@@ -150,16 +109,13 @@ export default function RiskAssessment() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-4 sm:mb-6">
-
-      </div>
+      <div className="mb-4 sm:mb-6"></div>
       
-      {/* Responsive header section */}
+      {/* Header section */}
       <div className="mb-6">
         <div className="flex flex-col gap-4 mb-4">
           <h1 className="text-xl sm:text-2xl font-bold text-[#2C3E50]">Risk Assessment Dashboard</h1>
           
-          {/* Search and Add button row */}
           <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center">
             <div className="flex-1 sm:max-w-md order-2 sm:order-1">
               <Input 
@@ -172,9 +128,9 @@ export default function RiskAssessment() {
             <CommonButton 
               className="gap-2 w-full sm:w-auto sm:flex-shrink-0 order-1 sm:order-2" 
               onClick={() => {
-                setSelectedAssessment(null);
-                setDialogMode('create');
-                setIsDialogOpen(true);
+                setSelectedAssessment(null)
+                setDialogMode('create')
+                setIsDialogOpen(true)
               }}
             >
               <Plus className="h-4 w-4" /> ADD NEW
@@ -183,6 +139,7 @@ export default function RiskAssessment() {
         </div>
       </div>
 
+      {/* Delete Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="mx-4 max-w-md sm:max-w-lg">
           <DialogHeader>
@@ -206,17 +163,16 @@ export default function RiskAssessment() {
         </DialogContent>
       </Dialog>
 
+      {/* Assessment Dialog */}
       <RiskAssessmentDialog
         open={isDialogOpen}
         onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) {
-            setSelectedAssessment(null);
-          }
+          setIsDialogOpen(open)
+          if (!open) setSelectedAssessment(null)
         }}
         initialMode={dialogMode}
         assessment={selectedAssessment}
-        onSuccess={fetchAssessments}
+        onSuccess={invalidateRiskAssessments}
       />
 
       {/* Desktop/Tablet Table View */}
@@ -234,69 +190,55 @@ export default function RiskAssessment() {
               </tr>
             </thead>
             <tbody>
-              {!isLoading && !error && assessments.length > 0 &&
-                assessments
-                  .filter(assessment => {
-                    const searchLower = searchTerm.toLowerCase();
-                    return (
-                      (assessment.scopeOfWork && assessment.scopeOfWork.toLowerCase().includes(searchLower)) ||
-                      (assessment.location && assessment.location.toLowerCase().includes(searchLower)) ||
-                      (assessment.individuals && assessment.individuals.toLowerCase().includes(searchLower)) ||
-                      (assessment.supervisor && assessment.supervisor.toLowerCase().includes(searchLower)) ||
-                      (assessment.id && assessment.id.toLowerCase().includes(searchLower))
-                    );
-                  })
-                  .map(assessment => (
-                    <tr 
-                      key={assessment.id} 
-                      className="border-b hover:bg-gray-50 cursor-pointer"
-                      onClick={() => {
-                        setSelectedAssessment(assessment);
-                        setDialogMode('view');
-                        setIsDialogOpen(true);
+              {!isLoading && !error && assessments.length > 0 && assessments.map(assessment => (
+                <tr 
+                  key={assessment.id} 
+                  className="border-b hover:bg-gray-50 cursor-pointer"
+                  onClick={() => {
+                    setSelectedAssessment(assessment)
+                    setDialogMode('view')
+                    setIsDialogOpen(true)
+                  }}
+                >
+                  <td className="p-3 sm:p-4">
+                    <div className="text-sm font-medium">{highlightMatch(assessment.id, searchTerm)}</div>
+                  </td>
+                  <td className="p-3 sm:p-4">
+                    <div className="text-sm break-words">{highlightMatch(assessment.scopeOfWork, searchTerm)}</div>
+                  </td>
+                  <td className="p-3 sm:p-4 text-sm">{assessment.date} {assessment.time}</td>
+                  <td className="p-3 sm:p-4 hidden lg:table-cell text-sm break-words">
+                    {highlightMatch(assessment.location, searchTerm)}
+                  </td>
+                  <td className="p-3 sm:p-4">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      assessment.status === 'Active' ? 'bg-green-100 text-green-800' 
+                      : assessment.status === 'Pending' ? 'bg-amber-100 text-amber-800'
+                      : assessment.status === 'Rejected' ? 'bg-red-100 text-red-800'
+                      : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {assessment.status}
+                    </span>
+                  </td>
+                  <td className="p-3 sm:p-4">
+                    <CommonButton
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 sm:h-9 sm:w-9"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteAssessmentId(assessment.id)
+                        setIsDeleteDialogOpen(true)
                       }}
+                      title="Delete"
                     >
-                      <td className="p-3 sm:p-4">
-                        <div className="text-sm font-medium">{highlightMatch(assessment.id, searchTerm)}</div>
-                      </td>
-                      <td className="p-3 sm:p-4">
-                        <div className="text-sm break-words">{highlightMatch(assessment.scopeOfWork, searchTerm)}</div>
-                      </td>
-                      <td className="p-3 sm:p-4 text-sm">{assessment.date} {assessment.time}</td>
-                      <td className="p-3 sm:p-4 hidden lg:table-cell text-sm break-words">{highlightMatch(assessment.location, searchTerm)}</td>
-                      <td className="p-3 sm:p-4">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          assessment.status === 'Active' 
-                            ? 'bg-green-100 text-green-800' 
-                            : assessment.status === 'Pending'
-                            ? 'bg-amber-100 text-amber-800'
-                            : assessment.status === 'Rejected'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {assessment.status}
-                        </span>
-                      </td>
-                      <td className="p-3 sm:p-4">
-                        <div className="flex gap-1 sm:gap-2">
-                          <CommonButton
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 sm:h-9 sm:w-9"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteAssessmentId(assessment.id);
-                              setIsDeleteDialogOpen(true);
-                            }}
-                            title="Delete"
-                          >
-                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </CommonButton>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-              {(!isLoading && !error && assessments.length === 0) && (
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </CommonButton>
+                  </td>
+                </tr>
+              ))}
+              
+              {!isLoading && !error && assessments.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-gray-500">
                     <div className="flex flex-col items-center gap-2">
@@ -306,6 +248,7 @@ export default function RiskAssessment() {
                   </td>
                 </tr>
               )}
+              
               {isLoading && (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-gray-500">
@@ -316,18 +259,14 @@ export default function RiskAssessment() {
                   </td>
                 </tr>
               )}
+              
               {error && (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-red-500">
                     <div className="flex flex-col items-center gap-2">
                       <div className="text-lg">Error loading assessments</div>
-                      <div className="text-sm">{error}</div>
-                      <CommonButton 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={fetchAssessments}
-                        className="mt-2"
-                      >
+                      <div className="text-sm">{error.message}</div>
+                      <CommonButton variant="outline" size="sm" onClick={() => refetch()} className="mt-2">
                         Try Again
                       </CommonButton>
                     </div>
@@ -338,7 +277,8 @@ export default function RiskAssessment() {
           </table>
         </div>
       </div>
-      {/* Pagination controls - Desktop */}
+
+      {/* Pagination - Desktop */}
       <div className="hidden md:flex items-center justify-between bg-white rounded-lg shadow-sm border p-3 mb-6">
         <div className="text-sm text-gray-600">
           Page {currentPage} of {totalPages} • Showing {assessments.length} of {totalItems} items
@@ -346,14 +286,14 @@ export default function RiskAssessment() {
         <div className="flex gap-2">
           <CommonButton
             variant="outline"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage <= 1 || isFetching}
           >
             Previous
           </CommonButton>
           <CommonButton
             variant="outline"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage >= totalPages || isFetching}
           >
             Next
@@ -376,13 +316,8 @@ export default function RiskAssessment() {
           <div className="bg-white rounded-lg shadow-sm border p-8 text-center text-red-500">
             <div className="flex flex-col items-center gap-2">
               <div className="text-lg">Error loading assessments</div>
-              <div className="text-sm">{error}</div>
-              <CommonButton 
-                variant="outline" 
-                size="sm" 
-                onClick={fetchAssessments}
-                className="mt-2"
-              >
+              <div className="text-sm">{error.message}</div>
+              <CommonButton variant="outline" size="sm" onClick={() => refetch()} className="mt-2">
                 Try Again
               </CommonButton>
             </div>
@@ -400,83 +335,89 @@ export default function RiskAssessment() {
         
         {!isLoading && !error && assessments.length > 0 && (
           <div className="space-y-4">
-            {assessments
-              .filter(assessment => {
-                const searchLower = searchTerm.toLowerCase();
-                return (
-                  (assessment.scopeOfWork && assessment.scopeOfWork.toLowerCase().includes(searchLower)) ||
-                  (assessment.location && assessment.location.toLowerCase().includes(searchLower)) ||
-                  (assessment.individuals && assessment.individuals.toLowerCase().includes(searchLower)) ||
-                  (assessment.supervisor && assessment.supervisor.toLowerCase().includes(searchLower)) ||
-                  (assessment.id && assessment.id.toString().includes(searchLower))
-                );
-              })
-              .map(assessment => (
-                <div 
-                  key={assessment.id} 
-                  className="bg-white rounded-lg shadow-sm border p-4 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => {
-                    setSelectedAssessment(assessment);
-                    setDialogMode('view');
-                    setIsDialogOpen(true);
-                  }}
-                >
-                  {/* Header with ID and Actions */}
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold text-[#2C3E50] mb-1">
-                        Assessment ID: {highlightMatch(assessment.id, searchTerm)}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          assessment.status === 'Active' 
-                            ? 'bg-green-100 text-green-800' 
-                            : assessment.status === 'Pending'
-                            ? 'bg-amber-100 text-amber-800'
-                            : assessment.status === 'Rejected'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {assessment.status}
-                        </span>
-                      </div>
+            {assessments.map(assessment => (
+              <div 
+                key={assessment.id} 
+                className="bg-white rounded-lg shadow-sm border p-4 cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => {
+                  setSelectedAssessment(assessment)
+                  setDialogMode('view')
+                  setIsDialogOpen(true)
+                }}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-[#2C3E50] mb-1">
+                      Assessment ID: {highlightMatch(assessment.id, searchTerm)}
                     </div>
-                    <CommonButton
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 flex-shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteAssessmentId(assessment.id);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </CommonButton>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        assessment.status === 'Active' ? 'bg-green-100 text-green-800' 
+                        : assessment.status === 'Pending' ? 'bg-amber-100 text-amber-800'
+                        : assessment.status === 'Rejected' ? 'bg-red-100 text-red-800'
+                        : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {assessment.status}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 flex-shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeleteAssessmentId(assessment.id)
+                      setIsDeleteDialogOpen(true)
+                    }}
+                    title="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="space-y-2">
+                  <div>
+                    <div className="text-xs text-gray-600 font-medium">Scope of Work</div>
+                    <div className="text-sm text-gray-900">{highlightMatch(assessment.scopeOfWork, searchTerm)}</div>
                   </div>
                   
-                  {/* Content */}
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-2">
                     <div>
-                      <div className="text-xs text-gray-600 font-medium">Scope of Work</div>
-                      <div className="text-sm text-gray-900">{highlightMatch(assessment.scopeOfWork, searchTerm)}</div>
+                      <div className="text-xs text-gray-600 font-medium">Date & Time</div>
+                      <div className="text-sm text-gray-900">{assessment.date} {assessment.time}</div>
                     </div>
-                    
-                    <div className="grid grid-cols-1 gap-2">
-                      <div>
-                        <div className="text-xs text-gray-600 font-medium">Date & Time</div>
-                        <div className="text-sm text-gray-900">{assessment.date} {assessment.time}</div>
-                      </div>
-                      
-                      <div>
-                        <div className="text-xs text-gray-600 font-medium">Location</div>
-                        <div className="text-sm text-gray-900">{highlightMatch(assessment.location, searchTerm)}</div>
-                      </div>
+                    <div>
+                      <div className="text-xs text-gray-600 font-medium">Location</div>
+                      <div className="text-sm text-gray-900">{highlightMatch(assessment.location, searchTerm)}</div>
                     </div>
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination - Mobile */}
+        {!isLoading && !error && (
+          <div className="flex md:hidden items-center justify-between bg-white rounded-lg shadow-sm border p-3 mt-4">
+            <div className="text-sm text-gray-600">Page {currentPage} of {totalPages}</div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage <= 1 || isFetching}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages || isFetching}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </div>

@@ -42,6 +42,8 @@ interface UseNotificationsResult {
   refetch: () => void;
   /** Mark a notification as read and update cache */
   markAsRead: (notificationId: number) => Promise<void>;
+  /** Mark all notifications as read */
+  markAllAsRead: () => Promise<void>;
 }
 
 /**
@@ -150,6 +152,23 @@ export function useNotifications(
     }
   }, [queryClient]);
 
+  // Mark all notifications as read with optimistic update
+  const markAllAsRead = useCallback(async () => {
+    // Optimistic update - immediately mark all as read in UI
+    queryClient.setQueryData<Notification[]>(
+      NOTIFICATIONS_QUERY_KEY,
+      (old) => old?.map(n => ({ ...n, isRead: true }))
+    );
+
+    try {
+      await NotificationApi.markAllAsRead();
+    } catch (error) {
+      // Revert on error by refetching
+      queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+      throw error;
+    }
+  }, [queryClient]);
+
   return {
     notifications,
     unreadCount,
@@ -158,6 +177,7 @@ export function useNotifications(
     error: error as Error | null,
     refetch,
     markAsRead,
+    markAllAsRead,
   };
 }
 

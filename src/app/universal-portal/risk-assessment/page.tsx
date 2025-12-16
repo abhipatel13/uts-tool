@@ -669,17 +669,17 @@ export default function UniversalRiskAssessment() {
             <DialogTitle>Delete Risk Assessment</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this risk assessment? This action cannot be undone.
-              {riskAssessmentToDelete && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                  <p className="font-medium">Risk Assessment Details:</p>
-                  <p className="text-sm text-gray-600">ID: {riskAssessmentToDelete.id}</p>
-                  <p className="text-sm text-gray-600">Scope: {riskAssessmentToDelete.scopeOfWork}</p>
-                  <p className="text-sm text-gray-600">Location: {riskAssessmentToDelete.location}</p>
-                  <p className="text-sm text-gray-600">Date: {new Date(riskAssessmentToDelete.date).toLocaleDateString()}</p>
-                </div>
-              )}
             </DialogDescription>
           </DialogHeader>
+          {riskAssessmentToDelete && (
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <span className="font-medium block">Risk Assessment Details:</span>
+              <span className="text-sm text-gray-600 block">ID: {riskAssessmentToDelete.id}</span>
+              <span className="text-sm text-gray-600 block">Scope: {riskAssessmentToDelete.scopeOfWork}</span>
+              <span className="text-sm text-gray-600 block">Location: {riskAssessmentToDelete.location}</span>
+              <span className="text-sm text-gray-600 block">Date: {new Date(riskAssessmentToDelete.date).toLocaleDateString()}</span>
+            </div>
+          )}
           <DialogFooter>
             <Button 
               variant="outline" 

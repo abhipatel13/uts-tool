@@ -575,17 +575,17 @@ export default function UniversalTaskHazard() {
             <DialogTitle>Delete Task Hazard</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this task hazard? This action cannot be undone.
-              {taskHazardToDelete && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                  <p className="font-medium">Task Hazard Details:</p>
-                  <p className="text-sm text-gray-600">ID: {taskHazardToDelete.id}</p>
-                  <p className="text-sm text-gray-600">Scope: {taskHazardToDelete.scopeOfWork}</p>
-                  <p className="text-sm text-gray-600">Location: {taskHazardToDelete.location}</p>
-                  <p className="text-sm text-gray-600">Date: {new Date(taskHazardToDelete.date).toLocaleDateString()}</p>
-                </div>
-              )}
             </DialogDescription>
           </DialogHeader>
+          {taskHazardToDelete && (
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <span className="font-medium block">Task Hazard Details:</span>
+              <span className="text-sm text-gray-600 block">ID: {taskHazardToDelete.id}</span>
+              <span className="text-sm text-gray-600 block">Scope: {taskHazardToDelete.scopeOfWork}</span>
+              <span className="text-sm text-gray-600 block">Location: {taskHazardToDelete.location}</span>
+              <span className="text-sm text-gray-600 block">Date: {new Date(taskHazardToDelete.date).toLocaleDateString()}</span>
+            </div>
+          )}
           <DialogFooter>
             <Button 
               variant="outline" 
