@@ -53,6 +53,12 @@ const getConsequenceString = (value: string | number): string => {
   }
 }
 
+// Type for selected task identifier (used for derived state pattern)
+interface SelectedTaskKey {
+  id: number;
+  type: ApprovableType;
+}
+
 export default function SupervisorDashboard() {
   const { toast } = useToast()
   const [currentView, setCurrentView] = useState<ViewType>('dashboard')
@@ -64,7 +70,9 @@ export default function SupervisorDashboard() {
   const [approvedTasks, setApprovedTasks] = useState<EntityWithApprovals[]>([])
   const [rejectedTasks, setRejectedTasks] = useState<EntityWithApprovals[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedTask, setSelectedTask] = useState<EntityWithApprovals | null>(null)
+  // Store only the task identifier - derive the full task from allTasks
+  // This ensures the details panel always shows fresh data after refetch
+  const [selectedTaskKey, setSelectedTaskKey] = useState<SelectedTaskKey | null>(null)
   const [removingTask, setRemovingTask] = useState<EntityWithApprovals | null>(null)
   const [isAdminOrSuperUser, setIsAdminOrSuperUser] = useState(false)
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
@@ -82,6 +90,26 @@ export default function SupervisorDashboard() {
   
   // Refetch trigger for notification-based updates
   const [refetchTrigger, setRefetchTrigger] = useState(0)
+  
+  // Derive selectedTask from allTasks using the stored key
+  // This ensures the details panel always shows the latest data after refetch
+  const selectedTask = useMemo(() => {
+    if (!selectedTaskKey) return null;
+    return allTasks.find(t => {
+      const taskId = typeof t.id === 'string' ? parseInt(t.id, 10) : t.id;
+      return taskId === selectedTaskKey.id && getEntityType(t) === selectedTaskKey.type;
+    }) || null;
+  }, [allTasks, selectedTaskKey]);
+
+  // Helper to set selected task by extracting its key
+  const selectTask = useCallback((task: EntityWithApprovals | null) => {
+    if (task) {
+      const id = typeof task.id === 'string' ? parseInt(task.id, 10) : task.id;
+      setSelectedTaskKey({ id, type: getEntityType(task) });
+    } else {
+      setSelectedTaskKey(null);
+    }
+  }, []);
   
   // Get current tasks list based on view
   const currentTasks = currentView === 'dashboard' 
@@ -184,10 +212,10 @@ export default function SupervisorDashboard() {
             : currentView === 'approved-tasks'
             ? activeTasks
             : rejectedTasksList
-          if (currentTaskList.length > 0 && !selectedTask) {
-            setSelectedTask(currentTaskList[0])
+          if (currentTaskList.length > 0 && !selectedTaskKey) {
+            selectTask(currentTaskList[0])
           } else if (currentTaskList.length === 0) {
-            setSelectedTask(null)
+            selectTask(null)
           }
         }
       } catch (error) {
@@ -204,7 +232,7 @@ export default function SupervisorDashboard() {
     
     fetchTasks()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toast, currentView, currentEntityType, refetchTrigger])
+  }, [toast, currentView, currentEntityType, refetchTrigger, selectTask])
   
   // Listen for approval notifications and refetch data
   useNotificationEventListener(
@@ -230,7 +258,7 @@ export default function SupervisorDashboard() {
   // Handle view change
   const handleViewChange = (view: ViewType) => {
     setCurrentView(view)
-    setSelectedTask(null)
+    selectTask(null)
   }
   
 
@@ -286,9 +314,9 @@ export default function SupervisorDashboard() {
           const updatedApprovals = prevApprovals.filter(approval => approval.id !== entityId)
           // If there are still approvals, select the first one
           if (updatedApprovals.length > 0) {
-            setSelectedTask(updatedApprovals[0])
+            selectTask(updatedApprovals[0])
           } else {
-            setSelectedTask(null)
+            selectTask(null)
           }
           return updatedApprovals
         })
@@ -673,7 +701,7 @@ export default function SupervisorDashboard() {
                           : 'bg-red-50 border border-red-200'
                         : 'hover:bg-gray-50 border border-gray-100'
                     }`}
-                    onClick={() => setSelectedTask(task)}
+                    onClick={() => selectTask(task)}
                   >
                     <div className="flex items-start gap-2">
                       {currentView === 'dashboard' ? statusInfo.icon :
