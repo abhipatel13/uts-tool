@@ -93,7 +93,7 @@ export function RiskAssessmentDialog({
       <RiskAssessmentViewDialog
         open={open}
         onOpenChange={handleClose}
-        assessment={isLoading ? assessment : (fullAssessment as RiskAssessment | null)}
+        assessment={isLoading ? (assessment ?? null) : (fullAssessment ?? null)}
         onEdit={handleSwitchToEdit}
       />
     );

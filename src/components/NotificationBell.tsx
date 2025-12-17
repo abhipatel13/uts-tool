@@ -54,7 +54,7 @@ const NotificationBell: React.FC = () => {
       case 'risk':
         router.push('/safety/risk-assessment');
         break;
-      case 'task':
+      case 'hazard':
         router.push('/safety/task-hazard');
         break;
       default:

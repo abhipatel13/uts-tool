@@ -154,7 +154,11 @@ export default function RiskAssessmentForm({
   useEffect(() => {
     if (open && mode === 'create') {
       const now = new Date()
-      const currentDate = now.toISOString().split('T')[0]
+      // Use local date (not UTC) to match local time
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      const currentDate = `${year}-${month}-${day}`
       const currentTime = now.toTimeString().slice(0, 8)
       setFormData(prev => ({
         ...prev,
@@ -342,7 +346,7 @@ export default function RiskAssessmentForm({
       <DialogContent className="w-full max-w-4xl mx-auto h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">
-            {mode === 'create' ? 'Add New Risk Assessment' : 'Edit Risk Assessment'}
+            {mode === 'create' ? 'Create Assessment' : 'Edit Assessment'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">

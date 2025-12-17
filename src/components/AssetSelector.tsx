@@ -21,7 +21,7 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
   const [expandedAssets, setExpandedAssets] = useState<string[]>([])
 
   // Use the shared assets hook
-  const { assets, isLoading: isLoadingAssets, error: assetError, getChildAssets } = useAssets()
+  const { assets, isLoading: isLoadingAssets, error: assetError } = useAssets()
 
   // Filter assets based on search term
   const filteredAssets = useMemo(() => {

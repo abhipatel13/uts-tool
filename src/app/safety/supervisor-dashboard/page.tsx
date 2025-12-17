@@ -53,6 +53,13 @@ const getConsequenceString = (value: string | number): string => {
   }
 }
 
+// Sort entities by date and time (newest first)
+const sortByDateTime = (a: EntityWithApprovals, b: EntityWithApprovals): number => {
+  const dateTimeA = new Date(`${a.date} ${a.time || '00:00'}`).getTime()
+  const dateTimeB = new Date(`${b.date} ${b.time || '00:00'}`).getTime()
+  return dateTimeB - dateTimeA // Descending (newest first)
+}
+
 // Type for selected task identifier (used for derived state pattern)
 interface SelectedTaskKey {
   id: number;
@@ -199,10 +206,11 @@ export default function SupervisorDashboard() {
             return latestApproval && latestApproval.status === 'rejected'
           })
           
-          setAllTasks(supervisorTasks)
-          setPendingApprovals(tasksRequiringApproval)
-          setApprovedTasks(activeTasks)
-          setRejectedTasks(rejectedTasksList)
+          // Sort all lists by date/time (newest first)
+          setAllTasks([...supervisorTasks].sort(sortByDateTime))
+          setPendingApprovals([...tasksRequiringApproval].sort(sortByDateTime))
+          setApprovedTasks([...activeTasks].sort(sortByDateTime))
+          setRejectedTasks([...rejectedTasksList].sort(sortByDateTime))
           
           // Set the first task as selected by default if available
           const currentTaskList = currentView === 'dashboard'

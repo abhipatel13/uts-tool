@@ -37,7 +37,6 @@ export function TaskHazardDialog({
   const { 
     data: fullTaskData, 
     isLoading,
-    isFetching,
   } = useTaskHazard(taskId, { 
     enabled: shouldFetch 
   });
@@ -94,7 +93,7 @@ export function TaskHazardDialog({
       <TaskHazardViewDialog
         open={open}
         onOpenChange={handleClose}
-        task={isLoading ? task : (fullTask as TaskHazard | null)}
+        task={isLoading ? (task ?? null) : (fullTask ?? null)}
         onEdit={handleSwitchToEdit}
       />
     );

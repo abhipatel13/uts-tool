@@ -179,7 +179,11 @@ export default function TaskHazardForm({
   useEffect(() => {
     if (open && mode === 'create') {
       const now = new Date()
-      const currentDate = now.toISOString().split('T')[0]
+      // Use local date (not UTC) to match local time
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      const currentDate = `${year}-${month}-${day}`
       const currentTime = now.toTimeString().slice(0, 8)
       setFormData(prev => ({
         ...prev,
@@ -739,7 +743,7 @@ export default function TaskHazardForm({
                   {mode === 'create' ? 'Creating...' : 'Saving...'}
                 </>
               ) : (
-                mode === 'create' ? 'Add Task' : 'Save Changes'
+                mode === 'create' ? 'Create Assessment' : 'Save Changes'
               )}
             </Button>
           </div>
