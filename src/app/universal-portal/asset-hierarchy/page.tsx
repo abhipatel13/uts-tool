@@ -22,14 +22,16 @@ interface Company {
 }
 
 interface Asset {
-  id: string;
+  id: string;  // Internal UUID
+  externalId: string;  // User-provided ID for display
   name: string;
   description: string;
   cmmsInternalId: string;
   functionalLocation: string;
   functionalLocationDesc: string;
   functionalLocationLongDesc: string;
-  parent: string | null;
+  parent: string | null;  // Internal UUID of parent
+  parentExternalId: string | null;  // External ID of parent for display
   maintenancePlant: string;
   cmmsSystem: string;
   objectType: string;
@@ -334,7 +336,7 @@ export default function UniversalAssetHierarchy() {
         asset.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         asset.objectType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         asset.functionalLocation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        asset.id?.toString().includes(searchTerm);
+        asset.externalId?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesType = typeFilter === 'all' || asset.objectType === typeFilter;
       const matchesStatus = statusFilter === 'all' || asset.systemStatus === statusFilter;
@@ -621,7 +623,7 @@ export default function UniversalAssetHierarchy() {
                     <TableBody>
                       {filteredAssets.map((asset) => (
                         <TableRow key={asset.id}>
-                          <TableCell className="font-medium">{asset.id}</TableCell>
+                          <TableCell className="font-medium">{asset.externalId}</TableCell>
                           <TableCell className="font-medium">
                             <div className="flex items-center">
                               {hasChildren(asset) ? (
@@ -676,8 +678,8 @@ export default function UniversalAssetHierarchy() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {asset.parent ? (
-                              <Badge variant="outline">{asset.parent}</Badge>
+                            {asset.parentExternalId ? (
+                              <Badge variant="outline">{asset.parentExternalId}</Badge>
                             ) : (
                               <span className="text-gray-400">Root</span>
                             )}

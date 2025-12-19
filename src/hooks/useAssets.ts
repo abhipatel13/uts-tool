@@ -22,10 +22,12 @@ interface UseAssetsResult {
   refetch: () => void;
   /** Get top-level assets (no parent) */
   getTopLevelAssets: () => Asset[];
-  /** Get child assets for a given parent ID */
+  /** Get child assets for a given parent ID (uses internal ID) */
   getChildAssets: (parentId: string) => Asset[];
-  /** Find an asset by ID */
+  /** Find an asset by internal ID (UUID) - use for API calls */
   findAsset: (assetId: string) => Asset | undefined;
+  /** Find an asset by external ID (user-provided) - use for display/search */
+  findAssetByExternalId: (externalId: string) => Asset | undefined;
 }
 
 /**
@@ -69,9 +71,14 @@ export function useAssets(options: UseAssetsOptions = {}): UseAssetsResult {
     return (parentId: string) => assets.filter(asset => asset.parent === parentId);
   }, [assets]);
 
-  // Helper to find an asset by ID
+  // Helper to find an asset by internal ID (UUID)
   const findAsset = useMemo(() => {
     return (assetId: string) => assets.find(asset => asset.id === assetId);
+  }, [assets]);
+
+  // Helper to find an asset by external ID (user-provided)
+  const findAssetByExternalId = useMemo(() => {
+    return (externalId: string) => assets.find(asset => asset.externalId === externalId);
   }, [assets]);
 
   return {
@@ -82,6 +89,7 @@ export function useAssets(options: UseAssetsOptions = {}): UseAssetsResult {
     getTopLevelAssets,
     getChildAssets,
     findAsset,
+    findAssetByExternalId,
   };
 }
 

@@ -2,14 +2,16 @@
 
 // Main Asset interface (from api.ts)
 export interface Asset {
-  id: string;
+  id: string;  // Internal UUID - use for API calls and navigation
+  externalId: string;  // User-provided ID - display to users
   name: string;
   description: string;
   cmmsInternalId: string;
   functionalLocation: string;
   functionalLocationDesc: string;
   functionalLocationLongDesc: string;
-  parent: string | null;  
+  parent: string | null;  // Internal UUID of parent asset
+  parentExternalId: string | null;  // External ID of parent - for display
   maintenancePlant: string;  
   cmmsSystem: string;  
   objectType: string;  // Object Type (Taxonomy Mapping Value)
@@ -78,7 +80,9 @@ export interface UploadStatus {
   fileSize?: number;
   // Enhanced error details for failed uploads
   errors?: UploadError[];
+  // Summary can come as 'summary' or 'resultSummary' from backend
   summary?: UploadSummary;
+  resultSummary?: UploadSummary;
 }
 
 // Detailed error information for upload validation failures
@@ -91,10 +95,16 @@ export interface UploadError {
 
 // Summary of successful upload processing
 export interface UploadSummary {
-  totalRows: number;
-  created: number;
-  updated: number;
+  // Backend field names
+  totalProcessed?: number;
+  createdCount?: number;
+  updatedCount?: number;
+  unchangedCount?: number;
   processingTime?: string;
+  // Legacy field names (for backward compatibility)
+  totalRows?: number;
+  created?: number;
+  updated?: number;
 }
 
 // Column mapping configuration for asset hierarchy uploads

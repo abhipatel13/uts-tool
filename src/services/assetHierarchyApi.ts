@@ -2,7 +2,9 @@ import { api } from '@/lib/api-client';
 import { ApiResponse, Asset, UploadStatus, AssetColumnMappings } from '@/types';
 
 // Type for creating assets (excludes server-generated fields)
-export type CreateAssetRequest = Omit<Asset, 'id' | 'updatedAt' | 'createdAt' | 'level'>;
+// externalId is provided by user as part of the create data but not named 'externalId' in the form
+// The backend maps cmmsInternalId/functionalLocation to externalId based on the upload strategy
+export type CreateAssetRequest = Omit<Asset, 'id' | 'externalId' | 'parentExternalId' | 'updatedAt' | 'createdAt' | 'level'>;
 
 export const AssetHierarchyApi = {
   // Create new asset
@@ -43,6 +45,11 @@ export const AssetHierarchyApi = {
   // Get upload history
   getUploadHistory: async (): Promise<ApiResponse<UploadStatus[]>> => {
     return api.get<ApiResponse<UploadStatus[]>>('/api/asset-hierarchy/upload-history');
+  },
+
+  // Delete an asset (company-scoped - admin/superuser only)
+  deleteAsset: async (id: string): Promise<ApiResponse<void>> => {
+    return api.delete<ApiResponse<void>>(`/api/asset-hierarchy/${id}`);
   },
 
   // Delete an asset (Universal User - all companies)

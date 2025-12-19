@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select"
 import { Asset } from "@/types"
 import { CreateAssetRequest } from "@/services/assetHierarchyApi"
+import { ConfirmationDialog } from "@/app/configurations/admin/data-loader/ConfirmationDialog"
 
 export default function DataLoader() {
   const { toast } = useToast()
@@ -41,6 +42,8 @@ export default function DataLoader() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showCascadeWarning, setShowCascadeWarning] = useState(false)
+  const [descendantCount, setDescendantCount] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState<CreateAssetRequest>({
     cmmsInternalId: '',
@@ -239,10 +242,34 @@ export default function DataLoader() {
     setShowDetailsDialog(true);
   };
 
+  // Count all descendants of an asset recursively
+  const countDescendants = (assetId: string): number => {
+    const directChildren = assets.filter(a => a.parent === assetId);
+    let count = directChildren.length;
+    for (const child of directChildren) {
+      count += countDescendants(child.id);
+    }
+    return count;
+  };
+
   const openDeleteDialog = (asset: Asset, e?: React.MouseEvent) => {
     e?.stopPropagation(); // Prevent triggering the asset click event
     setAssetToDelete(asset);
-    setDeleteDialogOpen(true);
+    
+    // Check if asset has children - if so, show cascade warning first
+    const descendants = countDescendants(asset.id);
+    if (descendants > 0) {
+      setDescendantCount(descendants);
+      setShowCascadeWarning(true);
+    } else {
+      setDeleteDialogOpen(true);
+    }
+  };
+
+  const handleCascadeWarningConfirm = () => {
+    setShowCascadeWarning(false);
+    // Directly trigger deletion (no need for second confirmation)
+    handleDeleteAsset();
   };
 
   const handleDeleteAsset = async () => {
@@ -250,7 +277,7 @@ export default function DataLoader() {
     
     setIsDeleting(true);
     try {
-      const response = await AssetHierarchyApi.deleteAssetUniversal(assetToDelete.id.toString());
+      const response = await AssetHierarchyApi.deleteAsset(assetToDelete.id.toString());
       
       // Check if the response indicates success
       if (response.status) {
@@ -421,7 +448,7 @@ export default function DataLoader() {
                 ) : (
                   <span className="w-6 mr-2" />
                 )}
-                <span className="font-medium">{asset.id}</span>
+                <span className="font-medium">{asset.externalId}</span>
               </div>
             </td>
             <td className="px-6 py-4">
@@ -432,7 +459,7 @@ export default function DataLoader() {
                 <div className="flex flex-col min-w-0">
                   <span className="font-medium">{asset.name}</span>
                   <span className="text-sm text-gray-500">
-                    {asset.parent ? `Parent: ${asset.parent}` : 'Root Asset'}
+                    {asset.parentExternalId ? `Parent: ${asset.parentExternalId}` : 'Root Asset'}
                   </span>
                 </div>
                 <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
@@ -748,6 +775,30 @@ export default function DataLoader() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cascade Delete Warning Dialog */}
+      <ConfirmationDialog
+        open={showCascadeWarning}
+        onOpenChange={setShowCascadeWarning}
+        title="Warning: Cascading Delete"
+        description={
+          <div className="space-y-2">
+            <p>
+              This asset has <strong>{descendantCount} child asset{descendantCount !== 1 ? 's' : ''}</strong> that will also be deleted.
+            </p>
+            <p>
+              Deleting <strong>{assetToDelete?.name}</strong> will permanently remove it and all of its descendant assets from the hierarchy.
+            </p>
+            <p className="text-red-600 font-medium">
+              This action cannot be undone.
+            </p>
+          </div>
+        }
+        confirmLabel="Continue"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleCascadeWarningConfirm}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

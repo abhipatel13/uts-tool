@@ -19,7 +19,7 @@ import {
 import { AssetHierarchyApi } from "@/services"
 import { useToast } from "@/components/ui/use-toast"
 import { UploadStatus, AssetColumnMappings } from '@/types'
-import { Info, Download, FileDown, Database } from 'lucide-react'
+import { Info, Download, FileDown, Database, ChevronRight, Clock, FileCheck, FilePlus, FileEdit, AlertCircle } from 'lucide-react'
 import { ColumnMappingDialog } from './ColumnMappingDialog'
 import { ValidationModal } from './ValidationModal'
 import { extractFileHeaders, getFileType, parseFileData } from '@/utils/fileParser'
@@ -58,6 +58,10 @@ export default function DataLoader() {
   const [showValidationModal, setShowValidationModal] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
   const [pendingMappings, setPendingMappings] = useState<AssetColumnMappings | null>(null)
+  
+  // Upload summary dialog state
+  const [selectedUpload, setSelectedUpload] = useState<UploadStatus | null>(null)
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false)
   
   // Use the validation hook
   const {
@@ -281,13 +285,13 @@ export default function DataLoader() {
         }
 
         return [
-          escapeValue(asset.id),
+          escapeValue(asset.externalId),  // Export external ID for user-facing CSV
           escapeValue(asset.name),
           escapeValue(asset.cmmsInternalId),
           escapeValue(asset.functionalLocation),
           escapeValue(asset.functionalLocationDesc),
           escapeValue(asset.functionalLocationLongDesc),
-          escapeValue(asset.parent),
+          escapeValue(asset.parentExternalId),  // Export parent's external ID
           escapeValue(asset.maintenancePlant),
           escapeValue(asset.cmmsSystem),
           escapeValue(asset.objectType),
@@ -609,49 +613,78 @@ export default function DataLoader() {
               No files have been uploaded yet
             </div>
           ) : (
-            uploadHistory.map((upload, index) => (
-              <div key={upload.id || index} className="bg-white rounded-lg border p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-gray-900">{upload.fileName}</span>
-                      <div className="text-sm text-gray-500">
-                        {upload.uploadedBy ? `Uploaded by ${upload.uploadedBy}` : 'Uploading...'}
-                        {upload.uploadedAt && ` • ${new Date(upload.uploadedAt).toLocaleDateString()}`}
-                        {upload.updatedAt && upload.uploadedAt !== upload.updatedAt && 
-                          ` • Updated ${new Date(upload.updatedAt).toLocaleDateString()}`}
+            uploadHistory.map((upload, index) => {
+              const uploadSummary = upload.summary || upload.resultSummary
+              const hasDetails = uploadSummary || (upload.errors && upload.errors.length > 0) || upload.status === 'completed' || upload.status === 'error'
+              
+              return (
+                <div 
+                  key={upload.id || index} 
+                  className={`bg-white rounded-lg border p-4 transition-colors ${
+                    hasDetails ? 'cursor-pointer hover:bg-gray-50 hover:border-gray-300' : ''
+                  }`}
+                  onClick={() => {
+                    if (hasDetails) {
+                      setSelectedUpload(upload)
+                      setShowSummaryDialog(true)
+                    }
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900">{upload.fileName}</span>
+                        <div className="text-sm text-gray-500">
+                          {upload.uploadedBy ? `Uploaded by ${upload.uploadedBy}` : 'Uploading...'}
+                          {upload.uploadedAt && ` • ${new Date(upload.uploadedAt).toLocaleDateString()}`}
+                          {upload.updatedAt && upload.uploadedAt !== upload.updatedAt && 
+                            ` • Updated ${new Date(upload.updatedAt).toLocaleDateString()}`}
+                        </div>
+                        {upload.message && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            {upload.message}
+                          </div>
+                        )}
+                        {upload.errorMessage && (
+                          <div className="text-sm text-red-600 mt-1">
+                            Error: {upload.errorMessage}
+                          </div>
+                        )}
+                        {/* Show summary preview if available */}
+                        {uploadSummary && (
+                          <div className="text-sm text-green-600 mt-1 flex items-center gap-2">
+                            <FileCheck className="w-3 h-3" />
+                            {uploadSummary.totalProcessed ?? uploadSummary.totalRows} rows • {uploadSummary.createdCount ?? uploadSummary.created} created • {uploadSummary.updatedCount ?? uploadSummary.updated} updated
+                            {uploadSummary.unchangedCount !== undefined && uploadSummary.unchangedCount > 0 && ` • ${uploadSummary.unchangedCount} unchanged`}
+                          </div>
+                        )}
                       </div>
-                      {upload.message && (
-                        <div className="text-sm text-gray-600 mt-1">
-                          {upload.message}
-                        </div>
+                      <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${
+                        upload.status === 'uploading' ? 'bg-blue-100 text-blue-800' :
+                        upload.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                        upload.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {upload.status === 'uploading' ? 'Uploading...' :
+                         upload.status === 'processing' ? 'Processing...' :
+                         upload.status === 'completed' ? 'Completed' :
+                         'Failed'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {upload.fileSize && (
+                        <span className="text-sm text-gray-500">
+                          {(upload.fileSize / 1024).toFixed(1)} KB
+                        </span>
                       )}
-                      {upload.errorMessage && (
-                        <div className="text-sm text-red-600 mt-1">
-                          Error: {upload.errorMessage}
-                        </div>
+                      {hasDetails && (
+                        <ChevronRight className="w-5 h-5 text-gray-400" />
                       )}
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${
-                      upload.status === 'uploading' ? 'bg-blue-100 text-blue-800' :
-                      upload.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                      upload.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {upload.status === 'uploading' ? 'Uploading...' :
-                       upload.status === 'processing' ? 'Processing...' :
-                       upload.status === 'completed' ? 'Completed' :
-                       'Failed'}
-                    </span>
                   </div>
-                  {upload.fileSize && (
-                    <span className="text-sm text-gray-500">
-                      {(upload.fileSize / 1024).toFixed(1)} KB
-                    </span>
-                  )}
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       </div>
@@ -720,6 +753,167 @@ export default function DataLoader() {
         onResetChanges={resetToOriginal}
         getValidParentOptions={getValidParentOptions}
       />
+
+      {/* Upload Summary Dialog */}
+      <Dialog open={showSummaryDialog} onOpenChange={setShowSummaryDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-[#2C3E50] flex items-center gap-2">
+              {selectedUpload?.status === 'completed' ? (
+                <FileCheck className="w-5 h-5 text-green-600" />
+              ) : selectedUpload?.status === 'error' ? (
+                <AlertCircle className="w-5 h-5 text-red-600" />
+              ) : null}
+              Upload Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedUpload && (() => {
+            const selectedSummary = selectedUpload.summary || selectedUpload.resultSummary
+            return (
+            <div className="space-y-4">
+              {/* File Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-700 mb-2">File Information</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-gray-500">File Name:</div>
+                  <div className="font-medium text-gray-900">{selectedUpload.fileName}</div>
+                  
+                  {selectedUpload.uploadedBy && (
+                    <>
+                      <div className="text-gray-500">Uploaded By:</div>
+                      <div className="font-medium text-gray-900">{selectedUpload.uploadedBy}</div>
+                    </>
+                  )}
+                  
+                  {selectedUpload.uploadedAt && (
+                    <>
+                      <div className="text-gray-500">Upload Date:</div>
+                      <div className="font-medium text-gray-900">
+                        {new Date(selectedUpload.uploadedAt).toLocaleString()}
+                      </div>
+                    </>
+                  )}
+                  
+                  {selectedUpload.fileSize && (
+                    <>
+                      <div className="text-gray-500">File Size:</div>
+                      <div className="font-medium text-gray-900">
+                        {(selectedUpload.fileSize / 1024).toFixed(1)} KB
+                      </div>
+                    </>
+                  )}
+                  
+                  <div className="text-gray-500">Status:</div>
+                  <div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      selectedUpload.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      selectedUpload.status === 'error' ? 'bg-red-100 text-red-800' :
+                      selectedUpload.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {selectedUpload.status === 'completed' ? 'Completed' :
+                       selectedUpload.status === 'error' ? 'Failed' :
+                       selectedUpload.status === 'processing' ? 'Processing' :
+                       'Uploading'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Processing Summary - Show for completed uploads */}
+              {selectedSummary && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-medium text-green-800 mb-3 flex items-center gap-2">
+                    <FileCheck className="w-4 h-4" />
+                    Processing Summary
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-lg p-3 border border-green-200">
+                      <div className="text-2xl font-bold text-green-700">
+                        {selectedSummary.totalProcessed ?? selectedSummary.totalRows ?? 0}
+                      </div>
+                      <div className="text-sm text-green-600">Total Processed</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-green-200">
+                      <div className="text-2xl font-bold text-green-700 flex items-center gap-1">
+                        <FilePlus className="w-5 h-5" />
+                        {selectedSummary.createdCount ?? selectedSummary.created ?? 0}
+                      </div>
+                      <div className="text-sm text-green-600">Created</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-green-200">
+                      <div className="text-2xl font-bold text-blue-700 flex items-center gap-1">
+                        <FileEdit className="w-5 h-5" />
+                        {selectedSummary.updatedCount ?? selectedSummary.updated ?? 0}
+                      </div>
+                      <div className="text-sm text-blue-600">Updated</div>
+                    </div>
+                    {selectedSummary.unchangedCount !== undefined && selectedSummary.unchangedCount > 0 && (
+                      <div className="bg-white rounded-lg p-3 border border-green-200">
+                        <div className="text-2xl font-bold text-gray-500">
+                          {selectedSummary.unchangedCount}
+                        </div>
+                        <div className="text-sm text-gray-500">Unchanged</div>
+                      </div>
+                    )}
+                    {selectedSummary.processingTime && (
+                      <div className="bg-white rounded-lg p-3 border border-green-200">
+                        <div className="text-2xl font-bold text-gray-700 flex items-center gap-1">
+                          <Clock className="w-5 h-5" />
+                          {selectedSummary.processingTime}
+                        </div>
+                        <div className="text-sm text-gray-600">Processing Time</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Error Details - Show for failed uploads */}
+              {selectedUpload.status === 'error' && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="font-medium text-red-800 mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    Error Details
+                  </h4>
+                  {selectedUpload.errorMessage && (
+                    <p className="text-red-700 text-sm mb-3">{selectedUpload.errorMessage}</p>
+                  )}
+                  {selectedUpload.errors && selectedUpload.errors.length > 0 && (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {selectedUpload.errors.map((error, idx) => (
+                        <div key={idx} className="bg-white rounded p-2 border border-red-200 text-sm">
+                          {error.row && (
+                            <span className="font-medium text-red-700">Row {error.row}: </span>
+                          )}
+                          {error.field && (
+                            <span className="text-red-600">[{error.field}] </span>
+                          )}
+                          <span className="text-red-700">{error.message}</span>
+                          {error.value && (
+                            <span className="text-red-500 text-xs block mt-1">
+                              Value: &quot;{error.value}&quot;
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Message if present and different from error */}
+              {selectedUpload.message && selectedUpload.status !== 'error' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-blue-700 text-sm">{selectedUpload.message}</p>
+                </div>
+              )}
+            </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Information Dialog */}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>

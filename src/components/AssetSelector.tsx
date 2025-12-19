@@ -28,10 +28,11 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
     if (searchAsset.trim() === "") return assets
     
     // Find all assets that directly match the search term
+    // Search by externalId (user-facing ID), name, description, and other identifiers
     const directMatches = assets.filter(asset => 
       (asset.name && asset.name.toLowerCase().includes(searchAsset.toLowerCase())) ||
       (asset.description && asset.description.toLowerCase().includes(searchAsset.toLowerCase())) ||
-      (asset.id && asset.id.toLowerCase().includes(searchAsset.toLowerCase())) ||
+      (asset.externalId && asset.externalId.toLowerCase().includes(searchAsset.toLowerCase())) ||
       (asset.cmmsInternalId && asset.cmmsInternalId.toLowerCase().includes(searchAsset.toLowerCase())) ||
       (asset.functionalLocation && asset.functionalLocation.toLowerCase().includes(searchAsset.toLowerCase()))
     )
@@ -122,7 +123,7 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center">
                 <span className="text-black font-mono text-sm font-medium min-w-[120px]">
-                  {highlightMatch(asset.id, searchAsset)}
+                  {highlightMatch(asset.externalId, searchAsset)}
                 </span>
               </div>
               <div className="flex items-center flex-1 ml-4">
@@ -182,7 +183,7 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
       const matchingAssets = assets.filter(asset => 
         (asset.name && asset.name.toLowerCase().includes(searchAsset.toLowerCase())) ||
         (asset.description && asset.description.toLowerCase().includes(searchAsset.toLowerCase())) ||
-        (asset.id && asset.id.toLowerCase().includes(searchAsset.toLowerCase())) ||
+        (asset.externalId && asset.externalId.toLowerCase().includes(searchAsset.toLowerCase())) ||
         (asset.cmmsInternalId && asset.cmmsInternalId.toLowerCase().includes(searchAsset.toLowerCase())) ||
         (asset.functionalLocation && asset.functionalLocation.toLowerCase().includes(searchAsset.toLowerCase()))
       )
@@ -235,7 +236,7 @@ export function AssetSelector({ value, onValueChange, error, title, placeholder 
             <div className="flex items-center justify-between w-full min-h-[40px]">
               <div className="flex items-center">
                 <span className="text-black font-mono text-sm font-medium min-w-[120px]">
-                  {selectedAsset.id}
+                  {selectedAsset.externalId}
                 </span>
               </div>
               <div className="flex items-center flex-1 ml-4">
