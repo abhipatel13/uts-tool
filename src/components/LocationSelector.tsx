@@ -5,9 +5,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps'
-import type { MapMouseEvent } from '@vis.gl/react-google-maps'
 import { parseLocationString } from '@/lib/map-utils'
+import dynamic from 'next/dynamic'
+
+// Dynamic import to avoid SSR issues with Leaflet
+const LocationMap = dynamic(
+  () => import('./LocationMap').then(mod => mod.LocationMap),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[250px] bg-gray-100 rounded-lg flex items-center justify-center">
+        <span className="text-gray-500">Loading map...</span>
+      </div>
+    )
+  }
+)
 
 interface LocationSelectorProps {
   value: string;
@@ -98,17 +110,10 @@ export function LocationSelector({
   };
 
   // Handle map click to set location
-  const handleMapClick = (event: MapMouseEvent) => {
-    if (event.detail?.latLng) {
-      const newLocation = {
-        lat: event.detail.latLng.lat,
-        lng: event.detail.latLng.lng,
-      }
-      setSelectedMapLocation(newLocation)
-      // Update the location field with coordinates
-      const coords = `${newLocation.lat}, ${newLocation.lng}`
-      onChange(coords)
-    }
+  const handleMapClick = (lat: number, lng: number) => {
+    setSelectedMapLocation({ lat, lng })
+    const coords = `${lat}, ${lng}`
+    onChange(coords)
   }
 
   // Update map location when location value changes (for manual entry or GPS)
@@ -160,20 +165,13 @@ export function LocationSelector({
         <div className="space-y-2 mt-4">
           <Label className="text-sm font-medium">Select Location on Map</Label>
           <div className="border rounded-lg p-2 overflow-hidden">
-            <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}>
-              <Map
-                key={`${selectedMapLocation.lat}-${selectedMapLocation.lng}-${mapZoom}`}
-                style={{ width: '100%', height: '250px' }}
-                defaultZoom={mapZoom}
-                defaultCenter={selectedMapLocation}
-                onClick={handleMapClick}
-                mapId="location-selector-map"
-              >
-                <AdvancedMarker
-                  position={selectedMapLocation}
-                />
-              </Map>
-            </APIProvider>
+            <LocationMap
+              center={selectedMapLocation}
+              zoom={mapZoom}
+              markerPosition={selectedMapLocation}
+              onMapClick={handleMapClick}
+              height="250px"
+            />
           </div>
         </div>
       )}
@@ -182,4 +180,4 @@ export function LocationSelector({
       )}
     </div>
   )
-} 
+}

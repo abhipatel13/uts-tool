@@ -101,7 +101,7 @@ export function calculateOptimalMapBounds(points: LatLng[], options?: {
   const paddedLngSpan = lngSpan * (1 + padding);
 
   // Calculate zoom level based on the larger span
-  // These are rough approximations - Google Maps zoom levels
+  // These are rough approximations for standard web map zoom levels (Leaflet/OpenStreetMap)
   const maxSpan = Math.max(paddedLatSpan, paddedLngSpan);
   
   let zoom: number;

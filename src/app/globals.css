@@ -2,6 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet Map Styles */
+@import "leaflet/dist/leaflet.css";
+@import "leaflet.markercluster/dist/MarkerCluster.css";
+@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+
+/* Override Leaflet z-index to prevent it from covering modals/dialogs */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-control {
+  z-index: auto !important;
+}
+
+.leaflet-map-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-overlay-pane {
+  z-index: 2 !important;
+}
+
+.leaflet-shadow-pane {
+  z-index: 3 !important;
+}
+
+.leaflet-marker-pane {
+  z-index: 4 !important;
+}
+
+.leaflet-tooltip-pane {
+  z-index: 5 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 6 !important;
+}
+
+.leaflet-control {
+  z-index: 10 !important;
+}
+
+/* Ensure the map container itself doesn't create stacking context issues */
+.leaflet-container {
+  z-index: 0;
+}
+
+/* Ensure Radix UI dialogs and overlays are always above Leaflet maps */
+[data-radix-portal] {
+  z-index: 9999 !important;
+}
+
+[data-radix-portal] > [data-state] {
+  z-index: 9999 !important;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }

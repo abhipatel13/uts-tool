@@ -8,14 +8,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 import { Edit2, Trash2, Plus, Users, Building2, Shield, Crown, UserCheck, Lock, Key } from "lucide-react"
-import { UniversalUserApi } from "@/services/universalUserApi"
 import { TaskHazardApi } from "@/services/taskHazardApi"
 import { User } from "@/types/user"
 import { CompanySelector } from "@/components/CompanySelector"
+import { useCompanies, useCompanyMutations } from "@/hooks/useCompanies"
+import { useUniversalUsers, useUniversalUserMutations } from "@/hooks/useUniversalUsers"
 
 interface NewUser {
   name: string;
@@ -53,20 +54,8 @@ interface UserStats {
 }
 
 export default function UniversalPortal() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [totalUsers, setTotalUsers] = useState<number>(0);
-  const [companies, setCompanies] = useState<Company[]>([]);
   const [taskHazardCount, setTaskHazardCount] = useState<number>(0);
-
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<UserStats>({
-    universalUsers: 0,
-    superusers: 0,
-    admins: 0,
-    supervisors: 0,
-    users: 0,
-    totalCompanies: 0
-  });
   
   const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
   const [isCreateCompanyDialogOpen, setIsCreateCompanyDialogOpen] = useState(false);
@@ -75,9 +64,7 @@ export default function UniversalPortal() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleteCompanyDialogOpen, setIsDeleteCompanyDialogOpen] = useState(false);
   const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(null);
   const [resetPasswordData, setResetPasswordData] = useState({
     newPassword: '',
@@ -119,6 +106,39 @@ export default function UniversalPortal() {
   const { toast } = useToast();
   const router = useRouter();
 
+  // React Query hooks for companies
+  const { companies, isLoading: isLoadingCompanies } = useCompanies({ enabled: isAuthenticated });
+  const { createCompany, updateCompany, deleteCompany } = useCompanyMutations();
+
+  // React Query hooks for universal users
+  const { 
+    users, 
+    totalUsers, 
+    isLoading: isLoadingUsers 
+  } = useUniversalUsers({ 
+    companyId: selectedCompanyFilter !== 'all' ? parseInt(selectedCompanyFilter) : undefined,
+    enabled: isAuthenticated 
+  });
+  const { 
+    createUser, 
+    updateUser, 
+    deleteUser, 
+    resetUserPassword, 
+    changeOwnPassword,
+    isResettingPassword,
+    isChangingPassword
+  } = useUniversalUserMutations();
+
+  // Calculate stats from users and companies data (derived state via useMemo)
+  const stats = useMemo<UserStats>(() => ({
+    universalUsers: users.filter(u => u.role === 'universal_user').length,
+    superusers: users.filter(u => u.role === 'superuser').length,
+    admins: users.filter(u => u.role === 'admin').length,
+    supervisors: users.filter(u => u.role === 'supervisor').length,
+    users: users.filter(u => u.role === 'user').length,
+    totalCompanies: companies.length
+  }), [users, companies]);
+
   // Reset edit form when dialog opens/closes
   useEffect(() => {
     if (!isEditDialogOpen) {
@@ -126,66 +146,6 @@ export default function UniversalPortal() {
       setSelectedUser(null);
     }
   }, [isEditDialogOpen]);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [usersResponse, companiesResponse] = await Promise.all([
-        UniversalUserApi.getAllUsers({}), // Initial load - get all users
-        UniversalUserApi.getAllCompanies()
-      ]);
-      
-      if (usersResponse.status && companiesResponse.status) {
-        const usersData = usersResponse.data.users || [];
-        const companiesData = companiesResponse.data || [];
-        
-        setUsers(usersData);
-        setCompanies(companiesData);
-        calculateStats(usersData, companiesData);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch portal data",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      const params: { company_id?: number } = {};
-      
-      // Apply company filter
-      if (selectedCompanyFilter !== 'all') {
-        params.company_id = parseInt(selectedCompanyFilter);
-      }
-      
-      const response = await UniversalUserApi.getAllUsers(params);
-      if (response.status && response.data.users) {
-        setUsers(response.data.users);
-        setTotalUsers(response.data.pagination.totalUsers);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  }, [selectedCompanyFilter]);
-
-  const fetchCompanies = async () => {
-    try {
-      const response = await UniversalUserApi.getAllCompanies();
-      if (response.status) {
-        const companiesData = response.data;
-        setCompanies(companiesData);
-        calculateStats(users, companiesData);
-      }
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-    }
-  };
 
   const fetchTaskHazards = useCallback(async () => {
     try {
@@ -206,15 +166,12 @@ export default function UniversalPortal() {
           
           // Filter manually if a specific company is selected
           if (selectedCompanyFilter !== 'all') {
-            setCompanies(currentCompanies => {
-              const selectedCompany = currentCompanies.find(c => c.id.toString() === selectedCompanyFilter);
-              if (selectedCompany) {
-                taskHazardsData = fallbackResponse.data.filter(taskHazard => 
-                  taskHazard.companyId === selectedCompany.id
-                );
-              }
-              return currentCompanies; // Return unchanged
-            });
+            const selectedCompanyObj = companies.find(c => c.id.toString() === selectedCompanyFilter);
+            if (selectedCompanyObj) {
+              taskHazardsData = fallbackResponse.data.filter(taskHazard => 
+                taskHazard.companyId === selectedCompanyObj.id
+              );
+            }
           }
           
           setTaskHazardCount(taskHazardsData.length);
@@ -223,9 +180,9 @@ export default function UniversalPortal() {
         console.error('Error with fallback task hazard fetching:', fallbackError);
       }
     }
-  }, [selectedCompanyFilter]);
+  }, [selectedCompanyFilter, companies]);
 
-  // Authentication and initial data loading
+  // Authentication check
   useEffect(() => {
     const checkAuth = () => {
       const userData = localStorage.getItem('user');
@@ -244,7 +201,7 @@ export default function UniversalPortal() {
         }
         
         setIsAuthenticated(true);
-        fetchData();
+        setLoading(false);
       } catch (error) {
         console.error('Error parsing user data:', error);
         setLoading(false);
@@ -257,36 +214,15 @@ export default function UniversalPortal() {
     } else {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  // Fetch users and task hazards when company filter changes
+  // Fetch task hazards when company filter changes
   useEffect(() => {
     if (isAuthenticated) {
-      fetchUsers();
       fetchTaskHazards();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompanyFilter, isAuthenticated]);
-
-  const calculateStats = (usersList: User[], companiesList: Company[]) => {
-    
-    const newStats: UserStats = {
-      universalUsers: usersList.filter(u => u.role === 'universal_user').length,
-      superusers: usersList.filter(u => u.role === 'superuser').length,
-      admins: usersList.filter(u => u.role === 'admin').length,
-      supervisors: usersList.filter(u => u.role === 'supervisor').length,
-      users: usersList.filter(u => u.role === 'user').length,
-      totalCompanies: companiesList.length
-    };
-    
-    setStats(newStats);
-  };
-
-  // Calculate stats whenever data changes
-  useEffect(() => {
-    calculateStats(users, companies);
-  }, [users, companies]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -312,30 +248,29 @@ export default function UniversalPortal() {
     }
     
     try {
-      // Send the user data with proper company_id format for the backend
-      const userData = {
-        ...newUser,
-        company_id: newUser.companyId
-      };
+      await createUser({
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.role,
+        company_id: newUser.companyId,
+        name: newUser.name,
+        department: newUser.department,
+      });
       
-      const response = await UniversalUserApi.createUser(userData);
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: "Superuser created successfully",
-        });
-        setIsCreateUserDialogOpen(false);
-        setNewUser({ 
-          name: '',
-          email: '', 
-          password: '', 
-          role: 'superuser', // Universal users can only create superusers
-          companyId: 0,
-          phone: '',
-          department: ''
-        });
-        fetchUsers();
-      }
+      toast({
+        title: "Success",
+        description: "Superuser created successfully",
+      });
+      setIsCreateUserDialogOpen(false);
+      setNewUser({ 
+        name: '',
+        email: '', 
+        password: '', 
+        role: 'superuser',
+        companyId: 0,
+        phone: '',
+        department: ''
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -378,28 +313,24 @@ export default function UniversalPortal() {
       return;
     }
     
-    setIsChangingPassword(true);
-    
     try {
-      const response = await UniversalUserApi.changeOwnPassword(
-        changePasswordData.currentPassword,
-        changePasswordData.newPassword
-      );
+      await changeOwnPassword({
+        currentPassword: changePasswordData.currentPassword,
+        newPassword: changePasswordData.newPassword
+      });
       
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: "Password changed successfully",
-        });
-        
-        // Reset form and close dialog
-        setChangePasswordData({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        });
-        setIsChangePasswordDialogOpen(false);
-      }
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+      
+      // Reset form and close dialog
+      setChangePasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setIsChangePasswordDialogOpen(false);
     } catch (error) {
       console.error('Error changing password:', error);
       toast({
@@ -407,8 +338,6 @@ export default function UniversalPortal() {
         description: error instanceof Error ? error.message : "Failed to change password",
         variant: "destructive",
       });
-    } finally {
-      setIsChangingPassword(false);
     }
   };
 
@@ -417,15 +346,22 @@ export default function UniversalPortal() {
     if (!selectedUser) return;
 
     try {
-      const response = await UniversalUserApi.updateUser(selectedUser.id, editFormData);
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: "User updated successfully",
-        });
-        setIsEditDialogOpen(false);
-        fetchUsers();
-      }
+      await updateUser({
+        id: selectedUser.id,
+        data: {
+          email: editFormData.email,
+          name: editFormData.name,
+          role: editFormData.role,
+          company_id: editFormData.companyId,
+          department: editFormData.department,
+        }
+      });
+      
+      toast({
+        title: "Success",
+        description: "User updated successfully",
+      });
+      setIsEditDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -460,25 +396,24 @@ export default function UniversalPortal() {
       return;
     }
     
-    setIsResettingPassword(true);
-    
     try {
-      const response = await UniversalUserApi.resetUserPassword(selectedUserForReset.id.toString(), resetPasswordData.newPassword);
+      await resetUserPassword({
+        id: selectedUserForReset.id.toString(),
+        newPassword: resetPasswordData.newPassword
+      });
       
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: `Password reset successfully for ${selectedUserForReset.email}`,
-        });
-        
-        // Reset form and close dialog
-        setResetPasswordData({
-          newPassword: '',
-          confirmPassword: ''
-        });
-        setIsResetPasswordDialogOpen(false);
-        setSelectedUserForReset(null);
-      }
+      toast({
+        title: "Success",
+        description: `Password reset successfully for ${selectedUserForReset.email}`,
+      });
+      
+      // Reset form and close dialog
+      setResetPasswordData({
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setIsResetPasswordDialogOpen(false);
+      setSelectedUserForReset(null);
     } catch (error) {
       console.error('Error resetting password:', error);
       toast({
@@ -486,8 +421,6 @@ export default function UniversalPortal() {
         description: error instanceof Error ? error.message : "Failed to reset password",
         variant: "destructive",
       });
-    } finally {
-      setIsResettingPassword(false);
     }
   };
 
@@ -503,19 +436,20 @@ export default function UniversalPortal() {
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await UniversalUserApi.createCompany(newCompany);
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: "Company created successfully",
-        });
-        setIsCreateCompanyDialogOpen(false);
-        setNewCompany({
-          name: '',
-          description: ''
-        });
-        fetchCompanies();
-      }
+      await createCompany({
+        name: newCompany.name,
+        description: newCompany.description
+      });
+      
+      toast({
+        title: "Success",
+        description: "Company created successfully",
+      });
+      setIsCreateCompanyDialogOpen(false);
+      setNewCompany({
+        name: '',
+        description: ''
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -530,15 +464,19 @@ export default function UniversalPortal() {
     if (!selectedCompany) return;
 
     try {
-      const response = await UniversalUserApi.updateCompany(selectedCompany.id, editCompanyFormData);
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: "Company updated successfully",
-        });
-        setIsEditCompanyDialogOpen(false);
-        fetchCompanies();
-      }
+      await updateCompany({
+        id: selectedCompany.id,
+        data: {
+          name: editCompanyFormData.name,
+          description: editCompanyFormData.description
+        }
+      });
+      
+      toast({
+        title: "Success",
+        description: "Company updated successfully",
+      });
+      setIsEditCompanyDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -552,16 +490,14 @@ export default function UniversalPortal() {
     if (!selectedUser) return;
 
     try {
-      const response = await UniversalUserApi.deleteUser(selectedUser.id);
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: "User deleted successfully",
-        });
-        setIsDeleteDialogOpen(false);
-        setSelectedUser(null);
-        fetchUsers();
-      }
+      await deleteUser(selectedUser.id);
+      
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedUser(null);
     } catch (error) {
       toast({
         title: "Error",
@@ -575,16 +511,14 @@ export default function UniversalPortal() {
     if (!selectedCompany) return;
 
     try {
-      const response = await UniversalUserApi.deleteCompany(selectedCompany.id);
-      if (response.status) {
-        toast({
-          title: "Success",
-          description: "Company deleted successfully",
-        });
-        setIsDeleteCompanyDialogOpen(false);
-        setSelectedCompany(null);
-        fetchCompanies();
-      }
+      await deleteCompany(selectedCompany.id);
+      
+      toast({
+        title: "Success",
+        description: "Company deleted successfully",
+      });
+      setIsDeleteCompanyDialogOpen(false);
+      setSelectedCompany(null);
     } catch (error) {
       toast({
         title: "Error",
@@ -638,7 +572,7 @@ export default function UniversalPortal() {
     company.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) {
+  if (loading || (isAuthenticated && (isLoadingCompanies || isLoadingUsers))) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
