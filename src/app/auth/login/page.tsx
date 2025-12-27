@@ -76,6 +76,11 @@ export default function Login() {
       router.push("/")
     } catch (apiError: unknown) {
       console.error("API login error:", apiError)
+      if (apiError instanceof Error) {
+        setError(apiError.message)
+      } else {
+        setError("Login failed. Please check your credentials and try again.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -105,8 +110,12 @@ export default function Login() {
       setIsResetEmailDialogOpen(true)
     } catch (apiError: unknown) {
       console.error("API forgot password error:", apiError)
-    }
-    finally {
+      if (apiError instanceof Error) {
+        setError(apiError.message)
+      } else {
+        setError("Failed to send password reset email. Please try again.")
+      }
+    } finally {
       setIsLoading(false)
     }
   }

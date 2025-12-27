@@ -9,7 +9,7 @@ export const getAuthToken = (): string | null => {
 };
 
 // API client configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
 
 // API error class
 export class ApiError extends Error {
