@@ -693,7 +693,6 @@ export function ValidationModal({
                                     // For duplicates, row is only "fixed" if deleted OR ID was changed
                                     const asset = parsedAssets.find(a => a.row === row)
                                     const idWasChanged = asset && asset.id !== dup.id
-                                    const rowFixed = rowDeleted || idWasChanged
                                     
                                     return (
                                       <div 
