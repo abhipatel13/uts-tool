@@ -82,6 +82,7 @@ export default function DataLoader() {
     changeAssetId,
     deleteRow,
     reassignChildrenToParent,
+    updateAssetName,
     resetToOriginal,
     getModifiedCSV,
     getFinalValidation,
@@ -750,6 +751,7 @@ export default function DataLoader() {
         onDeleteRow={deleteRow}
         onReassignChildren={reassignChildrenToParent}
         getChildrenOfAsset={getChildrenOfAsset}
+        onUpdateAssetName={updateAssetName}
         onResetChanges={resetToOriginal}
         getValidParentOptions={getValidParentOptions}
       />

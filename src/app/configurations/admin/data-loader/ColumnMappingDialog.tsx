@@ -111,7 +111,7 @@ export function ColumnMappingDialog({
           <SelectItem value={NONE_VALUE}>
             {isRequired ? 'Select a column' : '— None —'}
           </SelectItem>
-          {headerColumns.map(header => (
+          {headerColumns.filter(header => header.trim() !== '').map(header => (
             <SelectItem key={header} value={header}>{header}</SelectItem>
           ))}
         </SelectContent>

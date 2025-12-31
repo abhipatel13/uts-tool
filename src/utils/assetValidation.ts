@@ -97,31 +97,45 @@ export function detectCycles(assets: ParsedAsset[]): CycleInfo[] {
     const asset = idToAsset.get(assetId);
 
     if (asset?.parentId && idToAsset.has(asset.parentId)) {
-      const parentColor = color.get(asset.parentId);
-
-      if (parentColor === GRAY) {
-        // Found a cycle - extract it
-        const cycleStartIndex = path.indexOf(asset.parentId);
-        if (cycleStartIndex >= 0) {
-          const cyclePath = path.slice(cycleStartIndex);
-          cyclePath.push(assetId);
-
-          // Create a normalized cycle ID to detect duplicates
-          const sortedCycleIds = [...cyclePath].sort().join(',');
-          if (!processedCycleIds.has(sortedCycleIds)) {
-            processedCycleIds.add(sortedCycleIds);
-
-            cycles.push({
-              cycleId: `cycle-${cycles.length + 1}`,
-              assetIds: cyclePath,
-              rows: cyclePath.map(id => idToAsset.get(id)!.row),
-              assetNames: cyclePath.map(id => idToAsset.get(id)!.name),
-            });
-          }
+      // Special case: self-reference (asset is its own parent)
+      if (asset.parentId === assetId) {
+        const sortedCycleIds = assetId;
+        if (!processedCycleIds.has(sortedCycleIds)) {
+          processedCycleIds.add(sortedCycleIds);
+          cycles.push({
+            cycleId: `cycle-${cycles.length + 1}`,
+            assetIds: [assetId],
+            rows: [asset.row],
+            assetNames: [asset.name],
+          });
         }
-      } else if (parentColor === WHITE) {
-        parent.set(asset.parentId, assetId);
-        dfs(asset.parentId, [...path, assetId]);
+      } else {
+        const parentColor = color.get(asset.parentId);
+
+        if (parentColor === GRAY) {
+          // Found a cycle - extract it
+          const cycleStartIndex = path.indexOf(asset.parentId);
+          if (cycleStartIndex >= 0) {
+            const cyclePath = path.slice(cycleStartIndex);
+            cyclePath.push(assetId);
+
+            // Create a normalized cycle ID to detect duplicates
+            const sortedCycleIds = [...cyclePath].sort().join(',');
+            if (!processedCycleIds.has(sortedCycleIds)) {
+              processedCycleIds.add(sortedCycleIds);
+
+              cycles.push({
+                cycleId: `cycle-${cycles.length + 1}`,
+                assetIds: cyclePath,
+                rows: cyclePath.map(id => idToAsset.get(id)!.row),
+                assetNames: cyclePath.map(id => idToAsset.get(id)!.name),
+              });
+            }
+          }
+        } else if (parentColor === WHITE) {
+          parent.set(asset.parentId, assetId);
+          dfs(asset.parentId, [...path, assetId]);
+        }
       }
     }
 
@@ -390,11 +404,19 @@ export function topologicalSortAssets(assets: ParsedAsset[]): ParsedAsset[] {
 
   // Track which assets have been added to result
   const added = new Set<string>();
+  // Track assets currently being visited (to detect cycles)
+  const visiting = new Set<string>();
   const result: ParsedAsset[] = [];
 
   // Helper function to add an asset and its ancestors first
   function addWithAncestors(asset: ParsedAsset): void {
     if (added.has(asset.id)) return;
+    
+    // If we're already visiting this asset, we have a cycle - skip to break it
+    if (visiting.has(asset.id)) return;
+    
+    // Mark as currently visiting
+    visiting.add(asset.id);
 
     // If this asset has a parent, add the parent first (recursively)
     if (asset.parentId && idToAsset.has(asset.parentId) && !added.has(asset.parentId)) {
@@ -407,6 +429,9 @@ export function topologicalSortAssets(assets: ParsedAsset[]): ParsedAsset[] {
       added.add(asset.id);
       result.push(asset);
     }
+    
+    // Done visiting
+    visiting.delete(asset.id);
   }
 
   // First, add all root assets (no parent or parent not in file)

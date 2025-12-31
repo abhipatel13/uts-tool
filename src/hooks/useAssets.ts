@@ -6,6 +6,9 @@ import type { Asset } from '@/types';
 /** Query key for assets */
 export const ASSETS_QUERY_KEY = ['assets'] as const;
 
+/** Stable empty array to prevent infinite re-renders when data is loading */
+const EMPTY_ASSETS: Asset[] = [];
+
 interface UseAssetsOptions {
   /** Whether the query is enabled (default: true) */
   enabled?: boolean;
@@ -43,7 +46,7 @@ export function useAssets(options: UseAssetsOptions = {}): UseAssetsResult {
   const { enabled = true } = options;
 
   const {
-    data: assets = [],
+    data: assets = EMPTY_ASSETS,
     isLoading,
     error,
     refetch,

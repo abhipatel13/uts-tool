@@ -62,6 +62,9 @@ interface UseAssetValidationReturn {
   undeleteRow: (row: number) => void
   reassignChildrenToParent: (childRows: number[], newParentId: string | null) => void
   
+  // Fix actions - Missing Names
+  updateAssetName: (row: number, newName: string) => void
+  
   // Utilities
   resetToOriginal: () => void
   getModifiedCSV: () => string
@@ -333,6 +336,28 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
     setModifiedRows(prev => new Set([...prev, ...childRows]))
   }, [headers, revalidate, deletedRows])
 
+  // ============================================================================
+  // Missing Name Fix Functions
+  // ============================================================================
+
+  // Update the name of an asset (for fixing missing names)
+  const updateAssetName = useCallback((row: number, newName: string) => {
+    setParsedAssets(prev => {
+      const updated = prev.map(asset => 
+        asset.row === row 
+          ? { 
+              ...asset, 
+              name: newName,
+              originalRowData: updateRowData(asset.originalRowData, headers, 'name', newName, columnMappingsRef.current)
+            }
+          : asset
+      )
+      revalidate(updated.filter(a => !deletedRows.has(a.row)))
+      return updated
+    })
+    setModifiedRows(prev => new Set([...prev, row]))
+  }, [headers, revalidate, deletedRows])
+
   // Reset all changes
   const resetToOriginal = useCallback(() => {
     setParsedAssets(originalAssets)
@@ -385,6 +410,7 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
     deleteRow,
     undeleteRow,
     reassignChildrenToParent,
+    updateAssetName,
     resetToOriginal,
     getModifiedCSV,
     getFinalValidation,

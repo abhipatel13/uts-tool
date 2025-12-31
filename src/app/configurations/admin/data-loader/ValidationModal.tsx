@@ -16,10 +16,11 @@ import {
 } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { ValidationResult, OrphanGroup, OrphanInfo, DuplicateInfo, ParsedAsset } from '@/types/validation'
+import { ValidationResult, OrphanGroup, OrphanInfo, DuplicateInfo, MissingNameInfo, ParsedAsset } from '@/types/validation'
 import { ParentOption, ChildAssetInfo } from './hooks/useAssetValidation'
 import { OrphanFixDialog } from './OrphanFixDialog'
 import { DuplicateFixDialog } from './DuplicateFixDialog'
+import { MissingNameFixDialog } from './MissingNameFixDialog'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { AssetTableView } from './AssetTableView'
 import { 
@@ -62,6 +63,8 @@ interface ValidationModalProps {
   onDeleteRow: (row: number) => void
   onReassignChildren: (childRows: number[], newParentId: string | null) => void
   getChildrenOfAsset: (assetId: string, excludeRows?: number[]) => ChildAssetInfo[]
+  // Fix actions - Missing Names
+  onUpdateAssetName: (row: number, newName: string) => void
   // Utilities
   onResetChanges: () => void
   getValidParentOptions: (excludeRow: number) => ParentOption[]
@@ -89,6 +92,7 @@ export function ValidationModal({
   onDeleteRow,
   onReassignChildren,
   getChildrenOfAsset,
+  onUpdateAssetName,
   onResetChanges,
   getValidParentOptions,
 }: ValidationModalProps) {
@@ -106,8 +110,14 @@ export function ValidationModal({
   // Confirmation dialog states
   const [showFixAllOrphansConfirm, setShowFixAllOrphansConfirm] = useState(false)
   const [showBreakAllCyclesConfirm, setShowBreakAllCyclesConfirm] = useState(false)
-  const [pendingGroupFix, setPendingGroupFix] = useState<OrphanGroup | null>(null)
-  const [showFixGroupConfirm, setShowFixGroupConfirm] = useState(false)
+  
+  // Orphan group fix dialog state (uses OrphanFixDialog in group mode)
+  const [orphanGroupFixDialogOpen, setOrphanGroupFixDialogOpen] = useState(false)
+  const [selectedOrphanGroup, setSelectedOrphanGroup] = useState<OrphanGroup | null>(null)
+
+  // Missing name fix dialog state
+  const [missingNameFixDialogOpen, setMissingNameFixDialogOpen] = useState(false)
+  const [selectedMissingName, setSelectedMissingName] = useState<MissingNameInfo | null>(null)
 
   // Open the orphan fix dialog for a specific orphan
   const handleOrphanFixClick = useCallback((orphan: OrphanInfo) => {
@@ -115,11 +125,23 @@ export function ValidationModal({
     setOrphanFixDialogOpen(true)
   }, [])
 
-  // Get parent options for the selected orphan
+  // Get parent options for the selected orphan (single mode)
   const parentOptionsForOrphan = useMemo(() => {
     if (!selectedOrphan) return []
     return getValidParentOptions(selectedOrphan.row)
   }, [selectedOrphan, getValidParentOptions])
+
+  // Get parent options for the selected orphan group
+  // Excludes all orphans in the group to prevent selecting any of them as parent
+  const parentOptionsForOrphanGroup = useMemo(() => {
+    if (!selectedOrphanGroup) return []
+    // Use the first orphan's row, but exclude all orphan rows from valid options
+    const firstOrphanRow = selectedOrphanGroup.orphans[0]?.row ?? 0
+    const allOptions = getValidParentOptions(firstOrphanRow)
+    // Filter out any options that are part of this orphan group
+    const orphanRows = new Set(selectedOrphanGroup.orphans.map(o => o.row))
+    return allOptions.filter(opt => !orphanRows.has(opt.row))
+  }, [selectedOrphanGroup, getValidParentOptions])
 
   // Confirmation handlers
   const handleFixAllOrphansClick = useCallback(() => {
@@ -127,8 +149,8 @@ export function ValidationModal({
   }, [])
 
   const handleFixGroupClick = useCallback((group: OrphanGroup) => {
-    setPendingGroupFix(group)
-    setShowFixGroupConfirm(true)
+    setSelectedOrphanGroup(group)
+    setOrphanGroupFixDialogOpen(true)
   }, [])
 
   const handleBreakAllCyclesClick = useCallback(() => {
@@ -139,6 +161,12 @@ export function ValidationModal({
   const handleDuplicateFixClick = useCallback((dup: DuplicateInfo) => {
     setSelectedDuplicate(dup)
     setDuplicateFixDialogOpen(true)
+  }, [])
+
+  // Open the missing name fix dialog for a specific asset
+  const handleMissingNameFixClick = useCallback((missing: MissingNameInfo) => {
+    setSelectedMissingName(missing)
+    setMissingNameFixDialogOpen(true)
   }, [])
 
   // Calculate summary stats
@@ -164,39 +192,68 @@ export function ValidationModal({
   }, [validationResult])
 
   // Count unfixed orphans (those not in modifiedRows)
+  // Count unfixed orphans
+  // An orphan is only "fixed" if deleted OR its parent reference was changed
   const unfixedOrphanCount = useMemo(() => {
     if (!validationResult) return 0
     return validationResult.orphanGroups.reduce((sum, g) => {
-      const unfixed = g.orphans.filter(o => !modifiedRows.has(o.row))
+      const unfixed = g.orphans.filter(o => {
+        if (deletedRows.has(o.row)) return false // deleted = fixed
+        // Check if parent was changed from the missing value
+        const asset = parsedAssets.find(a => a.row === o.row)
+        if (!asset) return true // can't find asset, still unfixed
+        return asset.parentId === o.missingParentId // still has the bad parent = unfixed
+      })
       return sum + unfixed.length
     }, 0)
-  }, [validationResult, modifiedRows])
+  }, [validationResult, parsedAssets, deletedRows])
 
   // Count unfixed cycles
+  // Count unfixed cycles
+  // A cycle is "fixed" if any row was deleted OR had its parent removed/changed
   const unfixedCycleCount = useMemo(() => {
     if (!validationResult) return 0
-    return validationResult.cycles.filter(c => 
-      !c.rows.some(row => modifiedRows.has(row))
-    ).length
-  }, [validationResult, modifiedRows])
+    return validationResult.cycles.filter(c => {
+      // Check if any row in the cycle has been fixed (deleted or parent removed)
+      const hasFixedRow = c.rows.some(row => {
+        if (deletedRows.has(row)) return true
+        // Check if parent was removed (empty = cycle broken)
+        const asset = parsedAssets.find(a => a.row === row)
+        return asset && (!asset.parentId || asset.parentId.trim() === '')
+      })
+      return !hasFixedRow
+    }).length
+  }, [validationResult, parsedAssets, deletedRows])
 
-  // Count unfixed duplicates (duplicates where not all but one have been modified/deleted)
+  // Count unfixed duplicates
+  // A duplicate row is only "fixed" if deleted OR its ID was actually changed
   const unfixedDuplicateCount = useMemo(() => {
     if (!validationResult) return 0
     return validationResult.duplicates.filter(dup => {
-      // A duplicate is "fixed" if all but one row has been either modified or deleted
-      const fixedRows = dup.rows.filter(row => modifiedRows.has(row) || deletedRows.has(row))
+      // A row is "fixed" for this duplicate if: deleted OR its current ID no longer matches the duplicate ID
+      const fixedRows = dup.rows.filter(row => {
+        if (deletedRows.has(row)) return true
+        // Check if the row's current ID is different from the duplicate ID
+        const asset = parsedAssets.find(a => a.row === row)
+        return asset && asset.id !== dup.id
+      })
       return fixedRows.length < dup.rows.length - 1 // Need to fix all but one
     }).length
-  }, [validationResult, modifiedRows, deletedRows])
+  }, [validationResult, parsedAssets, deletedRows])
 
   // Count unfixed missing names
+  // Count unfixed missing names
+  // A missing name is only "fixed" if deleted OR name was actually added
   const unfixedMissingNameCount = useMemo(() => {
     if (!validationResult) return 0
-    return validationResult.missingNames.filter(m => 
-      !modifiedRows.has(m.row) && !deletedRows.has(m.row)
-    ).length
-  }, [validationResult, modifiedRows, deletedRows])
+    return validationResult.missingNames.filter(m => {
+      if (deletedRows.has(m.row)) return false // deleted = fixed
+      // Check if name was added
+      const asset = parsedAssets.find(a => a.row === m.row)
+      if (!asset) return true // can't find asset, still unfixed
+      return !asset.name || asset.name.trim() === '' // still no name = unfixed
+    }).length
+  }, [validationResult, parsedAssets, deletedRows])
 
   const canProceed = validationResult && !validationResult.hasErrors
 
@@ -336,7 +393,13 @@ export function ValidationModal({
                         </div>
                         <div className="space-y-3">
                           {validationResult.cycles.map((cycle) => {
-                            const isFixed = cycle.rows.some(row => modifiedRows.has(row))
+                            // Helper to check if a cycle row is fixed (deleted or parent removed)
+                            const isCycleRowFixed = (row: number) => {
+                              if (deletedRows.has(row)) return true
+                              const asset = parsedAssets.find(a => a.row === row)
+                              return asset && (!asset.parentId || asset.parentId.trim() === '')
+                            }
+                            const isFixed = cycle.rows.some(isCycleRowFixed)
                             
                             return (
                               <div 
@@ -363,23 +426,26 @@ export function ValidationModal({
                                   </div>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-1 text-sm mb-3">
-                                  {cycle.assetIds.map((id, idx) => (
-                                    <span key={id} className="flex items-center">
-                                      <span className={`px-2 py-0.5 rounded border ${
-                                        modifiedRows.has(cycle.rows[idx])
-                                          ? 'bg-green-100 border-green-300'
-                                          : 'bg-white border-purple-200'
-                                      }`}>
-                                        {id}
-                                        <span className="text-purple-500 text-xs ml-1">
-                                          (Row {cycle.rows[idx]})
+                                  {cycle.assetIds.map((id, idx) => {
+                                    const rowFixed = isCycleRowFixed(cycle.rows[idx])
+                                    return (
+                                      <span key={id} className="flex items-center">
+                                        <span className={`px-2 py-0.5 rounded border ${
+                                          rowFixed
+                                            ? 'bg-green-100 border-green-300'
+                                            : 'bg-white border-purple-200'
+                                        }`}>
+                                          {id}
+                                          <span className="text-purple-500 text-xs ml-1">
+                                            (Row {cycle.rows[idx]})
+                                          </span>
                                         </span>
+                                        {idx < cycle.assetIds.length - 1 && (
+                                          <ChevronRight className="w-4 h-4 text-purple-400 mx-1" />
+                                        )}
                                       </span>
-                                      {idx < cycle.assetIds.length - 1 && (
-                                        <ChevronRight className="w-4 h-4 text-purple-400 mx-1" />
-                                      )}
-                                    </span>
-                                  ))}
+                                    )
+                                  })}
                                   <ChevronRight className="w-4 h-4 text-purple-400 mx-1" />
                                   <span className="text-purple-600 font-medium">
                                     {cycle.assetIds[0]}
@@ -444,7 +510,13 @@ export function ValidationModal({
                         </div>
                         <div className="space-y-3">
                           {validationResult.orphanGroups.map((group) => {
-                            const unfixedInGroup = group.orphans.filter(o => !modifiedRows.has(o.row))
+                            // An orphan is "fixed" if deleted OR parent was changed
+                            const isOrphanFixed = (o: typeof group.orphans[0]) => {
+                              if (deletedRows.has(o.row)) return true
+                              const asset = parsedAssets.find(a => a.row === o.row)
+                              return asset ? asset.parentId !== o.missingParentId : false
+                            }
+                            const unfixedInGroup = group.orphans.filter(o => !isOrphanFixed(o))
                             const allFixed = unfixedInGroup.length === 0
                             
                             return (
@@ -490,17 +562,27 @@ export function ValidationModal({
                                 </div>
                                 <div className="space-y-1 max-h-40 overflow-y-auto">
                                   {group.orphans.map((orphan) => {
-                                    const isFixed = modifiedRows.has(orphan.row)
+                                    const isFixed = isOrphanFixed(orphan)
+                                    const isDeleted = deletedRows.has(orphan.row)
                                     
                                     return (
                                       <div 
                                         key={orphan.row}
                                         className={`text-sm flex items-center justify-between py-1 px-2 rounded ${
-                                          isFixed ? 'bg-green-100' : ''
+                                          isDeleted 
+                                            ? 'bg-red-100 line-through opacity-60' 
+                                            : isFixed 
+                                              ? 'bg-green-100' 
+                                              : ''
                                         }`}
                                       >
                                         <div className="flex items-center gap-2">
-                                          {isFixed && (
+                                          {isDeleted && (
+                                            <Badge variant="secondary" className="bg-red-200 text-red-700 text-xs">
+                                              Deleted
+                                            </Badge>
+                                          )}
+                                          {isFixed && !isDeleted && (
                                             <CheckCircle2 className="w-3 h-3 text-green-600" />
                                           )}
                                           <span className="text-red-500 text-xs w-16">Row {orphan.row}</span>
@@ -556,8 +638,12 @@ export function ValidationModal({
                         </div>
                         <div className="space-y-3">
                           {validationResult.duplicates.map((dup) => {
-                            // Check if this duplicate is fixed
-                            const fixedRows = dup.rows.filter(row => modifiedRows.has(row) || deletedRows.has(row))
+                            // A row is "fixed" for this duplicate if: deleted OR its ID was changed
+                            const fixedRows = dup.rows.filter(row => {
+                              if (deletedRows.has(row)) return true
+                              const asset = parsedAssets.find(a => a.row === row)
+                              return asset && asset.id !== dup.id
+                            })
                             const isFixed = fixedRows.length >= dup.rows.length - 1
                             
                             return (
@@ -603,8 +689,11 @@ export function ValidationModal({
                                 </div>
                                 <div className="space-y-1 max-h-40 overflow-y-auto">
                                   {dup.rows.map((row, idx) => {
-                                    const rowModified = modifiedRows.has(row)
                                     const rowDeleted = deletedRows.has(row)
+                                    // For duplicates, row is only "fixed" if deleted OR ID was changed
+                                    const asset = parsedAssets.find(a => a.row === row)
+                                    const idWasChanged = asset && asset.id !== dup.id
+                                    const rowFixed = rowDeleted || idWasChanged
                                     
                                     return (
                                       <div 
@@ -612,7 +701,7 @@ export function ValidationModal({
                                         className={`text-sm flex items-center justify-between py-1 px-2 rounded ${
                                           rowDeleted 
                                             ? 'bg-red-100 line-through opacity-60'
-                                            : rowModified 
+                                            : idWasChanged 
                                               ? 'bg-green-100'
                                               : ''
                                         }`}
@@ -623,7 +712,7 @@ export function ValidationModal({
                                               Deleted
                                             </Badge>
                                           )}
-                                          {rowModified && !rowDeleted && (
+                                          {idWasChanged && !rowDeleted && (
                                             <CheckCircle2 className="w-3 h-3 text-green-600" />
                                           )}
                                           <span className="text-orange-500 text-xs w-16">Row {row}</span>
@@ -661,13 +750,16 @@ export function ValidationModal({
                       <AccordionContent className="px-4 pb-4">
                         <div className="mb-3">
                           <p className="text-sm text-gray-600">
-                            All assets must have a name. Edit the file to add names or delete these rows.
+                            All assets must have a name. Add a name or delete these rows.
                           </p>
                         </div>
                         <div className="space-y-2 max-h-80 overflow-y-auto">
                           {validationResult.missingNames.map((missing) => {
-                            const isFixed = modifiedRows.has(missing.row) || deletedRows.has(missing.row)
                             const isDeleted = deletedRows.has(missing.row)
+                            // Check if name was actually added (not just any modification)
+                            const asset = parsedAssets.find(a => a.row === missing.row)
+                            const nameWasAdded = asset && asset.name && asset.name.trim() !== ''
+                            const isFixed = isDeleted || nameWasAdded
                             
                             return (
                               <div 
@@ -680,27 +772,38 @@ export function ValidationModal({
                                       : 'bg-blue-50 border-blue-100'
                                 }`}
                               >
-                                <div className="flex items-center gap-2 text-sm">
-                                  {isDeleted ? (
-                                    <AlertCircle className="w-4 h-4 text-red-600" />
-                                  ) : isFixed ? (
-                                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                  ) : (
-                                    <FileX className="w-4 h-4 text-blue-600" />
-                                  )}
-                                  <span className="text-blue-500 text-xs w-16">Row {missing.row}</span>
-                                  <span className="font-mono text-xs bg-white px-1.5 py-0.5 rounded border">
-                                    {missing.assetId}
-                                  </span>
-                                  {missing.parentId && (
-                                    <span className="text-xs text-gray-500">
-                                      parent: {missing.parentId}
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-2">
+                                    {isDeleted ? (
+                                      <AlertCircle className="w-4 h-4 text-red-600" />
+                                    ) : isFixed ? (
+                                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                    ) : (
+                                      <FileX className="w-4 h-4 text-blue-600" />
+                                    )}
+                                    <span className="text-blue-500 text-xs w-16">Row {missing.row}</span>
+                                    <span className="font-mono text-xs bg-white px-1.5 py-0.5 rounded border">
+                                      {missing.assetId}
                                     </span>
-                                  )}
-                                  {isFixed && (
-                                    <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs ml-auto">
+                                    {missing.parentId && (
+                                      <span className="text-xs text-gray-500">
+                                        parent: {missing.parentId}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {isFixed ? (
+                                    <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
                                       {isDeleted ? 'Deleted' : 'Fixed'}
                                     </Badge>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleMissingNameFixClick(missing)}
+                                      className="h-6 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                                    >
+                                      Fix
+                                    </Button>
                                   )}
                                 </div>
                               </div>
@@ -784,7 +887,7 @@ export function ValidationModal({
         )}
       </DialogContent>
 
-      {/* Orphan Fix Dialog */}
+      {/* Orphan Fix Dialog - Single Mode */}
       <OrphanFixDialog
         open={orphanFixDialogOpen}
         onOpenChange={setOrphanFixDialogOpen}
@@ -792,6 +895,17 @@ export function ValidationModal({
         validParentOptions={parentOptionsForOrphan}
         onRemoveParent={onRemoveParentId}
         onChangeParent={onChangeParentId}
+      />
+
+      {/* Orphan Fix Dialog - Group Mode */}
+      <OrphanFixDialog
+        open={orphanGroupFixDialogOpen}
+        onOpenChange={setOrphanGroupFixDialogOpen}
+        orphanGroup={selectedOrphanGroup}
+        validParentOptions={parentOptionsForOrphanGroup}
+        onRemoveParent={onRemoveParentId}
+        onChangeParent={onChangeParentId}
+        onBulkRemoveOrphanParents={onBulkRemoveOrphanParents}
       />
 
       {/* Fix All Orphans Confirmation */}
@@ -806,31 +920,13 @@ export function ValidationModal({
             </p>
             <p>Each affected asset will become a root-level asset with no parent.</p>
             <p className="text-amber-600 text-xs mt-2">
-              To assign new parents individually, use the &quot;Fix&quot; button on each row instead.
+              To assign new parents individually or in groups, use the &quot;Fix&quot; or &quot;Fix Group&quot; buttons instead.
             </p>
           </div>
         }
         confirmLabel="Remove All Parents"
         variant="warning"
         onConfirm={onBulkRemoveAllOrphanParents}
-      />
-
-      {/* Fix Group Confirmation */}
-      <ConfirmationDialog
-        open={showFixGroupConfirm}
-        onOpenChange={setShowFixGroupConfirm}
-        title="Fix Orphan Group"
-        description={
-          <div className="space-y-2">
-            <p>
-              This will <strong>remove the parent reference</strong> from all assets looking for parent &quot;{pendingGroupFix?.missingParentId}&quot;.
-            </p>
-            <p>Each affected asset will become a root-level asset with no parent.</p>
-          </div>
-        }
-        confirmLabel="Remove Parents"
-        variant="warning"
-        onConfirm={() => pendingGroupFix && onBulkRemoveOrphanParents(pendingGroupFix)}
       />
 
       {/* Break All Cycles Confirmation */}
@@ -859,6 +955,18 @@ export function ValidationModal({
         getChildrenOfAsset={getChildrenOfAsset}
         getValidParentOptions={getValidParentOptions}
         onChangeAssetId={onChangeAssetId}
+        onDeleteRow={onDeleteRow}
+        onReassignChildren={onReassignChildren}
+      />
+
+      {/* Missing Name Fix Dialog */}
+      <MissingNameFixDialog
+        open={missingNameFixDialogOpen}
+        onOpenChange={setMissingNameFixDialogOpen}
+        missingName={selectedMissingName}
+        getChildrenOfAsset={getChildrenOfAsset}
+        getValidParentOptions={getValidParentOptions}
+        onUpdateName={onUpdateAssetName}
         onDeleteRow={onDeleteRow}
         onReassignChildren={onReassignChildren}
       />
