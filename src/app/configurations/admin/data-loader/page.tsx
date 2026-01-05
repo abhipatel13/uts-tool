@@ -448,7 +448,10 @@ export default function DataLoader() {
 
   // Handle proceed from validation modal - do the actual upload
   const handleValidationProceed = async () => {
-    if (!pendingFile || !pendingMappings || !validationResult || validationResult.hasErrors) return
+    // Note: We don't check validationResult.hasErrors here because:
+    // 1. The button is only enabled when hasUnfixedErrors is false (in ValidationModal)
+    // 2. getFinalValidation() below will re-validate the actual modified data
+    if (!pendingFile || !pendingMappings || !validationResult) return
 
     // IMPORTANT: Run final validation on the actual data that will be uploaded
     // This catches any state/timing issues where validation result doesn't match actual data

@@ -169,29 +169,7 @@ export function ValidationModal({
     setMissingNameFixDialogOpen(true)
   }, [])
 
-  // Calculate summary stats
-  const summary = useMemo(() => {
-    if (!validationResult) return null
-    
-    const cycleCount = validationResult.cycles.length
-    const orphanCount = validationResult.orphanGroups.reduce(
-      (sum, g) => sum + g.orphans.length, 0
-    )
-    const duplicateCount = validationResult.duplicates.reduce(
-      (sum, d) => sum + d.rows.length, 0
-    )
-    const missingNameCount = validationResult.missingNames.length
-    
-    return {
-      cycleCount,
-      orphanCount,
-      duplicateCount,
-      missingNameCount,
-      totalIssues: cycleCount + orphanCount + duplicateCount + missingNameCount,
-    }
-  }, [validationResult])
 
-  // Count unfixed orphans (those not in modifiedRows)
   // Count unfixed orphans
   // An orphan is only "fixed" if deleted OR its parent reference was changed
   const unfixedOrphanCount = useMemo(() => {
@@ -199,7 +177,7 @@ export function ValidationModal({
     return validationResult.orphanGroups.reduce((sum, g) => {
       const unfixed = g.orphans.filter(o => {
         if (deletedRows.has(o.row)) return false // deleted = fixed
-        // Check if parent was changed from the missing value
+        // Check if parent was changed from the missing value (case-sensitive - must match exactly)
         const asset = parsedAssets.find(a => a.row === o.row)
         if (!asset) return true // can't find asset, still unfixed
         return asset.parentId === o.missingParentId // still has the bad parent = unfixed
@@ -208,7 +186,6 @@ export function ValidationModal({
     }, 0)
   }, [validationResult, parsedAssets, deletedRows])
 
-  // Count unfixed cycles
   // Count unfixed cycles
   // A cycle is "fixed" if any row was deleted OR had its parent removed/changed
   const unfixedCycleCount = useMemo(() => {
@@ -233,15 +210,14 @@ export function ValidationModal({
       // A row is "fixed" for this duplicate if: deleted OR its current ID no longer matches the duplicate ID
       const fixedRows = dup.rows.filter(row => {
         if (deletedRows.has(row)) return true
-        // Check if the row's current ID is different from the duplicate ID
+        // Check if the row's current ID is different from the duplicate ID (case-insensitive)
         const asset = parsedAssets.find(a => a.row === row)
-        return asset && asset.id !== dup.id
+        return asset && asset.id.toLowerCase() !== dup.id.toLowerCase()
       })
       return fixedRows.length < dup.rows.length - 1 // Need to fix all but one
     }).length
   }, [validationResult, parsedAssets, deletedRows])
 
-  // Count unfixed missing names
   // Count unfixed missing names
   // A missing name is only "fixed" if deleted OR name was actually added
   const unfixedMissingNameCount = useMemo(() => {
@@ -255,7 +231,14 @@ export function ValidationModal({
     }).length
   }, [validationResult, parsedAssets, deletedRows])
 
-  const canProceed = validationResult && !validationResult.hasErrors
+  // Check if there are any UNFIXED issues (not just if validation found issues)
+  // This allows proceeding once all issues have been fixed
+  const hasUnfixedErrors = unfixedCycleCount > 0 || 
+    unfixedOrphanCount > 0 || 
+    unfixedDuplicateCount > 0 || 
+    unfixedMissingNameCount > 0
+  
+  const canProceed = validationResult && !hasUnfixedErrors
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -281,48 +264,58 @@ export function ValidationModal({
           {!isValidating && validationResult && (
             <>
               {/* Summary Card */}
-              <div className={`rounded-lg p-4 ${
-                validationResult.hasErrors 
-                  ? 'bg-amber-50 border border-amber-200' 
-                  : 'bg-green-50 border border-green-200'
-              }`}>
-                <div className="flex items-center gap-3">
-                  {validationResult.hasErrors ? (
-                    <AlertCircle className="w-6 h-6 text-amber-600" />
-                  ) : (
-                    <CheckCircle2 className="w-6 h-6 text-green-600" />
-                  )}
-                  <div className="flex-1">
-                    <h3 className={`font-semibold ${
-                      validationResult.hasErrors ? 'text-amber-800' : 'text-green-800'
-                    }`}>
-                      {validationResult.hasErrors 
-                        ? `${summary?.totalIssues} Issue${summary?.totalIssues !== 1 ? 's' : ''} Found`
-                        : 'All Validations Passed!'
-                      }
-                    </h3>
-                    <p className={`text-sm ${
-                      validationResult.hasErrors ? 'text-amber-600' : 'text-green-600'
-                    }`}>
-                      {validationResult.totalAssets.toLocaleString()} assets validated
-                      {validationResult.hasErrors && (
-                        <> • {validationResult.validAssets.toLocaleString()} valid</>
+              {(() => {
+                const totalUnfixed = unfixedCycleCount + unfixedOrphanCount + unfixedDuplicateCount + unfixedMissingNameCount
+                const allFixed = validationResult.hasErrors && totalUnfixed === 0
+                const showSuccess = !validationResult.hasErrors || allFixed
+                
+                return (
+                  <div className={`rounded-lg p-4 ${
+                    showSuccess 
+                      ? 'bg-green-50 border border-green-200' 
+                      : 'bg-amber-50 border border-amber-200'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      {showSuccess ? (
+                        <CheckCircle2 className="w-6 h-6 text-green-600" />
+                      ) : (
+                        <AlertCircle className="w-6 h-6 text-amber-600" />
                       )}
-                    </p>
+                      <div className="flex-1">
+                        <h3 className={`font-semibold ${
+                          showSuccess ? 'text-green-800' : 'text-amber-800'
+                        }`}>
+                          {showSuccess
+                            ? allFixed 
+                              ? 'All Issues Fixed!' 
+                              : 'All Validations Passed!'
+                            : `${totalUnfixed} Issue${totalUnfixed !== 1 ? 's' : ''} Found`
+                          }
+                        </h3>
+                        <p className={`text-sm ${
+                          showSuccess ? 'text-green-600' : 'text-amber-600'
+                        }`}>
+                          {validationResult.totalAssets.toLocaleString()} assets validated
+                          {!showSuccess && (
+                            <> • {validationResult.validAssets.toLocaleString()} valid</>
+                          )}
+                        </p>
+                      </div>
+                      {hasChanges && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={onResetChanges}
+                          className="text-gray-600"
+                        >
+                          <Undo2 className="w-4 h-4 mr-1" />
+                          Reset
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  {hasChanges && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={onResetChanges}
-                      className="text-gray-600"
-                    >
-                      <Undo2 className="w-4 h-4 mr-1" />
-                      Reset
-                    </Button>
-                  )}
-                </div>
-              </div>
+                )
+              })()}
 
               {/* Modified rows indicator */}
               {hasChanges && (
@@ -358,21 +351,16 @@ export function ValidationModal({
                       onValueChange={setExpandedSections}
                       className="space-y-2"
                     >
-                  {/* Cycles Section */}
-                  {validationResult.cycles.length > 0 && (
+                  {/* Cycles Section - only show if there are unfixed cycles */}
+                  {unfixedCycleCount > 0 && (
                     <AccordionItem value="cycles" className="border rounded-lg">
                       <AccordionTrigger className="px-4 hover:no-underline">
                         <div className="flex items-center gap-3 flex-1">
                           <RefreshCw className="w-5 h-5 text-purple-600" />
                           <span className="font-medium">Circular Dependencies</span>
                           <Badge variant="secondary" className="bg-purple-100 text-purple-800">
-                            {validationResult.cycles.length}
+                            {unfixedCycleCount}
                           </Badge>
-                          {unfixedCycleCount < validationResult.cycles.length && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {validationResult.cycles.length - unfixedCycleCount} fixed
-                            </Badge>
-                          )}
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pb-4">
@@ -401,72 +389,53 @@ export function ValidationModal({
                             }
                             const isFixed = cycle.rows.some(isCycleRowFixed)
                             
+                            // Don't display fixed cycles
+                            if (isFixed) return null
+                            
                             return (
                               <div 
                                 key={cycle.cycleId}
-                                className={`rounded-lg p-3 border ${
-                                  isFixed 
-                                    ? 'bg-green-50 border-green-200' 
-                                    : 'bg-purple-50 border-purple-100'
-                                }`}
+                                className="rounded-lg p-3 border bg-purple-50 border-purple-100"
                               >
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-2 text-sm font-medium text-purple-800">
-                                    {isFixed ? (
-                                      <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                    ) : (
-                                      <RefreshCw className="w-4 h-4" />
-                                    )}
+                                    <RefreshCw className="w-4 h-4" />
                                     Cycle {cycle.cycleId.replace('cycle-', '#')}
-                                    {isFixed && (
-                                      <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                                        Fixed
-                                      </Badge>
-                                    )}
                                   </div>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-1 text-sm mb-3">
-                                  {cycle.assetIds.map((id, idx) => {
-                                    const rowFixed = isCycleRowFixed(cycle.rows[idx])
-                                    return (
-                                      <span key={id} className="flex items-center">
-                                        <span className={`px-2 py-0.5 rounded border ${
-                                          rowFixed
-                                            ? 'bg-green-100 border-green-300'
-                                            : 'bg-white border-purple-200'
-                                        }`}>
-                                          {id}
-                                          <span className="text-purple-500 text-xs ml-1">
-                                            (Row {cycle.rows[idx]})
-                                          </span>
+                                  {cycle.assetIds.map((id, idx) => (
+                                    <span key={id} className="flex items-center">
+                                      <span className="px-2 py-0.5 rounded border bg-white border-purple-200">
+                                        {id}
+                                        <span className="text-purple-500 text-xs ml-1">
+                                          (Row {cycle.rows[idx]})
                                         </span>
-                                        {idx < cycle.assetIds.length - 1 && (
-                                          <ChevronRight className="w-4 h-4 text-purple-400 mx-1" />
-                                        )}
                                       </span>
-                                    )
-                                  })}
+                                      {idx < cycle.assetIds.length - 1 && (
+                                        <ChevronRight className="w-4 h-4 text-purple-400 mx-1" />
+                                      )}
+                                    </span>
+                                  ))}
                                   <ChevronRight className="w-4 h-4 text-purple-400 mx-1" />
                                   <span className="text-purple-600 font-medium">
                                     {cycle.assetIds[0]}
                                   </span>
                                 </div>
-                                {!isFixed && (
-                                  <div className="flex flex-wrap gap-2">
-                                    <span className="text-xs text-gray-500 self-center">Break at:</span>
-                                    {cycle.rows.map((row, idx) => (
-                                      <Button
-                                        key={row}
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => onBreakCycleAtRow(row)}
-                                        className="text-xs h-7"
-                                      >
-                                        Row {row} ({cycle.assetNames[idx]})
-                                      </Button>
-                                    ))}
-                                  </div>
-                                )}
+                                <div className="flex flex-wrap gap-2">
+                                  <span className="text-xs text-gray-500 self-center">Break at:</span>
+                                  {cycle.rows.map((row, idx) => (
+                                    <Button
+                                      key={row}
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => onBreakCycleAtRow(row)}
+                                      className="text-xs h-7"
+                                    >
+                                      Row {row} ({cycle.assetNames[idx]})
+                                    </Button>
+                                  ))}
+                                </div>
                               </div>
                             )
                           })}
@@ -475,21 +444,16 @@ export function ValidationModal({
                     </AccordionItem>
                   )}
 
-                  {/* Orphans Section */}
-                  {validationResult.orphanGroups.length > 0 && (
+                  {/* Orphans Section - only show if there are unfixed orphans */}
+                  {unfixedOrphanCount > 0 && (
                     <AccordionItem value="orphans" className="border rounded-lg">
                       <AccordionTrigger className="px-4 hover:no-underline">
                         <div className="flex items-center gap-3 flex-1">
                           <Ghost className="w-5 h-5 text-red-600" />
                           <span className="font-medium">Orphaned Assets</span>
                           <Badge variant="secondary" className="bg-red-100 text-red-800">
-                            {summary?.orphanCount}
+                            {unfixedOrphanCount}
                           </Badge>
-                          {unfixedOrphanCount < (summary?.orphanCount || 0) && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {(summary?.orphanCount || 0) - unfixedOrphanCount} fixed
-                            </Badge>
-                          )}
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pb-4">
@@ -519,91 +483,55 @@ export function ValidationModal({
                             const unfixedInGroup = group.orphans.filter(o => !isOrphanFixed(o))
                             const allFixed = unfixedInGroup.length === 0
                             
+                            // Don't display groups that are fully fixed
+                            if (allFixed) return null
+                            
                             return (
                               <div 
                                 key={group.missingParentId}
-                                className={`rounded-lg p-3 border ${
-                                  allFixed 
-                                    ? 'bg-green-50 border-green-200' 
-                                    : 'bg-red-50 border-red-100'
-                                }`}
+                                className="rounded-lg p-3 border bg-red-50 border-red-100"
                               >
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-2 text-sm font-medium text-red-800">
-                                    {allFixed ? (
-                                      <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                    ) : (
-                                      <AlertCircle className="w-4 h-4" />
-                                    )}
+                                    <AlertCircle className="w-4 h-4" />
                                     Parent &quot;{group.missingParentId}&quot; not found
-                                    <Badge variant="outline" className={
-                                      allFixed 
-                                        ? "text-green-600 border-green-300"
-                                        : "text-red-600 border-red-300"
-                                    }>
-                                      {group.orphans.length} asset{group.orphans.length !== 1 ? 's' : ''}
+                                    <Badge variant="outline" className="text-red-600 border-red-300">
+                                      {unfixedInGroup.length} asset{unfixedInGroup.length !== 1 ? 's' : ''}
                                     </Badge>
-                                    {allFixed && (
-                                      <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                                        All Fixed
-                                      </Badge>
-                                    )}
                                   </div>
-                                  {!allFixed && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleFixGroupClick(group)}
-                                      className="text-xs"
-                                    >
-                                      Fix Group ({unfixedInGroup.length})
-                                    </Button>
-                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleFixGroupClick(group)}
+                                    className="text-xs"
+                                  >
+                                    Fix Group ({unfixedInGroup.length})
+                                  </Button>
                                 </div>
                                 <div className="space-y-1 max-h-40 overflow-y-auto">
-                                  {group.orphans.map((orphan) => {
-                                    const isFixed = isOrphanFixed(orphan)
-                                    const isDeleted = deletedRows.has(orphan.row)
-                                    
-                                    return (
+                                  {/* Only show unfixed orphans */}
+                                  {unfixedInGroup.map((orphan) => (
                                       <div 
                                         key={orphan.row}
-                                        className={`text-sm flex items-center justify-between py-1 px-2 rounded ${
-                                          isDeleted 
-                                            ? 'bg-red-100 line-through opacity-60' 
-                                            : isFixed 
-                                              ? 'bg-green-100' 
-                                              : ''
-                                        }`}
+                                        className="text-sm flex items-center justify-between py-1 px-2 rounded"
                                       >
                                         <div className="flex items-center gap-2">
-                                          {isDeleted && (
-                                            <Badge variant="secondary" className="bg-red-200 text-red-700 text-xs">
-                                              Deleted
-                                            </Badge>
-                                          )}
-                                          {isFixed && !isDeleted && (
-                                            <CheckCircle2 className="w-3 h-3 text-green-600" />
-                                          )}
                                           <span className="text-red-500 text-xs w-16">Row {orphan.row}</span>
                                           <span className="font-mono text-xs bg-white px-1.5 py-0.5 rounded border">
                                             {orphan.assetId}
                                           </span>
                                           <span className="text-gray-600">{orphan.assetName}</span>
                                         </div>
-                                        {!isFixed && (
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => handleOrphanFixClick(orphan)}
-                                            className="h-6 text-xs text-red-600 hover:text-red-700 hover:bg-red-100"
-                                          >
-                                            Fix
-                                          </Button>
-                                        )}
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleOrphanFixClick(orphan)}
+                                          className="h-6 text-xs text-red-600 hover:text-red-700 hover:bg-red-100"
+                                        >
+                                          Fix
+                                        </Button>
                                       </div>
-                                    )
-                                  })}
+                                    ))}
                                 </div>
                               </div>
                             )
@@ -613,21 +541,16 @@ export function ValidationModal({
                     </AccordionItem>
                   )}
 
-                  {/* Duplicates Section */}
-                  {validationResult.duplicates.length > 0 && (
+                  {/* Duplicates Section - only show if there are unfixed duplicates */}
+                  {unfixedDuplicateCount > 0 && (
                     <AccordionItem value="duplicates" className="border rounded-lg">
                       <AccordionTrigger className="px-4 hover:no-underline">
                         <div className="flex items-center gap-3 flex-1">
                           <Copy className="w-5 h-5 text-orange-600" />
                           <span className="font-medium">Duplicate IDs</span>
                           <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                            {validationResult.duplicates.length} ID{validationResult.duplicates.length !== 1 ? 's' : ''}
+                            {unfixedDuplicateCount} ID{unfixedDuplicateCount !== 1 ? 's' : ''}
                           </Badge>
-                          {unfixedDuplicateCount < validationResult.duplicates.length && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {validationResult.duplicates.length - unfixedDuplicateCount} fixed
-                            </Badge>
-                          )}
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pb-4">
@@ -639,81 +562,66 @@ export function ValidationModal({
                         <div className="space-y-3">
                           {validationResult.duplicates.map((dup) => {
                             // A row is "fixed" for this duplicate if: deleted OR its ID was changed
-                            const fixedRows = dup.rows.filter(row => {
-                              if (deletedRows.has(row)) return true
+                            const getRowStatus = (row: number) => {
+                              if (deletedRows.has(row)) return 'deleted'
                               const asset = parsedAssets.find(a => a.row === row)
-                              return asset && asset.id !== dup.id
-                            })
-                            const isFixed = fixedRows.length >= dup.rows.length - 1
+                              if (asset && asset.id.toLowerCase() !== dup.id.toLowerCase()) return 'changed'
+                              return 'unfixed'
+                            }
+                            const rowStatuses = dup.rows.map(row => ({ row, status: getRowStatus(row) }))
+                            const fixedCount = rowStatuses.filter(r => r.status !== 'unfixed').length
+                            const isFullyFixed = fixedCount >= dup.rows.length - 1
+                            
+                            // Don't display duplicates that are fully fixed
+                            if (isFullyFixed) return null
+                            
+                            // Only show unfixed rows
+                            const unfixedRows = rowStatuses.filter(r => r.status === 'unfixed')
                             
                             return (
                               <div 
                                 key={dup.id}
-                                className={`rounded-lg p-3 border ${
-                                  isFixed 
-                                    ? 'bg-green-50 border-green-200' 
-                                    : 'bg-orange-50 border-orange-100'
-                                }`}
+                                className="rounded-lg p-3 border bg-orange-50 border-orange-100"
                               >
                                 <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2 text-sm font-medium text-orange-800">
-                                    {isFixed ? (
-                                      <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                    ) : (
-                                      <Copy className="w-4 h-4" />
-                                    )}
-                                    ID &quot;{dup.id}&quot;
-                                    <Badge variant="outline" className={
-                                      isFixed 
-                                        ? "text-green-600 border-green-300"
-                                        : "text-orange-600 border-orange-300"
-                                    }>
-                                      {dup.rows.length} occurrences
+                                  <div className="flex items-center gap-2 text-sm font-medium text-orange-800 flex-wrap">
+                                    <Copy className="w-4 h-4" />
+                                    {/* Show unique case variations of the ID */}
+                                    {(() => {
+                                      const uniqueIds = [...new Set(dup.originalIds)]
+                                      return uniqueIds.length === 1 
+                                        ? <span>ID &quot;{uniqueIds[0]}&quot;</span>
+                                        : <span>IDs &quot;{uniqueIds.join('", "')}&quot;</span>
+                                    })()}
+                                    <Badge variant="outline" className="text-orange-600 border-orange-300">
+                                      {unfixedRows.length + 1} occurrences
                                     </Badge>
-                                    {isFixed && (
-                                      <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                                        Fixed
-                                      </Badge>
-                                    )}
                                   </div>
-                                  {!isFixed && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleDuplicateFixClick(dup)}
-                                      className="text-xs"
-                                    >
-                                      Fix
-                                    </Button>
-                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDuplicateFixClick(dup)}
+                                    className="text-xs"
+                                  >
+                                    Fix
+                                  </Button>
                                 </div>
                                 <div className="space-y-1 max-h-40 overflow-y-auto">
                                   {dup.rows.map((row, idx) => {
                                     const rowDeleted = deletedRows.has(row)
-                                    // For duplicates, row is only "fixed" if deleted OR ID was changed
+                                    // For duplicates, row is only "fixed" if deleted OR ID was changed (case-insensitive)
                                     const asset = parsedAssets.find(a => a.row === row)
-                                    const idWasChanged = asset && asset.id !== dup.id
+                                    const idWasChanged = asset && asset.id.toLowerCase() !== dup.id.toLowerCase()
+                                    
+                                    // Skip displaying fixed rows (deleted or ID changed)
+                                    if (rowDeleted || idWasChanged) return null
                                     
                                     return (
                                       <div 
                                         key={row}
-                                        className={`text-sm flex items-center justify-between py-1 px-2 rounded ${
-                                          rowDeleted 
-                                            ? 'bg-red-100 line-through opacity-60'
-                                            : idWasChanged 
-                                              ? 'bg-green-100'
-                                              : ''
-                                        }`}
+                                        className="text-sm flex items-center justify-between py-1 px-2 rounded"
                                       >
                                         <div className="flex items-center gap-2">
-                                          {rowDeleted && (
-                                            <Badge variant="secondary" className="bg-red-200 text-red-700 text-xs">
-                                              Deleted
-                                            </Badge>
-                                          )}
-                                          {idWasChanged && !rowDeleted && (
-                                            <CheckCircle2 className="w-3 h-3 text-green-600" />
-                                          )}
                                           <span className="text-orange-500 text-xs w-16">Row {row}</span>
                                           <span className="text-gray-600">{dup.names[idx]}</span>
                                         </div>
@@ -729,21 +637,16 @@ export function ValidationModal({
                     </AccordionItem>
                   )}
 
-                  {/* Missing Names Section */}
-                  {validationResult.missingNames.length > 0 && (
+                  {/* Missing Names Section - only show if there are unfixed missing names */}
+                  {unfixedMissingNameCount > 0 && (
                     <AccordionItem value="missing-names" className="border rounded-lg">
                       <AccordionTrigger className="px-4 hover:no-underline">
                         <div className="flex items-center gap-3 flex-1">
                           <FileX className="w-5 h-5 text-blue-600" />
                           <span className="font-medium">Missing Names</span>
                           <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                            {validationResult.missingNames.length}
+                            {unfixedMissingNameCount}
                           </Badge>
-                          {unfixedMissingNameCount < validationResult.missingNames.length && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {validationResult.missingNames.length - unfixedMissingNameCount} fixed
-                            </Badge>
-                          )}
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pb-4">
@@ -755,31 +658,22 @@ export function ValidationModal({
                         <div className="space-y-2 max-h-80 overflow-y-auto">
                           {validationResult.missingNames.map((missing) => {
                             const isDeleted = deletedRows.has(missing.row)
-                            // Check if name was actually added (not just any modification)
+                            // Check if name was actually added
                             const asset = parsedAssets.find(a => a.row === missing.row)
                             const nameWasAdded = asset && asset.name && asset.name.trim() !== ''
                             const isFixed = isDeleted || nameWasAdded
                             
+                            // Don't display fixed items
+                            if (isFixed) return null
+                            
                             return (
                               <div 
                                 key={missing.row}
-                                className={`rounded-lg p-2 border ${
-                                  isDeleted 
-                                    ? 'bg-red-50 border-red-200 line-through opacity-60' 
-                                    : isFixed 
-                                      ? 'bg-green-50 border-green-200' 
-                                      : 'bg-blue-50 border-blue-100'
-                                }`}
+                                className="rounded-lg p-2 border bg-blue-50 border-blue-100"
                               >
                                 <div className="flex items-center justify-between text-sm">
                                   <div className="flex items-center gap-2">
-                                    {isDeleted ? (
-                                      <AlertCircle className="w-4 h-4 text-red-600" />
-                                    ) : isFixed ? (
-                                      <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                    ) : (
-                                      <FileX className="w-4 h-4 text-blue-600" />
-                                    )}
+                                    <FileX className="w-4 h-4 text-blue-600" />
                                     <span className="text-blue-500 text-xs w-16">Row {missing.row}</span>
                                     <span className="font-mono text-xs bg-white px-1.5 py-0.5 rounded border">
                                       {missing.assetId}
@@ -790,20 +684,14 @@ export function ValidationModal({
                                       </span>
                                     )}
                                   </div>
-                                  {isFixed ? (
-                                    <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                                      {isDeleted ? 'Deleted' : 'Fixed'}
-                                    </Badge>
-                                  ) : (
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handleMissingNameFixClick(missing)}
-                                      className="h-6 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-100"
-                                    >
-                                      Fix
-                                    </Button>
-                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleMissingNameFixClick(missing)}
+                                    className="h-6 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                                  >
+                                    Fix
+                                  </Button>
                                 </div>
                               </div>
                             )
@@ -815,10 +703,12 @@ export function ValidationModal({
                     </Accordion>
                   )}
 
-                  {/* Success State Details */}
-                  {!validationResult.hasErrors && (
+                  {/* Success State Details - show when no errors OR when all issues have been fixed */}
+                  {(!validationResult.hasErrors || !hasUnfixedErrors) && (
                     <div className="bg-gray-50 rounded-lg p-4 border">
-                      <h4 className="font-medium text-gray-700 mb-2">Validation Summary</h4>
+                      <h4 className="font-medium text-gray-700 mb-2">
+                        {validationResult.hasErrors ? 'All Issues Resolved' : 'Validation Summary'}
+                      </h4>
                       <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
                           <div className="text-2xl font-bold text-green-600">
@@ -828,7 +718,9 @@ export function ValidationModal({
                         </div>
                         <div>
                           <div className="text-2xl font-bold text-green-600">0</div>
-                          <div className="text-xs text-gray-500">Errors</div>
+                          <div className="text-xs text-gray-500">
+                            {validationResult.hasErrors ? 'Unfixed Issues' : 'Errors'}
+                          </div>
                         </div>
                         <div>
                           <div className="text-2xl font-bold text-green-600">✓</div>
@@ -838,6 +730,9 @@ export function ValidationModal({
                       {hasChanges && (
                         <div className="mt-3 pt-3 border-t text-center text-sm text-blue-600">
                           {modifiedRows.size} modification{modifiedRows.size !== 1 ? 's' : ''} will be applied
+                          {deletedRows.size > 0 && (
+                            <span className="text-red-600 ml-2">• {deletedRows.size} row{deletedRows.size !== 1 ? 's' : ''} deleted</span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -865,7 +760,7 @@ export function ValidationModal({
               Cancel Upload
             </Button>
             <div className="flex items-center gap-2">
-              {validationResult.hasErrors && (
+              {hasUnfixedErrors && (
                 <p className="text-sm text-amber-600 mr-2">
                   Fix all issues to enable upload
                 </p>
@@ -951,6 +846,7 @@ export function ValidationModal({
         open={duplicateFixDialogOpen}
         onOpenChange={setDuplicateFixDialogOpen}
         duplicate={selectedDuplicate}
+        parsedAssets={parsedAssets}
         getChildrenOfAsset={getChildrenOfAsset}
         getValidParentOptions={getValidParentOptions}
         onChangeAssetId={onChangeAssetId}

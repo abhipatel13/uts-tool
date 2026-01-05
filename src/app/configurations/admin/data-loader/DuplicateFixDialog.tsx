@@ -14,7 +14,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DuplicateInfo } from '@/types/validation'
+import { DuplicateInfo, ParsedAsset } from '@/types/validation'
 import { ChildAssetInfo, ParentOption } from './hooks/useAssetValidation'
 import { ChildSelectionPanel, ChildAssignments } from './ChildSelectionPanel'
 import { 
@@ -46,6 +46,7 @@ interface DuplicateFixDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   duplicate: DuplicateInfo | null
+  parsedAssets: ParsedAsset[]
   getChildrenOfAsset: (assetId: string, excludeRows?: number[]) => ChildAssetInfo[]
   getValidParentOptions: (excludeRow: number) => ParentOption[]
   onChangeAssetId: (row: number, newId: string) => void
@@ -65,6 +66,7 @@ export function DuplicateFixDialog({
   open,
   onOpenChange,
   duplicate,
+  parsedAssets,
   getChildrenOfAsset,
   getValidParentOptions,
   onChangeAssetId,
@@ -197,12 +199,19 @@ export function DuplicateFixDialog({
     // Process each row action
     const rowsDeleted: number[] = []
     const rowsChanged: { row: number; newId: string }[] = []
+    let keptRowId: string | null = null // Track the ID of the "keep" row
     
     for (const [row, state] of rowActions.entries()) {
       if (state.action.type === 'delete') {
         rowsDeleted.push(row)
       } else if (state.action.type === 'change_id') {
         rowsChanged.push({ row, newId: state.newIdValue.trim() })
+      } else if (state.action.type === 'keep') {
+        // Find the actual ID for this kept row from parsedAssets
+        const keptAsset = parsedAssets.find(a => a.row === row)
+        if (keptAsset) {
+          keptRowId = keptAsset.id
+        }
       }
     }
 
@@ -228,19 +237,22 @@ export function DuplicateFixDialog({
                 onReassignChildren([childRow], action.newParentId)
               } else if (action.type === 'make_root') {
                 onReassignChildren([childRow], null)
+              } else if (action.type === 'keep' && keptRowId) {
+                // Reassign to the kept row's ID to handle case-insensitive duplicates
+                onReassignChildren([childRow], keptRowId)
               }
-              // 'keep' - no action needed, children will point to kept row
             }
           }
         }
 
-        // Process remaining children not individually assigned
+        // Process remaining children not individually assigned - reassign to kept row
         const unprocessedChildren = children
           .filter(c => !processedChildren.has(c.row))
           .map(c => c.row)
         
-        if (unprocessedChildren.length > 0) {
-          // Default: keep pointing to original ID (no action needed if keep row exists)
+        if (unprocessedChildren.length > 0 && keptRowId) {
+          // Reassign to kept row to handle case variations
+          onReassignChildren(unprocessedChildren, keptRowId)
         }
       } else {
         // Simple mode - use bulk actions
@@ -250,8 +262,10 @@ export function DuplicateFixDialog({
             
             if (state.simpleChildAction === 'make_root') {
               onReassignChildren(childRows, null)
+            } else if (state.simpleChildAction === 'keep' && keptRowId) {
+              // Reassign ALL children to the kept row's ID to handle case-insensitive matches
+              onReassignChildren(childRows, keptRowId)
             }
-            // If 'keep', children remain pointing to original ID (handled by keep row)
             break // Only process once for simple mode
           }
         }
@@ -265,7 +279,7 @@ export function DuplicateFixDialog({
     rowsChanged.forEach(({ row, newId }) => onChangeAssetId(row, newId))
 
     onOpenChange(false)
-  }, [validate, duplicate, rowActions, children, onDeleteRow, onChangeAssetId, onReassignChildren, onOpenChange])
+  }, [validate, duplicate, rowActions, children, parsedAssets, onDeleteRow, onChangeAssetId, onReassignChildren, onOpenChange])
 
   // Check if we can apply
   const canApply = useMemo(() => {
@@ -393,7 +407,7 @@ export function DuplicateFixDialog({
                                 Keep with original ID
                               </Label>
                               <p className="text-sm text-gray-500">
-                                This row will retain the ID &quot;{duplicate.id}&quot;
+                                This row will retain the ID &quot;{duplicate.originalIds[idx]}&quot;
                               </p>
                             </div>
                           </div>
@@ -517,7 +531,7 @@ export function DuplicateFixDialog({
                                   updateRowAction(row, { individualChildAssignments: assignments })
                                 }
                                 validParentOptions={getValidParentOptions(row)}
-                                defaultKeepParentId={duplicate.id}
+                                defaultKeepParentId={duplicate.originalIds[idx]}
                                 excludeParentRows={duplicate.rows.filter(r => {
                                   const s = rowActions.get(r)
                                   return s?.action.type === 'delete'

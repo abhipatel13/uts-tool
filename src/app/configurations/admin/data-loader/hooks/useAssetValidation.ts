@@ -162,13 +162,17 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
     setModifiedRows(prev => new Set([...prev, row]))
   }, [headers, revalidate])
 
-  // Get valid parent options (excluding the current asset to prevent self-reference)
+  // Get valid parent options (excluding the current asset and deleted rows)
   const getValidParentOptions = useCallback((excludeRow: number): ParentOption[] => {
     return parsedAssets
-      .filter(a => a.row !== excludeRow && a.id) // Exclude self and assets without ID
+      .filter(a => 
+        a.row !== excludeRow && 
+        a.id && 
+        !deletedRows.has(a.row) // Exclude deleted rows
+      )
       .map(a => ({ id: a.id, name: a.name, row: a.row }))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [parsedAssets])
+  }, [parsedAssets, deletedRows])
 
   // Bulk remove parent_ids for a specific orphan group
   const bulkRemoveOrphanParents = useCallback((orphanGroup: OrphanGroup) => {
@@ -260,10 +264,12 @@ export function useAssetValidation(headers: string[]): UseAssetValidationReturn 
   // ============================================================================
 
   // Get all children of a specific asset ID (optionally excluding certain rows)
+  // Uses case-insensitive comparison for parent ID matching
   const getChildrenOfAsset = useCallback((assetId: string, excludeRows: number[] = []): ChildAssetInfo[] => {
+    const normalizedAssetId = assetId.toLowerCase()
     return parsedAssets
       .filter(a => 
-        a.parentId === assetId && 
+        a.parentId?.toLowerCase() === normalizedAssetId && 
         !excludeRows.includes(a.row) &&
         !deletedRows.has(a.row)
       )

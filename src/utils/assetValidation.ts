@@ -159,15 +159,17 @@ export function detectCycles(assets: ParsedAsset[]): CycleInfo[] {
 /**
  * Detect orphaned assets (parent_id references non-existent ID)
  * Groups orphans by their missing parent for better UX
+ * Note: Uses case-SENSITIVE comparison - IDs must match exactly to prevent backend issues
  */
 export function detectOrphans(assets: ParsedAsset[]): OrphanGroup[] {
-  // Build set of all valid IDs
+  // Build set of all valid IDs (case-sensitive - must match exactly)
   const validIds = new Set(assets.map(a => a.id));
 
   // Find all orphans
   const orphansByMissingParent = new Map<string, OrphanInfo[]>();
 
   assets.forEach(asset => {
+    // Case-sensitive check: parent ID must match an existing asset ID exactly
     if (asset.parentId && !validIds.has(asset.parentId)) {
       const orphanInfo: OrphanInfo = {
         assetId: asset.id,
@@ -203,21 +205,26 @@ export function detectOrphans(assets: ParsedAsset[]): OrphanGroup[] {
  * Detect duplicate IDs in the asset list
  */
 export function detectDuplicates(assets: ParsedAsset[]): DuplicateInfo[] {
+  // Use lowercase ID as key for case-insensitive comparison
   const idOccurrences = new Map<string, ParsedAsset[]>();
 
   assets.forEach(asset => {
-    const existing = idOccurrences.get(asset.id) || [];
+    const normalizedId = asset.id.toLowerCase();
+    const existing = idOccurrences.get(normalizedId) || [];
     existing.push(asset);
-    idOccurrences.set(asset.id, existing);
+    idOccurrences.set(normalizedId, existing);
   });
 
   const duplicates: DuplicateInfo[] = [];
-  idOccurrences.forEach((assetList, id) => {
+  idOccurrences.forEach((assetList, normalizedId) => {
     if (assetList.length > 1) {
       duplicates.push({
-        id,
+        // Store the normalized (lowercase) ID for consistent comparison
+        id: normalizedId,
         rows: assetList.map(a => a.row).sort((a, b) => a - b),
         names: assetList.map(a => a.name),
+        // Store original IDs so we can display what the user actually entered
+        originalIds: assetList.map(a => a.id),
       });
     }
   });

@@ -57,12 +57,14 @@ export interface OrphanGroup {
  * Information about duplicate IDs
  */
 export interface DuplicateInfo {
-  /** The ID value that appears multiple times */
+  /** The normalized (lowercase) ID value for comparison */
   id: string;
   /** Row numbers where this ID appears (1-based for display) */
   rows: number[];
   /** Names of assets with this duplicate ID */
   names: string[];
+  /** Original IDs as entered by user (preserves case for display) */
+  originalIds: string[];
 }
 
 // ============================================================================
